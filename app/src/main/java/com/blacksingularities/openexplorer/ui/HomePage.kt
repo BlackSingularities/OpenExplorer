@@ -307,7 +307,7 @@ private fun TileGrid(
     val limit = if (settings.homeAllTiles || editMode) Int.MAX_VALUE else cols * settings.homeRows.coerceIn(1, 30)
     val tiles = store.tiles.take(limit)
     val showAdd = editMode || (settings.tileAddButton && store.tiles.size < limit)
-    val spacing = settings.tileSpacing.dp
+    val requestedSpacing = settings.tileSpacing.dp
     val density = LocalDensity.current
 
     var dragIndex by remember { mutableIntStateOf(-1) }
@@ -315,7 +315,9 @@ private fun TileGrid(
     var cellHeightPx by remember { mutableIntStateOf(1) }
 
     BoxWithConstraints(Modifier.fillMaxWidth().widthIn(max = settings.homeWidth.dp)) {
-        val cellW = (maxWidth - spacing * (cols - 1)) / cols
+        // Odstępy nie mogą zabrać więcej niż połowy szerokości (inaczej komórki miałyby ujemny rozmiar).
+        val spacing = if (cols > 1) minOf(requestedSpacing, maxWidth / (2 * (cols - 1))) else requestedSpacing
+        val cellW = ((maxWidth - spacing * (cols - 1)) / cols).coerceAtLeast(1.dp)
         val cellWPx = with(density) { (cellW + spacing).toPx() }
         val rowStepPx = cellHeightPx + with(density) { spacing.toPx() }
         val count = tiles.size + if (showAdd) 1 else 0

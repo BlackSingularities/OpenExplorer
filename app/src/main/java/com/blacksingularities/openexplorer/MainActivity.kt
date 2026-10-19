@@ -147,7 +147,14 @@ class MainActivity : ComponentActivity(), BrowserHost {
                     c.isAppearanceLightNavigationBars = !dark
                 }
                 val dims = if (s.density == "compact") CompactDims else NormalDims
-                CompositionLocalProvider(LocalDims provides dims, LocalHaptics provides s.haptics) {
+                // Globalna obsługa „Wstecz” – rejestrowana jako pierwsza, by ekrany (np. podstrony ustawień) mogły ją przesłonić.
+                BackHandler(enabled = true) { onBack() }
+                // Kolor treści zgodny z motywem (bez tego teksty i ikony poza Surface są czarne także w ciemnym motywie).
+                CompositionLocalProvider(
+                    LocalDims provides dims,
+                    LocalHaptics provides s.haptics,
+                    androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onBackground,
+                ) {
                     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                         AnimatedContent(screen, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "screen") { sc ->
                             val back = { screen = "browser" }
@@ -190,7 +197,6 @@ class MainActivity : ComponentActivity(), BrowserHost {
                         }
                     }
                 }
-                BackHandler(enabled = true) { onBack() }
                 LaunchedEffect(state.fullscreen) { setFullscreenBars(state.fullscreen != null) }
             }
         }

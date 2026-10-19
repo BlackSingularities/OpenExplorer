@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.Icon
@@ -125,10 +126,12 @@ fun RoundIcon(
 fun Panel(
     title: String,
     onClose: () -> Unit,
+    onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
     scrollable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onBackground) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 720.dp
         if (wide) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)).clickable(onClick = onClose))
@@ -140,7 +143,14 @@ fun Panel(
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .imePadding(),
         ) {
-            Row(Modifier.padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.padding(start = if (onBack != null) 6.dp else 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (onBack != null) {
+                    RoundIcon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", onClick = onBack)
+                    Spacer(Modifier.width(6.dp))
+                }
                 Text(title, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
                 actions()
@@ -152,6 +162,7 @@ fun Panel(
                 content = content,
             )
         }
+    }
     }
 }
 
@@ -202,7 +213,9 @@ fun ClickRow(title: String, subtitle: String? = null, value: String? = null, onC
 
 @Composable
 fun SliderRow(title: String, value: Int, range: IntRange, suffix: String = "", step: Int = 1, onChange: (Int) -> Unit) {
-    var local by remember(value) { mutableFloatStateOf(value.toFloat()) }
+    var local by remember { mutableFloatStateOf(value.toFloat()) }
+    // Zewnętrzna zmiana (np. gotowy układ) przestawia suwak.
+    androidx.compose.runtime.LaunchedEffect(value) { if (local.roundToInt() != value) local = value.toFloat() }
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp)) {
         Row(Modifier.padding(top = 6.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
@@ -210,8 +223,15 @@ fun SliderRow(title: String, value: Int, range: IntRange, suffix: String = "", s
         }
         val steps = ((range.last - range.first) / step - 1).coerceAtLeast(0)
         Slider(
-            local, { local = it }, valueRange = range.first.toFloat()..range.last.toFloat(), steps = steps,
-            onValueChangeFinished = { onChange(local.roundToInt()) },
+            local,
+            {
+                local = it
+                // Zmiana na żywo (podgląd reaguje od razu), zapis tylko gdy zmieniła się wartość całkowita.
+                val v = it.roundToInt()
+                if (v != value) onChange(v)
+            },
+            valueRange = range.first.toFloat()..range.last.toFloat(), steps = steps,
+            onValueChangeFinished = { local.roundToInt().let { if (it != value) onChange(it) } },
         )
     }
 }
