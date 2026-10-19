@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ikona powiadomień: jednobarwny glob (system używa tylko kanału alfa). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8"
+        android:pathData="M12,3a9,9 0,1 1,0 18a9,9 0,1 1,0 -18zM3,12h18M12,3c-3,2.6 -4.2,5.6 -4.2,9s1.2,6.4 4.2,9M12,3c3,2.6 4.2,5.6 4.2,9s-1.2,6.4 -4.2,9" />
+</vector>

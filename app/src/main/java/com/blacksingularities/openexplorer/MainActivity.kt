@@ -116,7 +116,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
         super.onCreate(savedInstanceState)
         val app = application as OpenExplorerApp
         state = BrowserState(this, app.settings, app.store, app.adBlocker)
-        updater = Updater(this)
+        updater = app.updater
         state.restoreSession()
         handleIntent(intent, initial = true)
 
@@ -127,14 +127,6 @@ class MainActivity : ComponentActivity(), BrowserHost {
         }
 
         val s = app.settings
-        if (s.autoUpdate && System.currentTimeMillis() - s.lastUpdateCheck > 3 * 3600_000L) {
-            lifecycleScope.launch {
-                s.lastUpdateCheck = System.currentTimeMillis()
-                val r = updater.check()
-                if (r is UpdateState.Available && r.info.version == s.skippedVersion) updater.dismiss()
-                else if (r !is UpdateState.Available) updater.dismiss()
-            }
-        }
 
         setContent {
             val tab = state.current
@@ -182,10 +174,8 @@ class MainActivity : ComponentActivity(), BrowserHost {
                             updater,
                             onUpdate = { startUpdate() },
                             onInstall = { (updater.state as? UpdateState.Ready)?.let { installUpdate(it) } },
-                            onHide = {
-                                (updater.state as? UpdateState.Available)?.let { s.skippedVersion = it.info.version }
-                                updater.dismiss()
-                            },
+                            onRetry = { retryUpdate() },
+                            onHide = { updater.dismiss() },
                             modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding(),
                         )
                         SnackHost(state, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 56.dp))
@@ -227,8 +217,42 @@ class MainActivity : ComponentActivity(), BrowserHost {
         }
     }
 
+    private fun retryUpdate() {
+        val info = (updater.state as? UpdateState.Failed)?.info
+        lifecycleScope.launch {
+            if (info != null) {
+                updater.download(info)
+                (updater.state as? UpdateState.Ready)?.let { installUpdate(it) }
+            } else updater.check()
+        }
+    }
+
     private fun installUpdate(ready: UpdateState.Ready) {
-        if (!updater.install(ready.file)) toast("Zezwól na instalację z tego źródła i dotknij „Zainstaluj”")
+        if (!updater.install(ready)) toast("Zezwól na instalację z tego źródła – aktualizacja dokończy się po powrocie")
+    }
+
+    /**
+     * Automatyczne sprawdzenie przy każdym powrocie do aplikacji (najwyżej co godzinę) i –
+     * gdy włączone – pobranie w tle, żeby aktualizacja była gotowa do instalacji jednym dotknięciem.
+     */
+    private fun autoCheck(force: Boolean = false) {
+        val s = (application as OpenExplorerApp).settings
+        if (!s.autoUpdate && !force) return
+        if (!force && System.currentTimeMillis() - updater.lastCheck < 60 * 60_000L) {
+            autoDownload()
+            return
+        }
+        lifecycleScope.launch {
+            updater.check(quiet = !force)
+            autoDownload()
+        }
+    }
+
+    private fun autoDownload() {
+        val s = (application as OpenExplorerApp).settings
+        val info = (updater.state as? UpdateState.Available)?.info ?: return
+        if (!s.updateAutoDownload || (s.updateWifiOnly && !updater.unmetered())) return
+        lifecycleScope.launch { updater.download(info) }
     }
 
     private fun setFullscreenBars(on: Boolean) {
@@ -246,6 +270,23 @@ class MainActivity : ComponentActivity(), BrowserHost {
 
     private fun handleIntent(intent: Intent?, initial: Boolean) {
         intent ?: return
+        if (intent.action == Updater.ACTION_INSTALL) {
+            // Z powiadomienia: instalacja gotowej aktualizacji albo pobranie i instalacja.
+            updater.clearNotification()
+            when (val st = updater.state) {
+                is UpdateState.Ready -> installUpdate(st)
+                is UpdateState.Available -> startUpdate()
+                else -> lifecycleScope.launch {
+                    updater.check()
+                    when (val r = updater.state) {
+                        is UpdateState.Ready -> installUpdate(r)
+                        is UpdateState.Available -> startUpdate()
+                        else -> Unit
+                    }
+                }
+            }
+            return
+        }
         val text: String? = when (intent.action) {
             Intent.ACTION_VIEW -> intent.dataString
             Intent.ACTION_WEB_SEARCH -> intent.getStringExtra("query")
@@ -293,12 +334,17 @@ class MainActivity : ComponentActivity(), BrowserHost {
 
     override fun onPause() {
         super.onPause()
+        Updater.foreground = false
         state.onPause()
     }
 
     override fun onResume() {
         super.onResume()
+        Updater.foreground = true
         state.onResume()
+        updater.clearNotification()
+        updater.resumePendingInstall()
+        autoCheck()
     }
 
     override fun onDestroy() {

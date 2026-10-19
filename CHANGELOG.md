@@ -1,5 +1,19 @@
 # Zmiany
 
+## 1.1.2
+
+Dopracowane automatyczne aktualizacje.
+
+- Sprawdzanie przy każdym powrocie do aplikacji (najwyżej co godzinę), a nie tylko przy pierwszym uruchomieniu.
+- Sprawdzanie w tle co kilka godzin, także gdy aplikacja jest zamknięta; nowa wersja pobiera się sama.
+- Cicha instalacja w tle na Androidzie 12+; w pozostałych przypadkach powiadomienie „dotknij, aby zainstalować”.
+- Wznawianie przerwanego pobierania, weryfikacja pobranego pliku (rozmiar i pakiet).
+- Po nadaniu zgody na instalację aktualizacja dokańcza się sama po powrocie do aplikacji.
+- Czytelne błędy z przyciskiem „Ponów”; anulowanie okna systemu nie gubi pobranego pliku.
+- Ukrycie banera nie pomija już wersji na zawsze.
+- Po aktualizacji aplikacja uruchamia się ponownie albo pokazuje powiadomienie.
+- Nowe opcje: pobieraj automatycznie, tylko przez Wi-Fi, instaluj w tle bez pytania.
+
 ## 1.1.1
 
 - Naprawiono niewidoczne teksty i ikony w ciemnym motywie (ustawienia, lista kart, podpowiedzi, zakładki, historia).

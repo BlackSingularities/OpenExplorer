@@ -16,11 +16,17 @@ class OpenExplorerApp : Application(), ImageLoaderFactory {
     lateinit var adBlocker: AdBlocker
         private set
 
+    /** Jedna instancja aktualizatora dla interfejsu, zadania w tle i odbiornika instalacji. */
+    val updater: com.blacksingularities.openexplorer.update.Updater by lazy {
+        com.blacksingularities.openexplorer.update.Updater(this)
+    }
+
     override fun onCreate() {
         super.onCreate()
         settings = Settings(this)
         store = Store(this)
         adBlocker = AdBlocker(this)
+        com.blacksingularities.openexplorer.update.UpdateWorker.schedule(this)
     }
 
     /** Logo kafelków trzymane w pamięci podręcznej na dysku – strona startowa działa bez sieci. */

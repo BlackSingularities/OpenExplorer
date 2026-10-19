@@ -91,6 +91,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     // Kody QR adresów stron.
     implementation("com.google.zxing:core:3.5.3")
+    // Sprawdzanie i pobieranie aktualizacji w tle.
+    implementation("androidx.work:work-runtime-ktx:2.10.1")
 
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
