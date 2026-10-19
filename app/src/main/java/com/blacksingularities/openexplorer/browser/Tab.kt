@@ -39,6 +39,10 @@ class Tab(
     /** Adres do wczytania, gdy WebView jeszcze nie istnieje. */
     var pendingUrl: String? = url.ifEmpty { null }
 
+    /** Domena bieżącej strony (czytana także z wątku sieci przez bloker). */
+    @Volatile
+    var pageHost: String? = null
+
     var webView: WebView? = null
     var container: SwipeRefreshLayout? = null
 

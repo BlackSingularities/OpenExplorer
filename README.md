@@ -5,9 +5,10 @@ Szybka, minimalistyczna i rozbudowana przeglądarka internetowa na Androida (8.0
 ## Funkcje
 
 **Strona startowa**
-- Kafelki z logo stron w siatce 3×3 albo dowolnej (2–6 kolumn, 1–8 wierszy).
-- Edycja kafelka: nazwa, adres, kolor, ikona (logo strony, litera albo własny obrazek), kolejność, otwieranie w nowej karcie.
-- Kształt kafelków, wielkość logo, podpisy, tło (zorza, gradient, kolor), zegar, pole wyszukiwania, ostatnio odwiedzane.
+- Loga stron w siatce dowolnej wielkości (1–10 kolumn, 1–12 wierszy albo wszystkie) – same loga bez teł, obramowań i podpisów albo klasyczne kafelki.
+- Duże logo stron, ikona albo litera; własne logo z galerii; przeciąganie kafelków; szybkie dodawanie często odwiedzanych.
+- Zaokrąglenie, wielkość logo, odstępy, szerokość, podpisy, szarość, zegar, pole wyszukiwania, tło (w tym obraz z galerii z przyciemnieniem i rozmyciem).
+- Gotowe układy (Same loga, Kafelki, Gęsta siatka, Zen) i podgląd na żywo w ustawieniach.
 
 **Przeglądanie**
 - Karty z miniaturami, karty incognito w osobnym profilu WebView (osobne ciasteczka i pamięć), przywracanie sesji.
@@ -19,7 +20,9 @@ Szybka, minimalistyczna i rozbudowana przeglądarka internetowa na Androida (8.0
 - Blokowanie reklam i śledzenia (lista wbudowana i pełna lista StevenBlack do pobrania).
 - Tylko HTTPS, DNT/GPC, bezpieczne przeglądanie, ostrzeżenia o certyfikatach, blokada wyskakujących okien i ciasteczek stron trzecich, czyszczenie danych.
 
-**Wygląd**: motyw jasny, ciemny, AMOLED, Material You, kolor akcentu, przyciemnianie stron.
+**Wygląd**: kompaktowy, czarno-biały interfejs jak w OpenPDF (albo akcent / Material You), AMOLED, pasek adresu na górze lub dole, pasek nawigacji, gest zmiany kart.
+
+**Narzędzia**: panel strony z wyjątkami dla domeny, czytanie na głos, strony offline, zrzuty ekranu, kody QR, rozmiar tekstu dla strony, skróty wyszukiwania (!yt, !w, !gh…), ukrywanie banerów cookies, przywracanie zamkniętych kart.
 
 **Inne**: zakładki, historia z wyszukiwaniem, lista pobranych, kopia zapasowa (JSON), domyślna przeglądarka, automatyczne aktualizacje.
 

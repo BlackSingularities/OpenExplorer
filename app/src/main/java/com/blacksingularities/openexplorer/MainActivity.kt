@@ -66,6 +66,17 @@ import com.blacksingularities.openexplorer.ui.formatSize
 import com.blacksingularities.openexplorer.ui.isDark
 import com.blacksingularities.openexplorer.update.UpdateState
 import com.blacksingularities.openexplorer.update.Updater
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
+import com.blacksingularities.openexplorer.ui.CompactDims
+import com.blacksingularities.openexplorer.ui.LocalDims
+import com.blacksingularities.openexplorer.ui.LocalHaptics
+import com.blacksingularities.openexplorer.ui.NormalDims
+import com.blacksingularities.openexplorer.ui.OfflineScreen
+import com.blacksingularities.openexplorer.ui.SnackHost
+import com.blacksingularities.openexplorer.ui.UpdateBanner
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(), BrowserHost {
@@ -73,6 +84,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
     private lateinit var updater: Updater
     private var screen by mutableStateOf("browser")
     private var menuOpen by mutableStateOf(false)
+    private var editTiles by mutableStateOf(false)
     private var darkTheme = false
 
     private var fileCallback: ValueCallback<Array<Uri>>? = null
@@ -128,35 +140,54 @@ class MainActivity : ComponentActivity(), BrowserHost {
             val tab = state.current
             darkTheme = isDark(s)
             OpenExplorerTheme(s, incognito = tab?.incognito == true && screen == "browser") {
-                val dark = isDark(s) || tab?.incognito == true
+                val dark = isDark(s) || (tab?.incognito == true && screen == "browser")
                 LaunchedEffect(dark) {
                     val c = WindowCompat.getInsetsController(window, window.decorView)
                     c.isAppearanceLightStatusBars = !dark
                     c.isAppearanceLightNavigationBars = !dark
                 }
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    AnimatedContent(screen, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "screen") { sc ->
-                        when (sc) {
-                            "tabs" -> TabsScreen(state) { screen = "browser" }
-                            "settings" -> SettingsScreen(state, updater) { screen = "browser" }
-                            "bookmarks" -> BookmarksScreen(state, { screen = "browser" }) { openFromLibrary(it) }
-                            "history" -> HistoryScreen(state, { screen = "browser" }) { openFromLibrary(it) }
-                            "downloads" -> DownloadsScreen(state) { screen = "browser" }
-                            else -> BrowserScreen(
-                                state,
-                                onOpenTabs = { state.captureThumbnail(); screen = "tabs" },
-                                onOpenMenu = { menuOpen = true },
+                val dims = if (s.density == "compact") CompactDims else NormalDims
+                CompositionLocalProvider(LocalDims provides dims, LocalHaptics provides s.haptics) {
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                        AnimatedContent(screen, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "screen") { sc ->
+                            val back = { screen = "browser" }
+                            when (sc) {
+                                "tabs" -> TabsScreen(state, back)
+                                "settings" -> SettingsScreen(state, updater, back) { screen = "browser"; editTiles = true; state.current?.let { state.goHome(it) } }
+                                "bookmarks" -> BookmarksScreen(state, back) { openFromLibrary(it) }
+                                "history" -> HistoryScreen(state, back) { openFromLibrary(it) }
+                                "downloads" -> DownloadsScreen(state, back)
+                                "offline" -> OfflineScreen(state, back) { openFromLibrary(it) }
+                                else -> BrowserScreen(
+                                    state,
+                                    editTiles = editTiles,
+                                    onEditTiles = { editTiles = it },
+                                    onOpenTabs = { state.captureThumbnail(); screen = "tabs" },
+                                    onOpenMenu = { menuOpen = true },
+                                )
+                            }
+                        }
+                        if (menuOpen) {
+                            MenuSheet(state, { menuOpen = false }, { screen = it }) { editTiles = true }
+                        }
+                        BrowserDialogs(state)
+                        UpdateBanner(
+                            updater,
+                            onUpdate = { startUpdate() },
+                            onInstall = { (updater.state as? UpdateState.Ready)?.let { installUpdate(it) } },
+                            onHide = {
+                                (updater.state as? UpdateState.Available)?.let { s.skippedVersion = it.info.version }
+                                updater.dismiss()
+                            },
+                            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding(),
+                        )
+                        SnackHost(state, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 56.dp))
+                        state.fullscreen?.let { fs ->
+                            AndroidView(
+                                factory = { fs.view.also { (it.parent as? ViewGroup)?.removeView(it) } },
+                                modifier = Modifier.fillMaxSize().background(Color.Black),
                             )
                         }
-                    }
-                    if (menuOpen) MenuSheet(state, { menuOpen = false }) { screen = it }
-                    BrowserDialogs(state)
-                    UpdateDialog()
-                    state.fullscreen?.let { fs ->
-                        AndroidView(
-                            factory = { fs.view.also { (it.parent as? ViewGroup)?.removeView(it) } },
-                            modifier = Modifier.fillMaxSize().background(Color.Black),
-                        )
                     }
                 }
                 BackHandler(enabled = true) { onBack() }
@@ -169,6 +200,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
         when {
             menuOpen -> menuOpen = false
             screen != "browser" -> screen = "browser"
+            editTiles -> editTiles = false
             state.back() -> Unit
             else -> moveTaskToBack(true)
         }
@@ -180,42 +212,17 @@ class MainActivity : ComponentActivity(), BrowserHost {
         if (tab != null && tab.showHome) state.load(tab, url) else state.newTab(url, incognito = tab?.incognito == true)
     }
 
-    @Composable
-    private fun UpdateDialog() {
-        val scope = rememberCoroutineScope()
-        val s = (application as OpenExplorerApp).settings
-        when (val st = updater.state) {
-            is UpdateState.Available -> AlertDialog(
-                onDismissRequest = { updater.dismiss() },
-                icon = { Icon(Icons.Filled.SystemUpdate, null) },
-                title = { Text("Nowa wersja ${st.info.version}") },
-                text = {
-                    Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
-                        Text("Zainstalowana: ${updater.currentVersion}" + if (st.info.size > 0) " · ${formatSize(st.info.size)}" else "",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (st.info.notes.isNotBlank()) Text(st.info.notes, Modifier.padding(top = 12.dp))
-                    }
-                },
-                confirmButton = { TextButton(onClick = { scope.launch { updater.download(st.info) } }) { Text("Pobierz i zainstaluj") } },
-                dismissButton = {
-                    TextButton(onClick = { s.skippedVersion = st.info.version; updater.dismiss() }) { Text("Pomiń tę wersję") }
-                },
-            )
-            is UpdateState.Downloading -> AlertDialog(
-                onDismissRequest = {},
-                title = { Text("Pobieranie aktualizacji") },
-                text = { LinearProgressIndicator(progress = { st.progress }, modifier = Modifier.fillMaxWidth()) },
-                confirmButton = {},
-            )
-            is UpdateState.Ready -> AlertDialog(
-                onDismissRequest = { updater.dismiss() },
-                title = { Text("Aktualizacja gotowa") },
-                text = { Text("Wersja ${st.info.version} została pobrana. Zainstaluj ją teraz – karty zostaną przywrócone.") },
-                confirmButton = { TextButton(onClick = { if (!updater.install(st.file)) toast("Zezwól na instalację z tego źródła i spróbuj ponownie") }) { Text("Zainstaluj") } },
-                dismissButton = { TextButton(onClick = { updater.dismiss() }) { Text("Później") } },
-            )
-            else -> Unit
+    /** Jedno dotknięcie: pobranie APK i od razu instalacja (jak w OpenPDF). */
+    private fun startUpdate() {
+        val info = (updater.state as? UpdateState.Available)?.info ?: return
+        lifecycleScope.launch {
+            updater.download(info)
+            (updater.state as? UpdateState.Ready)?.let { installUpdate(it) }
         }
+    }
+
+    private fun installUpdate(ready: UpdateState.Ready) {
+        if (!updater.install(ready.file)) toast("Zezwól na instalację z tego źródła i dotknij „Zainstaluj”")
     }
 
     private fun setFullscreenBars(on: Boolean) {

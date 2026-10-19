@@ -60,32 +60,64 @@ class Settings(context: Context) {
     // Wygląd
     /** system / light / dark */
     var theme by s("theme", "system")
-    var dynamicColor by b("dynamic_color", true)
-    var amoled by b("amoled", false)
-    /** Kolor akcentu (ARGB) używany, gdy Material You jest wyłączony. */
+    /** mono (czarno-biały jak OpenPDF) / accent / dynamic (Material You) */
+    var palette by s("palette", "mono")
+    var amoled by b("amoled", true)
+    /** Kolor akcentu (ARGB) dla palety „accent”. */
     var accent by l("accent", 0xFF3D7BF7)
     var addressBarBottom by b("address_bar_bottom", false)
+    /** Osobny pasek z przyciskami wstecz / dalej / start / karty / menu. */
+    var navBar by b("nav_bar", false)
+    /** compact / normal */
+    var density by s("density", "compact")
     /** auto (zgodnie z motywem) / force (filtr) / off */
     var webDarkMode by s("web_dark_mode", "auto")
     var hideBarsOnScroll by b("hide_bars_on_scroll", true)
     var showTabCounter by b("show_tab_counter", true)
+    var showHomeButton by b("show_home_button", false)
+    var showReloadButton by b("show_reload_button", true)
+    var swipeTabs by b("swipe_tabs", true)
+    var haptics by b("haptics", true)
+    var showProgress by b("show_progress", true)
 
     // Strona startowa
     var homeColumns by i("home_columns", 3)
     var homeRows by i("home_rows", 3)
-    /** rounded / circle / square */
-    var tileShape by s("tile_shape", "rounded")
-    /** Rozmiar ikony w procentach rozmiaru kafelka. */
-    var tileIconScale by i("tile_icon_scale", 55)
+    /** Bez limitu wierszy – wszystkie kafelki. */
+    var homeAllTiles by b("home_all_tiles", false)
+    /** Zaokrąglenie kafelka/logo w procentach (0 = kwadrat, 50 = koło). */
+    var tileCorner by i("tile_corner", 24)
+    /** Rozmiar logo w procentach rozmiaru kafelka. */
+    var tileIconScale by i("tile_icon_scale", 62)
+    /** Odstęp między kafelkami (dp). */
+    var tileSpacing by i("tile_spacing", 14)
     var tileLabels by b("tile_labels", true)
-    var tileBackground by b("tile_background", true)
-    var homeSearchBar by b("home_search_bar", true)
-    var homeClock by b("home_clock", true)
-    var homeLogo by b("home_logo", true)
-    /** none / gradient / aurora / solid */
-    var homeWallpaper by s("home_wallpaper", "aurora")
+    var tileLabelSize by i("tile_label_size", 12)
+    var tileBackground by b("tile_background", false)
+    /** Logo bez przycinania kształtem (samo logo, przezroczyste tło). */
+    var tileClip by b("tile_clip", true)
+    var tileGrayscale by b("tile_grayscale", false)
+    var tileAddButton by b("tile_add_button", true)
+    /** hd (duże logo) / small (favicon) / letter (same litery) */
+    var logoSource by s("logo_source", "hd")
+    /** Maksymalna szerokość siatki (dp). */
+    var homeWidth by i("home_width", 520)
+    /** top / center */
+    var homeAlign by s("home_align", "center")
+    /** pill / line / none */
+    var homeSearchStyle by s("home_search_style", "pill")
+    var homeClock by b("home_clock", false)
+    var homeClockSize by i("home_clock_size", 56)
+    var homeLogo by b("home_logo", false)
+    /** none / gradient / aurora / solid / image */
+    var homeWallpaper by s("home_wallpaper", "none")
     var homeWallpaperColor by l("home_wallpaper_color", 0xFF1E3A8A)
-    var homeRecent by b("home_recent", true)
+    var homeWallpaperDim by i("home_wallpaper_dim", 30)
+    var homeWallpaperBlur by i("home_wallpaper_blur", 0)
+    /** Zmieniany po wybraniu nowej tapety (unieważnia pamięć podręczną obrazu). */
+    var wallpaperVersion by l("wallpaper_version", 0L)
+    var homeRecent by b("home_recent", false)
+    var homeRecentCount by i("home_recent_count", 4)
 
     // Wyszukiwanie
     var searchEngine by s("search_engine", "google")
@@ -102,6 +134,8 @@ class Settings(context: Context) {
     var saveHistory by b("save_history", true)
     var clearOnExit by b("clear_on_exit", false)
     var safeBrowsing by b("safe_browsing", true)
+    var hideCookieBanners by b("hide_cookie_banners", true)
+    var cosmeticFilter by b("cosmetic_filter", true)
     var blockAutoplay by b("block_autoplay", false)
     var filtersUpdated by l("filters_updated", 0L)
 
@@ -121,6 +155,9 @@ class Settings(context: Context) {
 
     // Pobieranie
     var askDownload by b("ask_download", true)
+
+    // Mowa
+    var ttsRate by i("tts_rate", 100)
 
     // Aktualizacje
     var autoUpdate by b("auto_update", true)
@@ -166,6 +203,6 @@ class Settings(context: Context) {
     }
 
     private companion object {
-        val LONG_KEYS = setOf("accent", "home_wallpaper_color", "filters_updated", "last_update_check")
+        val LONG_KEYS = setOf("wallpaper_version", "accent", "home_wallpaper_color", "filters_updated", "last_update_check")
     }
 }
