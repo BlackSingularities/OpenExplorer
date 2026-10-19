@@ -160,7 +160,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
                     }
                 }
                 BackHandler(enabled = true) { onBack() }
-                LaunchedEffect(state.fullscreen) { setImmersive(state.fullscreen != null) }
+                LaunchedEffect(state.fullscreen) { setFullscreenBars(state.fullscreen != null) }
             }
         }
     }
@@ -218,7 +218,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
         }
     }
 
-    private fun setImmersive(on: Boolean) {
+    private fun setFullscreenBars(on: Boolean) {
         val c = WindowCompat.getInsetsController(window, window.decorView)
         if (on) {
             c.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

@@ -30,7 +30,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.NorthWest
+import androidx.compose.material.icons.filled.NorthWest
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -348,7 +348,7 @@ private fun SuggestionsPanel(state: BrowserState, tab: Tab, onPick: (String) -> 
                     }
                     if (s.kind == 0) {
                         IconButton(onClick = { state.suggestQuery = s.text + " " }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.NorthWest, "Uzupełnij", Modifier.size(18.dp))
+                            Icon(Icons.Filled.NorthWest, "Uzupełnij", Modifier.size(18.dp))
                         }
                     }
                 }
