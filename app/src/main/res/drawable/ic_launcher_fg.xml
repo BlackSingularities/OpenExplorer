@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Glob z orbitą: okrąg, południki i równik. -->
+    <path android:strokeColor="#FF6EA8FE" android:strokeWidth="4"
+        android:pathData="M54,32a22,22 0,1 1,0 44a22,22 0,1 1,0 -44z" />
+    <path android:strokeColor="#FF6EA8FE" android:strokeWidth="3"
+        android:pathData="M54,32c-7,6 -10,14 -10,22s3,16 10,22M54,32c7,6 10,14 10,22s-3,16 -10,22M33,54h42" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M28,66c12,-14 40,-28 54,-26" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M82,37a3,3 0,1 1,0 6a3,3 0,1 1,0 -6z" />
+</vector>
