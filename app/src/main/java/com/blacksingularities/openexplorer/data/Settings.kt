@@ -161,6 +161,11 @@ class Settings(context: Context) {
 
     // Aktualizacje
     var autoUpdate by b("auto_update", true)
+    /** Pobieranie nowej wersji bez pytania (w tle i przy otwarciu aplikacji). */
+    var updateAutoDownload by b("update_auto_download", true)
+    var updateWifiOnly by b("update_wifi_only", false)
+    /** Cicha instalacja w tle (Android 12+), gdy system na to pozwala. */
+    var updateAutoInstall by b("update_auto_install", true)
     var lastUpdateCheck by l("last_update_check", 0L)
     var skippedVersion by s("skipped_version", "")
 

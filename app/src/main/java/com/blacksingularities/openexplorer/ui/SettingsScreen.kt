@@ -373,20 +373,52 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
 
             }
             "updates" -> {
-                ToggleRow("Sprawdzaj automatycznie", "Nowe wersje z GitHub przy uruchomieniu", s.autoUpdate) { s.autoUpdate = it }
+                ToggleRow("Sprawdzaj automatycznie", "Przy otwarciu aplikacji i co kilka godzin w tle", s.autoUpdate) {
+                    s.autoUpdate = it
+                    com.blacksingularities.openexplorer.update.UpdateWorker.schedule(ctx, replace = true)
+                }
+                if (s.autoUpdate) {
+                    ToggleRow("Pobieraj automatycznie", "Aktualizacja czeka gotowa do instalacji", s.updateAutoDownload) { s.updateAutoDownload = it }
+                    ToggleRow("Tylko przez Wi-Fi", null, s.updateWifiOnly) {
+                        s.updateWifiOnly = it
+                        com.blacksingularities.openexplorer.update.UpdateWorker.schedule(ctx, replace = true)
+                    }
+                    ToggleRow(
+                        "Instaluj w tle bez pytania",
+                        if (updater.canInstallSilently()) "Dostępne na tym urządzeniu" else "Wymaga Androida 12+ i jednej aktualizacji z poziomu aplikacji",
+                        s.updateAutoInstall,
+                    ) { s.updateAutoInstall = it }
+                }
+                if (!updater.canInstall()) {
+                    ClickRow("Zezwól na instalowanie aktualizacji", "Wymagane jednorazowo w ustawieniach systemu") { updater.openInstallPermission() }
+                }
                 val sub = when (val st = updater.state) {
                     UpdateState.Checking -> "Sprawdzanie…"
                     UpdateState.UpToDate -> "Masz najnowszą wersję"
                     is UpdateState.Available -> "Dostępna wersja ${st.info.version}"
                     is UpdateState.Downloading -> "Pobieranie ${(st.progress * 100).toInt()}%"
                     is UpdateState.Ready -> "Gotowa do instalacji"
+                    is UpdateState.Installing -> "Instalowanie…"
                     is UpdateState.Failed -> "Błąd: ${st.message}"
                     UpdateState.Idle -> "Wersja ${BuildConfig.VERSION_NAME}"
+                } + if (updater.lastCheck > 0) " · sprawdzono " +
+                    android.text.format.DateUtils.getRelativeTimeSpanString(updater.lastCheck).toString().lowercase() else ""
+                (updater.state as? UpdateState.Available)?.let { av ->
+                    ClickRow("Pobierz i zainstaluj ${av.info.version}", if (av.info.size > 0) formatSize(av.info.size) else null) {
+                        scope.launch {
+                            updater.download(av.info)
+                            (updater.state as? UpdateState.Ready)?.let { if (!updater.install(it)) state.toast("Zezwól na instalację i wróć do aplikacji") }
+                        }
+                    }
+                }
+                (updater.state as? UpdateState.Ready)?.let { r ->
+                    ClickRow("Zainstaluj wersję ${r.info.version}", "Pobrana i sprawdzona") {
+                        if (!updater.install(r)) state.toast("Zezwól na instalację i wróć do aplikacji")
+                    }
                 }
                 ClickRow("Sprawdź aktualizacje", sub) {
                     scope.launch {
-                        s.lastUpdateCheck = System.currentTimeMillis()
-                        s.skippedVersion = ""
+                        updater.bannerHiddenFor = ""
                         updater.check()
                     }
                 }

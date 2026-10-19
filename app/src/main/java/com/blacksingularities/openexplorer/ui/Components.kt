@@ -295,14 +295,30 @@ fun SnackHost(state: BrowserState, modifier: Modifier = Modifier) {
 
 /** Baner nowej wersji (jak w OpenPDF): jednym dotknięciem pobiera i instaluje APK. */
 @Composable
-fun UpdateBanner(updater: Updater, onUpdate: () -> Unit, onInstall: () -> Unit, onHide: () -> Unit, modifier: Modifier = Modifier) {
+fun UpdateBanner(
+    updater: Updater,
+    onUpdate: () -> Unit,
+    onInstall: () -> Unit,
+    onRetry: () -> Unit,
+    onHide: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val u = updater.state
-    val visible = u is UpdateState.Available || u is UpdateState.Downloading || u is UpdateState.Ready
+    val version = when (u) {
+        is UpdateState.Available -> u.info.version
+        is UpdateState.Ready -> u.info.version
+        is UpdateState.Failed -> u.info?.version ?: ""
+        else -> ""
+    }
+    val visible = (u is UpdateState.Available || u is UpdateState.Downloading || u is UpdateState.Ready || u is UpdateState.Installing ||
+        (u is UpdateState.Failed && u.info != null)) && (version.isEmpty() || version != updater.bannerHiddenFor)
     AnimatedVisibility(visible, modifier, enter = slideInVertically { -it } + fadeIn(), exit = slideOutVertically { -it } + fadeOut()) {
         val (title, action) = when (u) {
             is UpdateState.Available -> "Nowa wersja ${u.info.version}" to "Aktualizuj"
             is UpdateState.Downloading -> "Pobieranie ${u.info.version} · ${(u.progress * 100).roundToInt()}%" to null
             is UpdateState.Ready -> "Wersja ${u.info.version} pobrana" to "Zainstaluj"
+            is UpdateState.Installing -> "Instalowanie ${u.info.version}…" to null
+            is UpdateState.Failed -> "Aktualizacja nie powiodła się" to "Ponów"
             else -> "" to null
         }
         val notes = (u as? UpdateState.Available)?.info?.notes
@@ -316,7 +332,12 @@ fun UpdateBanner(updater: Updater, onUpdate: () -> Unit, onInstall: () -> Unit, 
                 Column(Modifier.weight(1f)) {
                     Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        if (u is UpdateState.Available) "Pobierze się i zainstaluje automatycznie" else "Nie zamykaj aplikacji",
+                        when (u) {
+                            is UpdateState.Available -> "Pobierze się i zainstaluje automatycznie"
+                            is UpdateState.Ready -> "Aplikacja uruchomi się ponownie, karty zostaną przywrócone"
+                            is UpdateState.Failed -> u.message
+                            else -> "Nie zamykaj aplikacji"
+                        },
                         fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -324,11 +345,17 @@ fun UpdateBanner(updater: Updater, onUpdate: () -> Unit, onInstall: () -> Unit, 
                     Text(
                         action, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp,
                         modifier = Modifier.clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary)
-                            .clickable { if (u is UpdateState.Ready) onInstall() else onUpdate() }
+                            .clickable {
+                                when (u) {
+                                    is UpdateState.Ready -> onInstall()
+                                    is UpdateState.Failed -> onRetry()
+                                    else -> onUpdate()
+                                }
+                            }
                             .padding(horizontal = 14.dp, vertical = 8.dp),
                     )
                 }
-                if (u !is UpdateState.Downloading) RoundIcon(Icons.Rounded.Close, "Ukryj", size = 34.dp, iconSize = 18.dp, onClick = onHide)
+                if (u !is UpdateState.Downloading && u !is UpdateState.Installing) RoundIcon(Icons.Rounded.Close, "Ukryj", size = 34.dp, iconSize = 18.dp, onClick = onHide)
             }
             if (u is UpdateState.Downloading) {
                 LinearProgressIndicator(progress = { u.progress }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp))
