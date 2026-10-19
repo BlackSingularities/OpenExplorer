@@ -1,5 +1,13 @@
 # Zmiany
 
+## 1.1.1
+
+- Naprawiono niewidoczne teksty i ikony w ciemnym motywie (ustawienia, lista kart, podpowiedzi, zakładki, historia).
+- Licznik kart na pasku znów pokazuje liczbę kart.
+- Ustawienia podzielone na kategorie z podstronami; podgląd strony startowej przypięty u góry i reagujący na żywo na suwaki.
+- „Wstecz” w ustawieniach wraca do listy kategorii.
+- Siatka kafelków nie psuje się przy dużej liczbie kolumn i dużych odstępach.
+
 ## 1.1.0
 
 Kompaktowy, minimalistyczny interfejs w stylu OpenPDF i znacznie więcej możliwości.

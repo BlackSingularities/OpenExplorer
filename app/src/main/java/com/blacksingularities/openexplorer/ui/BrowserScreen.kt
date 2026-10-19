@@ -222,14 +222,19 @@ private fun NavBar(state: BrowserState, tab: Tab, onOpenTabs: () -> Unit, onOpen
     }
 }
 
+/** Kwadracik z liczbą kart (kolory jawne – czytelny w każdym motywie). */
 @Composable
 fun TabCounter(count: Int, incognito: Boolean) {
+    val c = MaterialTheme.colorScheme.onSurface
     Box(
-        Modifier.size(20.dp).border(1.6.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(6.dp)),
+        Modifier.size(22.dp).border(1.8.dp, c, RoundedCornerShape(7.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        if (incognito && count == 0) Icon(Icons.Rounded.VisibilityOff, null, Modifier.size(12.dp))
-        else Text(if (count > 99) "∞" else "$count", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        if (incognito && count == 0) Icon(Icons.Rounded.VisibilityOff, "Karty incognito", Modifier.size(12.dp), tint = c)
+        else Text(
+            if (count > 99) "∞" else "$count", color = c, fontSize = if (count > 9) 10.sp else 11.sp, fontWeight = FontWeight.Bold,
+            lineHeight = 11.sp, maxLines = 1,
+        )
     }
 }
 
