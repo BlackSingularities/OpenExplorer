@@ -56,6 +56,38 @@ object Scripts {
 
     const val SOURCE = "document.documentElement.outerHTML"
 
+    /** Tekst strony do czytania na głos (bez menu, stopek i skryptów). */
+    const val PAGE_TEXT = """
+(function(){
+  var root = document.querySelector('article') || document.querySelector('main') || document.body;
+  var c = root.cloneNode(true);
+  c.querySelectorAll('script,style,noscript,nav,aside,footer,header,form,button,svg').forEach(function(e){ e.remove(); });
+  return (document.title ? document.title + '. ' : '') + (c.innerText || '').replace(/\s+\n/g, '\n');
+})();"""
+
+    /** Wstrzyknięcie (lub podmiana) arkusza stylów o danym id. */
+    fun injectStyle(id: String, css: String): String {
+        val q = org.json.JSONObject.quote(css)
+        return "(function(){var s=document.getElementById('$id');if(!s){s=document.createElement('style');s.id='$id';" +
+            "(document.head||document.documentElement).appendChild(s);}s.textContent=$q;})();"
+    }
+
+    /** Ukrywanie typowych miejsc na reklamy (uzupełnia blokowanie domen). */
+    const val COSMETIC_CSS =
+        ".adsbygoogle,ins.adsbygoogle,[id^='google_ads_'],[id^='div-gpt-ad'],[data-ad-slot],[data-google-query-id]," +
+            ".ad-container,.ad-wrapper,.ad-slot,.ad-banner,.adBanner,.advertisement,.sponsored-ad,.taboola,#taboola-below-article," +
+            ".OUTBRAIN,.ob-widget,[id*='adocean'],[class*='adocean'],.dfp-ad,.top-ad,.sticky-ad,.adhesion" +
+            "{display:none!important}"
+
+    /** Ukrywanie banerów zgody na ciasteczka (popularne platformy CMP). */
+    const val COOKIE_CSS =
+        "#onetrust-banner-sdk,#onetrust-consent-sdk,#CybotCookiebotDialog,#CybotCookiebotDialogBodyUnderlay,.qc-cmp2-container," +
+            "#qc-cmp2-container,#didomi-host,.didomi-popup-backdrop,.fc-consent-root,#cookie-law-info-bar,.cc-window,.cc-banner," +
+            "#cookie-notice,#cookie-banner,.cookie-banner,#cookieConsent,.cookie-consent,#gdpr-consent,.gdpr-banner,#usercentrics-root," +
+            "#sp_message_container,.sp_veil,[id^='sp_message_container'],#cmpbox,#cmpbox2,.cmpboxBG,#truste-consent-track,.osano-cm-window," +
+            "#iubenda-cs-banner,.iubenda-cs-container,#rodo-popup,.rodo-popup,.cookies-info,#cookies-info" +
+            "{display:none!important}"
+
     /** Adres największej ikony strony (apple-touch-icon / icon). */
     const val TOUCH_ICON = """
 (function(){

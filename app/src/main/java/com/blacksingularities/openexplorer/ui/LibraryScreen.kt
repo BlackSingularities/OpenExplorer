@@ -31,12 +31,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +47,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.data.Bookmark
 import kotlinx.coroutines.delay
@@ -64,31 +68,32 @@ private fun LibraryScaffold(
     content: @Composable (Modifier) -> Unit,
 ) {
     var searching by remember { mutableStateOf(false) }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    if (searching) {
-                        TextField(
-                            query, onQuery, placeholder = { Text("Szukaj") }, singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else Text(title)
-                },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Wstecz") } },
-                actions = {
-                    IconButton(onClick = { searching = !searching; if (!searching) onQuery("") }) {
-                        Icon(if (searching) Icons.Filled.Close else Icons.Filled.Search, "Szukaj")
-                    }
-                    actions()
-                },
-            )
-        },
-    ) { padding -> content(Modifier.padding(padding)) }
+    Column(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing),
+    ) {
+        Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            RoundIcon(Icons.AutoMirrored.Filled.ArrowBack, "Wstecz", onClick = onBack)
+            if (searching) {
+                TextField(
+                    query, onQuery, placeholder = { Text("Szukaj") }, singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Text(title, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(start = 8.dp))
+            }
+            RoundIcon(if (searching) Icons.Filled.Close else Icons.Filled.Search, "Szukaj") {
+                searching = !searching
+                if (!searching) onQuery("")
+            }
+            actions()
+        }
+        content(Modifier.weight(1f))
+    }
 }
 
 @Composable
@@ -104,7 +109,7 @@ private fun SiteRow(url: String, title: String, subtitle: String, onClick: () ->
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SiteIcon(url, title, 0L, "auto", "", Modifier.size(32.dp), RoundedCornerShape(8.dp))
+        SiteLogo(url, title, 0L, "auto", "", "small", false, Modifier.size(28.dp), RoundedCornerShape(8.dp))
         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
             Text(title.ifBlank { url }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall,
@@ -155,7 +160,7 @@ fun HistoryScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> U
     var query by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf(false) }
     LibraryScaffold("Historia", onBack, query, { query = it }, actions = {
-        IconButton(onClick = { confirm = true }) { Icon(Icons.Filled.DeleteSweep, "Wyczyść historię") }
+        RoundIcon(Icons.Filled.DeleteSweep, "Wyczyść historię") { confirm = true }
     }) { m ->
         val q = query.lowercase()
         val list = state.store.history.filter { q.isEmpty() || it.title.lowercase().contains(q) || it.url.lowercase().contains(q) }.take(1000)
@@ -273,5 +278,37 @@ private fun openDownload(ctx: Context, d: DownloadItem) {
         )
     } catch (_: Exception) {
         android.widget.Toast.makeText(ctx, "Brak aplikacji do otwarcia pliku", android.widget.Toast.LENGTH_SHORT).show()
+    }
+}
+
+@Composable
+fun OfflineScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    var version by remember { mutableStateOf(0) }
+    val files = remember(version) {
+        state.offlineDir.listFiles { f -> f.extension == "mht" }?.sortedByDescending { it.lastModified() } ?: emptyList()
+    }
+    LibraryScaffold("Strony offline", onBack, query, { query = it }) { m ->
+        val list = files.filter { query.isEmpty() || it.name.contains(query, true) }
+        if (list.isEmpty()) Empty("Brak zapisanych stron – zapisz stronę z menu", m)
+        else LazyColumn(m) {
+            items(list, key = { it.absolutePath }) { f ->
+                Row(
+                    Modifier.fillMaxWidth().clickable { onOpen("file://" + f.absolutePath) }
+                        .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.InsertDriveFile, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                        Text(f.nameWithoutExtension.substringBeforeLast('-'), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            DateUtils.getRelativeTimeSpanString(f.lastModified()).toString() + " · " + formatSize(f.length()),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    RoundIcon(Icons.Filled.Close, "Usuń") { f.delete(); version++ }
+                }
+            }
+        }
     }
 }

@@ -72,6 +72,14 @@ sealed interface BrowserDialog {
     data class LinkMenu(val link: String?, val image: String?, val incognito: Boolean) : BrowserDialog
     data class Source(val title: String, val html: String) : BrowserDialog
     data class Ssl(val url: String, val error: String, val handler: SslErrorHandler) : BrowserDialog
+    data class Qr(val url: String, val title: String) : BrowserDialog
+    data class SiteInfo(val tab: Tab) : BrowserDialog
+    data class PageZoom(val tab: Tab) : BrowserDialog
+}
+
+/** Krótki komunikat na dole ekranu z opcjonalną akcją (np. „Cofnij”). */
+class Snack(val message: String, val action: String? = null, val onAction: (() -> Unit)? = null) {
+    val id = System.nanoTime()
 }
 
 class FullscreenView(val view: View, val callback: WebChromeClient.CustomViewCallback)
@@ -111,6 +119,28 @@ class BrowserState(
     }
 
     fun toast(message: String) = host.toast(message)
+
+    var snack by mutableStateOf<Snack?>(null)
+
+    fun snack(message: String, action: String? = null, onAction: (() -> Unit)? = null) {
+        snack = Snack(message, action, onAction)
+    }
+
+    /** Ostatnio zamknięte karty (do przywrócenia). */
+    val closed = mutableStateListOf<SavedTab>()
+
+    fun reopenClosed() {
+        val t = closed.removeLastOrNull() ?: return
+        newTab(t.url)
+    }
+
+    /** Przełączenie na sąsiednią kartę tego samego rodzaju (gest na pasku adresu). */
+    fun switchRelative(delta: Int) {
+        val cur = current ?: return
+        val list = tabs.filter { it.incognito == cur.incognito }
+        val i = list.indexOf(cur) + delta
+        list.getOrNull(i)?.let { select(it.id) }
+    }
 
     // ---------- Karty ----------
 
@@ -161,6 +191,12 @@ class BrowserState(
             if (next != null) select(next.id)
         }
         tabs.removeAt(index)
+        if (!tab.incognito && tab.url.isNotEmpty()) {
+            val saved = SavedTab(tab.url, tab.title)
+            closed += saved
+            if (closed.size > 25) closed.removeAt(0)
+            snack("Zamknięto kartę", "Cofnij") { closed.remove(saved); newTab(saved.url) }
+        }
         destroy(tab)
         if (tab.incognito && tabs.none { it.incognito }) clearIncognito()
         if (tabs.isEmpty()) newTab()
@@ -207,8 +243,18 @@ class BrowserState(
             Regex("^[\\w.-]+\\.[a-z]{2,}(:\\d+)?([/?#].*)?$", RegexOption.IGNORE_CASE).matches(text) ||
                 Regex("^(localhost|\\d{1,3}(\\.\\d{1,3}){3})(:\\d+)?([/?#].*)?$").matches(text)
             )
+        bang(text)?.let { return it }
         if (looksLikeHost) return (if (settings.httpsOnly) "https://" else "http://") + text
         return settings.searchUrl(text)
+    }
+
+    /** Skróty wyszukiwania: „!yt koty”, „!w Kraków”, „!gh compose”… */
+    private fun bang(text: String): String? {
+        if (!text.startsWith("!") || !text.contains(' ')) return null
+        val key = text.substring(1).substringBefore(' ').lowercase()
+        val q = java.net.URLEncoder.encode(text.substringAfter(' ').trim(), "UTF-8")
+        val pattern = BANGS[key] ?: return null
+        return pattern.replace("%s", q)
     }
 
     fun navigate(input: String, tab: Tab? = current) {
@@ -222,7 +268,9 @@ class BrowserState(
         tab.readerMode = false
         val target = upgrade(url)
         tab.url = target
+        tab.pageHost = Uri.parse(target).host
         val wv = tab.webView
+        wv?.let { applySettings(it, tab, tab.pageHost) }
         if (wv == null) tab.pendingUrl = target else wv.loadUrl(target, headers())
     }
 
@@ -347,9 +395,11 @@ class BrowserState(
         return wv
     }
 
-    fun applySettings(wv: WebView, tab: Tab) {
+    fun applySettings(wv: WebView, tab: Tab, pageHost: String? = tab.pageHost) {
+        val rule = store.rule(pageHost)
+        val desktop = tab.desktop || rule?.desktop == true
         wv.settings.apply {
-            javaScriptEnabled = settings.javascript
+            javaScriptEnabled = settings.javascript && rule?.javascript != false
             domStorageEnabled = true
             @Suppress("DEPRECATION")
             databaseEnabled = true
@@ -363,20 +413,21 @@ class BrowserState(
             mediaPlaybackRequiresUserGesture = settings.blockAutoplay
             loadsImagesAutomatically = settings.loadImages
             blockNetworkImage = !settings.loadImages
-            textZoom = settings.textZoom
-            allowFileAccess = false
+            textZoom = rule?.textZoom?.takeIf { it > 0 } ?: settings.textZoom
+            // Potrzebne do otwierania stron zapisanych offline (strony z sieci i tak nie mają dostępu do file://).
+            allowFileAccess = true
             allowContentAccess = true
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
             cacheMode = if (tab.incognito) WebSettings.LOAD_NO_CACHE else WebSettings.LOAD_DEFAULT
             safeBrowsingEnabled = settings.safeBrowsing
             userAgentString = when {
-                tab.desktop -> desktopUa
+                desktop -> desktopUa
                 settings.customUserAgent.isNotBlank() -> settings.customUserAgent
                 else -> defaultUa
             }
         }
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
-            WebSettingsCompat.setAlgorithmicDarkeningAllowed(wv.settings, settings.webDarkMode == "auto")
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(wv.settings, settings.webDarkMode == "auto" && rule?.darkMode != false)
         }
         CookieManager.getInstance().setAcceptThirdPartyCookies(wv, settings.thirdPartyCookies)
     }
@@ -407,7 +458,17 @@ class BrowserState(
                     }
                     return false
                 }
-                "https", "about", "data", "blob", "javascript" -> return false
+                "https" -> {
+                    if (request.isForMainFrame) {
+                        val h = uri.host
+                        if (h != tab.pageHost) {
+                            tab.pageHost = h
+                            applySettings(view, tab, h)
+                        }
+                    }
+                    return false
+                }
+                "about", "data", "blob", "javascript", "file" -> return false
                 "intent" -> {
                     try {
                         val intent = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME)
@@ -433,7 +494,9 @@ class BrowserState(
         }
 
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-            if (settings.adBlock && !request.isForMainFrame && adBlocker.isBlocked(request.url.host)) {
+            if (settings.adBlock && !request.isForMainFrame && adBlocker.isBlocked(request.url.host) &&
+                store.rule(tab.pageHost)?.adBlock != false
+            ) {
                 main.post { tab.blocked++ }
                 return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
             }
@@ -446,7 +509,12 @@ class BrowserState(
             tab.favicon = favicon
             tab.blocked = 0
             tab.readerMode = false
+            tab.pageHost = Uri.parse(url).host
             updateNav(view)
+        }
+
+        override fun onPageCommitVisible(view: WebView, url: String) {
+            injectCss(view, tab)
         }
 
         override fun onPageFinished(view: WebView, url: String) {
@@ -455,7 +523,8 @@ class BrowserState(
             tab.url = url
             view.title?.takeIf { it.isNotBlank() }?.let { tab.title = it }
             updateNav(view)
-            if (settings.webDarkMode == "force") view.evaluateJavascript(Scripts.FORCE_DARK, null)
+            injectCss(view, tab)
+            if (settings.webDarkMode == "force" && store.rule(tab.pageHost)?.darkMode != false) view.evaluateJavascript(Scripts.FORCE_DARK, null)
             if (settings.forceZoom) view.evaluateJavascript(Scripts.FORCE_ZOOM, null)
             if (!tab.incognito) saveSession()
         }
@@ -487,6 +556,15 @@ class BrowserState(
             host.toast("Strona przestała działać – wczytano ją ponownie")
             return true
         }
+    }
+
+    private fun injectCss(view: WebView, tab: Tab) {
+        val adOk = settings.adBlock && store.rule(tab.pageHost)?.adBlock != false
+        val css = buildString {
+            if (adOk && settings.cosmeticFilter) append(Scripts.COSMETIC_CSS)
+            if (settings.hideCookieBanners) append(Scripts.COOKIE_CSS)
+        }
+        if (css.isNotEmpty()) view.evaluateJavascript(Scripts.injectStyle("__oe_filters", css), null)
     }
 
     private fun updateNav(view: WebView) {
@@ -707,6 +785,133 @@ class BrowserState(
         }
     }
 
+    // ---------- Offline, mowa, zrzuty ----------
+
+    val offlineDir: java.io.File get() = java.io.File(context.filesDir, "offline").apply { mkdirs() }
+
+    fun saveOffline() {
+        val tab = current ?: return
+        val wv = tab.webView ?: return
+        val name = tab.title.ifBlank { tab.host }.replace(Regex("[^\\p{L}\\p{N} ._-]"), "_").take(60).trim()
+        val file = java.io.File(offlineDir, name + "-" + (System.currentTimeMillis() / 1000) + ".mht")
+        wv.saveWebArchive(file.absolutePath, false) { path ->
+            if (path != null) snack("Zapisano do czytania offline") else toast("Nie udało się zapisać strony")
+        }
+    }
+
+    private var tts: android.speech.tts.TextToSpeech? = null
+    var speaking by mutableStateOf(false)
+        private set
+
+    fun readAloud() {
+        if (speaking) {
+            tts?.stop()
+            speaking = false
+            return
+        }
+        val wv = current?.webView ?: return
+        wv.evaluateJavascript(Scripts.PAGE_TEXT) { raw ->
+            val text = runCatching { JSONTokener(raw).nextValue() as? String }.getOrNull().orEmpty().trim()
+            if (text.isEmpty()) {
+                toast("Brak tekstu do przeczytania")
+                return@evaluateJavascript
+            }
+            val existing = tts
+            if (existing != null) speak(existing, text)
+            else {
+                var created: android.speech.tts.TextToSpeech? = null
+                created = android.speech.tts.TextToSpeech(context) { status ->
+                    if (status == android.speech.tts.TextToSpeech.SUCCESS) {
+                        tts = created
+                        created?.let { speak(it, text) }
+                    } else toast("Synteza mowy jest niedostępna")
+                }
+            }
+        }
+    }
+
+    private fun speak(engine: android.speech.tts.TextToSpeech, text: String) {
+        engine.setSpeechRate(settings.ttsRate / 100f)
+        engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) {
+                if (utteranceId == "last") main.post { speaking = false }
+            }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                main.post { speaking = false }
+            }
+        })
+        val chunks = text.chunked(3500)
+        chunks.forEachIndexed { i, c ->
+            val mode = if (i == 0) android.speech.tts.TextToSpeech.QUEUE_FLUSH else android.speech.tts.TextToSpeech.QUEUE_ADD
+            engine.speak(c, mode, null, if (i == chunks.lastIndex) "last" else "p$i")
+        }
+        speaking = true
+    }
+
+    /** Zrzut widocznej części strony do galerii (Obrazy/OpenExplorer). */
+    fun screenshot() {
+        val tab = current ?: return
+        val view = tab.container ?: return
+        if (view.width <= 0) return
+        try {
+            val bmp = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(bmp))
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "OpenExplorer-" + System.currentTimeMillis() + ".png")
+                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                if (android.os.Build.VERSION.SDK_INT >= 29) put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/OpenExplorer")
+            }
+            val resolver = context.contentResolver
+            val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error("brak miejsca")
+            resolver.openOutputStream(uri)?.use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            snack("Zapisano zrzut ekranu", "Udostępnij") {
+                context.startActivity(
+                    Intent.createChooser(
+                        Intent(Intent.ACTION_SEND).setType("image/png").putExtra(Intent.EXTRA_STREAM, uri)
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                        "Udostępnij",
+                    ),
+                )
+            }
+        } catch (e: Exception) {
+            toast("Nie udało się zapisać zrzutu: " + e.message)
+        }
+    }
+
+    /** Rozmiar tekstu bieżącej strony (zapamiętywany dla domeny). */
+    fun setPageZoom(tab: Tab, zoom: Int) {
+        val h = tab.pageHost?.removePrefix("www.") ?: return
+        val r = store.rule(h) ?: com.blacksingularities.openexplorer.data.SiteRule(h)
+        store.saveRule(r.copy(textZoom = if (zoom == settings.textZoom) 0 else zoom))
+        tab.webView?.settings?.textZoom = zoom
+    }
+
+    /** Zmiana wyjątku dla domeny bieżącej karty i ponowne wczytanie strony. */
+    fun updateRule(tab: Tab, change: (com.blacksingularities.openexplorer.data.SiteRule) -> com.blacksingularities.openexplorer.data.SiteRule) {
+        val h = tab.pageHost?.removePrefix("www.") ?: return
+        val r = store.rule(h) ?: com.blacksingularities.openexplorer.data.SiteRule(h)
+        store.saveRule(change(r))
+        tab.webView?.let { applySettings(it, tab); it.reload() }
+    }
+
+    fun clearSiteData(tab: Tab) {
+        val url = tab.url
+        val h = Uri.parse(url).host ?: return
+        val cm = CookieManager.getInstance()
+        cm.getCookie(url)?.split(";")?.forEach { c ->
+            val name = c.substringBefore('=').trim()
+            listOf(h, "." + h.removePrefix("www."), h.removePrefix("www.")).forEach { d ->
+                cm.setCookie("https://" + h, name + "=; Max-Age=0; Path=/; Domain=" + d)
+            }
+        }
+        cm.flush()
+        WebStorage.getInstance().deleteOrigin(Uri.parse(url).scheme + "://" + h)
+        tab.webView?.reload()
+        snack("Wyczyszczono dane strony " + h.removePrefix("www."))
+    }
+
     fun captureThumbnail(tab: Tab? = current) {
         val view = tab?.container ?: return
         if (tab.showHome || view.width <= 0 || view.height <= 0) return
@@ -757,11 +962,32 @@ class BrowserState(
     }
 
     fun onDestroy(finishing: Boolean) {
+        tts?.shutdown()
+        tts = null
         if (finishing && settings.clearOnExit) clearData(cache = true, cookies = true, history = true, storage = true)
         tabs.forEach { destroy(it) }
     }
 
     companion object {
         const val INCOGNITO_PROFILE = "incognito"
+
+        val BANGS = mapOf(
+            "g" to "https://www.google.com/search?q=%s",
+            "d" to "https://duckduckgo.com/?q=%s",
+            "b" to "https://www.bing.com/search?q=%s",
+            "yt" to "https://www.youtube.com/results?search_query=%s",
+            "w" to "https://pl.wikipedia.org/w/index.php?search=%s",
+            "en" to "https://en.wikipedia.org/w/index.php?search=%s",
+            "gh" to "https://github.com/search?q=%s",
+            "m" to "https://www.google.com/maps/search/%s",
+            "i" to "https://www.google.com/search?tbm=isch&q=%s",
+            "a" to "https://allegro.pl/listing?string=%s",
+            "am" to "https://www.amazon.pl/s?k=%s",
+            "r" to "https://www.reddit.com/search/?q=%s",
+            "t" to "https://translate.google.com/?sl=auto&tl=pl&text=%s",
+            "so" to "https://stackoverflow.com/search?q=%s",
+            "x" to "https://x.com/search?q=%s",
+            "imdb" to "https://www.imdb.com/find/?q=%s",
+        )
     }
 }

@@ -37,6 +37,19 @@ data class HistoryEntry(val url: String, val title: String, val time: Long)
 
 data class SavedTab(val url: String, val title: String)
 
+/** Wyjątki dla jednej domeny. */
+data class SiteRule(
+    val host: String,
+    val adBlock: Boolean = true,
+    val javascript: Boolean = true,
+    val desktop: Boolean = false,
+    val darkMode: Boolean = true,
+    /** 0 = domyślny rozmiar tekstu. */
+    val textZoom: Int = 0,
+) {
+    val isDefault: Boolean get() = adBlock && javascript && !desktop && darkMode && textZoom == 0
+}
+
 val DEFAULT_TILES = listOf(
     Tile(title = "Google", url = "https://www.google.com", color = 0xFF4285F4),
     Tile(title = "YouTube", url = "https://www.youtube.com", color = 0xFFFF0033),
@@ -59,6 +72,7 @@ class Store(context: Context) {
     val bookmarks: SnapshotStateList<Bookmark> = mutableStateListOf()
     val history: SnapshotStateList<HistoryEntry> = mutableStateListOf()
     val downloads: SnapshotStateList<Long> = mutableStateListOf()
+    val sites = androidx.compose.runtime.mutableStateMapOf<String, SiteRule>()
 
     init {
         val t = readArray("tiles")
@@ -66,6 +80,13 @@ class Store(context: Context) {
         readArray("bookmarks")?.objects()?.forEach { bookmarks += it.toBookmark() }
         readArray("history")?.objects()?.forEach {
             history += HistoryEntry(it.optString("url"), it.optString("title"), it.optLong("time"))
+        }
+        readArray("sites")?.objects()?.forEach {
+            val r = SiteRule(
+                it.optString("host"), it.optBoolean("adBlock", true), it.optBoolean("javascript", true),
+                it.optBoolean("desktop"), it.optBoolean("darkMode", true), it.optInt("textZoom"),
+            )
+            sites[r.host] = r
         }
         readArray("downloads")?.let { a -> for (i in 0 until a.length()) downloads += a.getLong(i) }
     }
@@ -154,6 +175,34 @@ class Store(context: Context) {
     private fun saveHistory() = write("history", debounce = 1500) {
         JSONArray(history.map { JSONObject().put("url", it.url).put("title", it.title).put("time", it.time) })
     }
+
+    // Ustawienia stron
+    fun rule(host: String?): SiteRule? {
+        var h = host?.removePrefix("www.") ?: return null
+        while (true) {
+            sites[h]?.let { return it }
+            val dot = h.indexOf('.')
+            if (dot < 0 || dot == h.lastIndexOf('.')) return null
+            h = h.substring(dot + 1)
+        }
+    }
+
+    fun saveRule(rule: SiteRule) {
+        if (rule.isDefault) sites.remove(rule.host) else sites[rule.host] = rule
+        write("sites") {
+            JSONArray(sites.values.map {
+                JSONObject().put("host", it.host).put("adBlock", it.adBlock).put("javascript", it.javascript)
+                    .put("desktop", it.desktop).put("darkMode", it.darkMode).put("textZoom", it.textZoom)
+            })
+        }
+    }
+
+    /** Najczęściej odwiedzane domeny (do szybkiego dodawania kafelków). */
+    fun topSites(limit: Int): List<HistoryEntry> = history.groupBy { runCatching { android.net.Uri.parse(it.url).host?.removePrefix("www.") }.getOrNull() ?: "" }
+        .filterKeys { it.isNotEmpty() }
+        .entries.sortedByDescending { it.value.size }
+        .take(limit)
+        .map { e -> e.value.first().let { HistoryEntry("https://" + (android.net.Uri.parse(it.url).host ?: e.key), it.title, it.time) } }
 
     // Pobrane
     fun addDownload(id: Long) {

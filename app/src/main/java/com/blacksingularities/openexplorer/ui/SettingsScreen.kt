@@ -6,40 +6,34 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,11 +42,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.blacksingularities.openexplorer.BuildConfig
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.data.SEARCH_ENGINES
+import com.blacksingularities.openexplorer.data.Settings
+import com.blacksingularities.openexplorer.data.SiteRule
 import com.blacksingularities.openexplorer.update.UpdateState
 import com.blacksingularities.openexplorer.update.Updater
 import kotlinx.coroutines.launch
@@ -60,22 +57,45 @@ import org.json.JSONObject
 import java.text.DateFormat
 import java.util.Date
 
-private class Choice(val title: String, val options: List<Pair<String, String>>, val selected: String, val onPick: (String) -> Unit)
+/** Gotowe układy strony startowej. */
+private fun applyPreset(s: Settings, preset: String) {
+    when (preset) {
+        "logos" -> {
+            s.tileBackground = false; s.tileLabels = false; s.tileClip = true; s.tileCorner = 22
+            s.tileIconScale = 72; s.tileSpacing = 18; s.homeColumns = 4; s.homeRows = 3; s.tileGrayscale = false
+            s.homeSearchStyle = "line"; s.homeClock = false; s.homeLogo = false; s.homeWallpaper = "none"; s.tileAddButton = false
+        }
+        "classic" -> {
+            s.tileBackground = true; s.tileLabels = true; s.tileClip = true; s.tileCorner = 24; s.tileGrayscale = false
+            s.tileIconScale = 55; s.tileSpacing = 12; s.homeColumns = 3; s.homeRows = 3
+            s.homeSearchStyle = "pill"; s.homeClock = false; s.homeLogo = true; s.tileAddButton = true
+        }
+        "dense" -> {
+            s.tileBackground = false; s.tileLabels = true; s.tileLabelSize = 10; s.tileClip = true; s.tileCorner = 50
+            s.tileIconScale = 64; s.tileSpacing = 8; s.homeColumns = 5; s.homeRows = 5; s.tileGrayscale = false
+            s.homeSearchStyle = "pill"; s.homeClock = false; s.homeLogo = false
+        }
+        "zen" -> {
+            s.tileBackground = false; s.tileLabels = false; s.tileClip = false; s.tileGrayscale = true
+            s.tileIconScale = 50; s.tileSpacing = 24; s.homeColumns = 3; s.homeRows = 2
+            s.homeSearchStyle = "none"; s.homeClock = true; s.homeLogo = false; s.homeWallpaper = "none"; s.tileAddButton = false
+        }
+    }
+}
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit) {
+fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, onEditTiles: () -> Unit) {
     val s = state.settings
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    var choice by remember { mutableStateOf<Choice?>(null) }
     var clearDialog by remember { mutableStateOf(false) }
     var textInput by remember { mutableStateOf<Triple<String, String, (String) -> Unit>?>(null) }
+    var resetConfirm by remember { mutableStateOf(false) }
+    var filtersBusy by remember { mutableStateOf(false) }
+
     fun ask(label: String, initial: String, onSave: (String) -> Unit) {
         textInput = Triple(label, initial, onSave)
     }
-    var resetConfirm by remember { mutableStateOf(false) }
-    var filtersBusy by remember { mutableStateOf(false) }
 
     // Zmiany wpływające na WebView stosowane od razu we wszystkich kartach.
     fun web(block: () -> Unit) {
@@ -89,7 +109,7 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit) {
             val json = JSONObject().put("app", "OpenExplorer").put("version", 1)
                 .put("settings", s.export()).put("data", state.store.export())
             ctx.contentResolver.openOutputStream(uri)?.use { it.write(json.toString(2).toByteArray()) }
-            state.toast("Zapisano kopię zapasową")
+            state.snack("Zapisano kopię zapasową")
         }.onFailure { state.toast("Błąd zapisu: ${it.message}") }
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -100,191 +120,235 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit) {
             o.optJSONObject("settings")?.let { s.import(it) }
             o.optJSONObject("data")?.let { state.store.import(it) }
             state.applySettingsToAll()
-            state.toast("Przywrócono kopię zapasową")
+            state.snack("Przywrócono kopię zapasową")
         }.onFailure { state.toast("Nieprawidłowy plik kopii: ${it.message}") }
     }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Ustawienia") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Wstecz") } },
-            )
-        },
-    ) { padding ->
-        LazyColumn(Modifier.padding(padding)) {
-            item {
-                Surface(
-                    onClick = { setDefaultBrowser(ctx) },
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                ) {
-                    Column(Modifier.padding(18.dp)) {
-                        Text("Ustaw jako domyślną przeglądarkę", style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        Text("Linki z innych aplikacji otworzą się w OpenExplorer.", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                    }
-                }
-            }
-
-            section("Wygląd")
-            item {
-                Clickable("Motyw", mapOf("system" to "Systemowy", "light" to "Jasny", "dark" to "Ciemny")[s.theme] ?: "") {
-                    choice = Choice("Motyw", listOf("system" to "Systemowy", "light" to "Jasny", "dark" to "Ciemny"), s.theme) { s.theme = it }
-                }
-            }
-            if (Build.VERSION.SDK_INT >= 31) item { Toggle("Kolory Material You", "Barwy z tapety telefonu", s.dynamicColor) { s.dynamicColor = it } }
-            if (!s.dynamicColor || Build.VERSION.SDK_INT < 31) item { AccentPicker(s.accent) { s.accent = it } }
-            item { Toggle("Czarny motyw AMOLED", "Głęboka czerń w trybie ciemnym", s.amoled) { s.amoled = it } }
-            item { Toggle("Pasek adresu na dole", "Wygodniejszy przy obsłudze jedną ręką", s.addressBarBottom) { s.addressBarBottom = it } }
-            item { Toggle("Ukrywaj pasek przy przewijaniu", null, s.hideBarsOnScroll) { s.hideBarsOnScroll = it } }
-            item { Toggle("Licznik kart na pasku", null, s.showTabCounter) { s.showTabCounter = it } }
-            item {
-                val opts = listOf("auto" to "Zgodnie z motywem", "force" to "Zawsze ciemne (filtr)", "off" to "Wyłączone")
-                Clickable("Ciemne strony", opts.first { it.first == s.webDarkMode }.second) {
-                    choice = Choice("Ciemne strony", opts, s.webDarkMode) { v -> web { s.webDarkMode = v } }
-                }
-            }
-
-            section("Strona startowa")
-            item { SliderRow("Kolumny kafelków", s.homeColumns, 2f..6f, 3) { s.homeColumns = it } }
-            item { SliderRow("Wiersze kafelków", s.homeRows, 1f..8f, 6) { s.homeRows = it } }
-            item {
-                val opts = listOf("rounded" to "Zaokrąglone", "circle" to "Okrągłe", "square" to "Kwadratowe")
-                Clickable("Kształt kafelków", opts.first { it.first == s.tileShape }.second) {
-                    choice = Choice("Kształt kafelków", opts, s.tileShape) { s.tileShape = it }
-                }
-            }
-            item { SliderRow("Wielkość logo (%)", s.tileIconScale, 30f..100f, 13) { s.tileIconScale = it } }
-            item { Toggle("Tło kafelków", null, s.tileBackground) { s.tileBackground = it } }
-            item { Toggle("Podpisy kafelków", null, s.tileLabels) { s.tileLabels = it } }
-            item { Toggle("Pole wyszukiwania", null, s.homeSearchBar) { s.homeSearchBar = it } }
-            item { Toggle("Zegar i data", null, s.homeClock) { s.homeClock = it } }
-            item { Toggle("Nazwa przeglądarki", null, s.homeLogo) { s.homeLogo = it } }
-            item { Toggle("Ostatnio odwiedzane", null, s.homeRecent) { s.homeRecent = it } }
-            item {
-                val opts = listOf("aurora" to "Zorza", "gradient" to "Gradient akcentu", "solid" to "Jednolity kolor", "none" to "Brak")
-                Clickable("Tło strony startowej", opts.first { it.first == s.homeWallpaper }.second) {
-                    choice = Choice("Tło", opts, s.homeWallpaper) { s.homeWallpaper = it }
-                }
-            }
-            if (s.homeWallpaper == "solid") item { AccentPicker(s.homeWallpaperColor, TILE_COLORS.filter { it != 0L }) { s.homeWallpaperColor = it } }
-            item {
-                Clickable("Własna strona domowa", s.homepageUrl.ifBlank { "Kafelki (domyślnie)" }) {
-                    ask("Adres strony domowej (puste = kafelki)", s.homepageUrl) { s.homepageUrl = it.trim() }
-                }
-            }
-            item { Clickable("Przywróć domyślne kafelki", null) { resetConfirm = true } }
-
-            section("Wyszukiwanie")
-            item {
-                Clickable("Wyszukiwarka", s.engine.name) {
-                    choice = Choice("Wyszukiwarka", SEARCH_ENGINES.map { it.id to it.name }, s.searchEngine) {
-                        s.searchEngine = it
-                        if (it == "custom") ask("Adres wyszukiwania z %s", s.customSearchUrl) { v -> s.customSearchUrl = v.trim() }
-                    }
-                }
-            }
-            item { Toggle("Podpowiedzi wyszukiwania", "Wysyła wpisywany tekst do wyszukiwarki", s.searchSuggestions) { s.searchSuggestions = it } }
-
-            section("Prywatność i bezpieczeństwo")
-            item { Toggle("Blokowanie reklam i śledzenia", "Domen na liście: ${state.adBlocker.size}", s.adBlock) { s.adBlock = it } }
-            item {
-                val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else "nigdy"
-                Clickable(if (filtersBusy) "Pobieranie listy filtrów…" else "Aktualizuj listę filtrów", "Pełna lista StevenBlack · ostatnio: $date") {
-                    if (filtersBusy) return@Clickable
-                    filtersBusy = true
-                    scope.launch {
-                        runCatching { state.adBlocker.update() }
-                            .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.toast("Lista filtrów: $it domen") }
-                            .onFailure { state.toast("Nie udało się pobrać: ${it.message}") }
-                        filtersBusy = false
-                    }
-                }
-            }
-            item { Toggle("Tylko HTTPS", "Automatycznie przechodzi na szyfrowane połączenie", s.httpsOnly) { s.httpsOnly = it } }
-            item { Toggle("Bezpieczne przeglądanie", "Ostrzega przed groźnymi stronami", s.safeBrowsing) { v -> web { s.safeBrowsing = v } } }
-            item { Toggle("Ciasteczka stron trzecich", null, s.thirdPartyCookies) { v -> web { s.thirdPartyCookies = v } } }
-            item { Toggle("Nie śledź (DNT i GPC)", null, s.doNotTrack) { s.doNotTrack = it } }
-            item { Toggle("Blokuj wyskakujące okna", null, s.blockPopups) { v -> web { s.blockPopups = v } } }
-            item { Toggle("Zapisuj historię", null, s.saveHistory) { s.saveHistory = it } }
-            item { Toggle("Czyść dane przy wyjściu", "Gdy aplikacja zostanie zamknięta", s.clearOnExit) { s.clearOnExit = it } }
-            item { Clickable("Wyczyść dane przeglądania", "Pamięć podręczna, ciasteczka, historia") { clearDialog = true } }
-
-            section("Treści stron")
-            item { Toggle("JavaScript", null, s.javascript) { v -> web { s.javascript = v } } }
-            item { Toggle("Wczytuj obrazy", null, s.loadImages) { v -> web { s.loadImages = v } } }
-            item { Toggle("Blokuj autoodtwarzanie", "Multimedia startują dopiero po dotknięciu", s.blockAutoplay) { v -> web { s.blockAutoplay = v } } }
-            item { Toggle("Wersja desktop domyślnie", null, s.desktopDefault) { s.desktopDefault = it } }
-            item { Toggle("Wymuś powiększanie", "Także na stronach, które je blokują", s.forceZoom) { s.forceZoom = it } }
-            item { Toggle("Przeciągnij, aby odświeżyć", null, s.pullToRefresh) { s.pullToRefresh = it } }
-            item { SliderRow("Rozmiar tekstu (%)", s.textZoom, 50f..200f, 14) { v -> web { s.textZoom = v } } }
-            item {
-                Clickable("Identyfikator przeglądarki (User-Agent)", s.customUserAgent.ifBlank { "Domyślny" }) {
-                    ask("Własny User-Agent (puste = domyślny)", s.customUserAgent) { v -> web { s.customUserAgent = v.trim() } }
-                }
-            }
-
-            section("Karty i pobieranie")
-            item { Toggle("Przywracaj karty", "Po ponownym uruchomieniu", s.restoreTabs) { s.restoreTabs = it } }
-            item { Toggle("Otwieraj linki w tle", "Z kafelków i menu kontekstowego", s.linksInBackground) { s.linksInBackground = it } }
-            item { Toggle("Potwierdzaj zamykanie wszystkich kart", null, s.confirmCloseAll) { s.confirmCloseAll = it } }
-            item { Toggle("Pytaj przed pobraniem", "Pozwala zmienić nazwę pliku", s.askDownload) { s.askDownload = it } }
-
-            section("Kopia zapasowa")
-            item { Clickable("Eksportuj ustawienia, kafelki i zakładki", null) { exportLauncher.launch("OpenExplorer-kopia.json") } }
-            item { Clickable("Importuj z pliku", null) { importLauncher.launch(arrayOf("application/json", "*/*")) } }
-
-            section("Aktualizacje")
-            item { Toggle("Automatyczne sprawdzanie", "Nowe wersje z GitHub przy uruchomieniu", s.autoUpdate) { s.autoUpdate = it } }
-            item {
-                val st = updater.state
-                val sub = when (st) {
-                    UpdateState.Checking -> "Sprawdzanie…"
-                    UpdateState.UpToDate -> "Masz najnowszą wersję"
-                    is UpdateState.Available -> "Dostępna wersja ${st.info.version}"
-                    is UpdateState.Downloading -> "Pobieranie ${(st.progress * 100).toInt()}%"
-                    is UpdateState.Ready -> "Gotowa do instalacji"
-                    is UpdateState.Failed -> "Błąd: ${st.message}"
-                    UpdateState.Idle -> "Wersja ${BuildConfig.VERSION_NAME}"
-                }
-                Clickable("Sprawdź aktualizacje", sub) {
-                    scope.launch {
-                        s.lastUpdateCheck = System.currentTimeMillis()
-                        s.skippedVersion = ""
-                        updater.check()
-                    }
-                }
-            }
-
-            section("O aplikacji")
-            item { Clickable("OpenExplorer ${BuildConfig.VERSION_NAME}", "Kod źródłowy i wydania na GitHub") { state.newTab("https://github.com/${BuildConfig.UPDATE_REPO}"); onBack() } }
-            item { Clickable("Przywróć ustawienia domyślne", null) { s.resetAll(); state.applySettingsToAll(); state.toast("Przywrócono ustawienia") } }
-            item { Box(Modifier.padding(40.dp)) }
+    val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null && copyImage(ctx, uri, wallpaperFile(ctx))) {
+            s.wallpaperVersion = System.currentTimeMillis()
+            s.homeWallpaper = "image"
         }
     }
+    fun pickWallpaper() = wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
 
-    choice?.let { c ->
-        AlertDialog(
-            onDismissRequest = { choice = null },
-            title = { Text(c.title) },
-            text = {
-                Column {
-                    c.options.forEach { (k, label) ->
-                        Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { choice = null; c.onPick(k) }.padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = k == c.selected, onClick = { choice = null; c.onPick(k) })
-                            Text(label)
-                        }
+    Panel("Ustawienia", onBack) {
+        Box(
+            Modifier.padding(horizontal = 14.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh).clickable { setDefaultBrowser(ctx) }.padding(16.dp),
+        ) {
+            Column {
+                Text("Ustaw jako domyślną przeglądarkę", style = MaterialTheme.typography.titleMedium)
+                Text("Linki z innych aplikacji otworzą się w OpenExplorer", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        // ---------------- Strona startowa ----------------
+        SectionTitle("Strona startowa")
+        Box(
+            Modifier.padding(horizontal = 14.dp).fillMaxWidth().height(330.dp).clip(RoundedCornerShape(20.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp)),
+        ) {
+            HomePage(
+                s, state.store, incognito = false, editMode = false, onEditMode = {}, onOpen = {}, onOpenNewTab = { _, _ -> },
+                onSearchClick = {}, modifier = Modifier.fillMaxSize(),
+            )
+            // Podgląd tylko do oglądania.
+            Box(Modifier.fillMaxSize().clickable(onClick = {}))
+        }
+        ChipsRow(
+            "Gotowe układy",
+            listOf("logos" to "Same loga", "classic" to "Kafelki", "dense" to "Gęsta siatka", "zen" to "Zen"),
+            "",
+        ) { applyPreset(s, it) }
+        ClickRow("Uporządkuj kafelki", "Przeciąganie, edycja i usuwanie na stronie startowej") { onEditTiles() }
+
+        SliderRow("Kolumny", s.homeColumns, 1..10) { s.homeColumns = it }
+        if (!s.homeAllTiles) SliderRow("Wiersze", s.homeRows, 1..12) { s.homeRows = it }
+        ToggleRow("Wszystkie kafelki", "Siatka bez limitu wierszy", s.homeAllTiles) { s.homeAllTiles = it }
+        SliderRow("Wielkość logo", s.tileIconScale, 25..100, "%") { s.tileIconScale = it }
+        SliderRow("Zaokrąglenie", s.tileCorner, 0..50, "%") { s.tileCorner = it }
+        SliderRow("Odstępy", s.tileSpacing, 0..40, " dp") { s.tileSpacing = it }
+        SliderRow("Szerokość siatki", s.homeWidth, 240..1000, " dp", step = 20) { s.homeWidth = it }
+        ChipsRow("Logo", listOf("hd" to "Duże logo", "small" to "Ikona", "letter" to "Litery"), s.logoSource) { s.logoSource = it }
+        ToggleRow("Tło kafelków", "Wyłączone = same loga", s.tileBackground) { s.tileBackground = it }
+        ToggleRow("Przycinaj logo do kształtu", null, s.tileClip) { s.tileClip = it }
+        ToggleRow("Podpisy", null, s.tileLabels) { s.tileLabels = it }
+        if (s.tileLabels) SliderRow("Rozmiar podpisów", s.tileLabelSize, 8..18, " sp") { s.tileLabelSize = it }
+        ToggleRow("Loga w odcieniach szarości", null, s.tileGrayscale) { s.tileGrayscale = it }
+        ToggleRow("Przycisk dodawania kafelka", null, s.tileAddButton) { s.tileAddButton = it }
+        ChipsRow("Położenie", listOf("center" to "Na środku", "top" to "U góry"), s.homeAlign) { s.homeAlign = it }
+        ChipsRow("Pole wyszukiwania", listOf("pill" to "Pigułka", "line" to "Minimalne", "none" to "Brak"), s.homeSearchStyle) { s.homeSearchStyle = it }
+        ToggleRow("Zegar i data", null, s.homeClock) { s.homeClock = it }
+        if (s.homeClock) SliderRow("Rozmiar zegara", s.homeClockSize, 28..96, " sp", step = 4) { s.homeClockSize = it }
+        ToggleRow("Nazwa przeglądarki", null, s.homeLogo) { s.homeLogo = it }
+        ToggleRow("Ostatnio odwiedzane", null, s.homeRecent) { s.homeRecent = it }
+        if (s.homeRecent) SliderRow("Liczba ostatnich", s.homeRecentCount, 1..10) { s.homeRecentCount = it }
+        ChipsRow(
+            "Tło",
+            listOf("none" to "Brak", "aurora" to "Zorza", "gradient" to "Gradient", "solid" to "Kolor", "image" to "Obraz"),
+            s.homeWallpaper,
+        ) {
+            if (it == "image" && !wallpaperFile(ctx).exists()) pickWallpaper() else s.homeWallpaper = it
+        }
+        if (s.homeWallpaper == "solid") ColorDots(TILE_COLORS.filter { it != 0L }, s.homeWallpaperColor) { s.homeWallpaperColor = it }
+        if (s.homeWallpaper == "image") {
+            ClickRow("Wybierz obraz z galerii") { pickWallpaper() }
+            SliderRow("Przyciemnienie", s.homeWallpaperDim, 0..80, "%") { s.homeWallpaperDim = it }
+            if (Build.VERSION.SDK_INT >= 31) SliderRow("Rozmycie", s.homeWallpaperBlur, 0..30, " dp") { s.homeWallpaperBlur = it }
+        }
+        ClickRow("Własna strona domowa", value = s.homepageUrl.ifBlank { "Kafelki" }) {
+            ask("Adres strony domowej (puste = kafelki)", s.homepageUrl) { s.homepageUrl = it.trim() }
+        }
+        ClickRow("Przywróć domyślne kafelki") { resetConfirm = true }
+
+        // ---------------- Wygląd ----------------
+        SectionTitle("Wygląd")
+        ChipsRow("Motyw", listOf("system" to "Systemowy", "light" to "Jasny", "dark" to "Ciemny"), s.theme) { s.theme = it }
+        ChipsRow(
+            "Kolory",
+            buildList {
+                add("mono" to "Czarno-białe")
+                add("accent" to "Akcent")
+                if (Build.VERSION.SDK_INT >= 31) add("dynamic" to "Material You")
+            },
+            s.palette,
+        ) { s.palette = it }
+        if (s.palette == "accent") ColorDots(ACCENTS, s.accent) { s.accent = it }
+        ToggleRow("Czerń AMOLED", "W trybie ciemnym", s.amoled) { s.amoled = it }
+        ChipsRow("Gęstość", listOf("compact" to "Kompaktowa", "normal" to "Zwykła"), s.density) { s.density = it }
+        ToggleRow("Pasek adresu na dole", "Wygodniejszy przy obsłudze jedną ręką", s.addressBarBottom) { s.addressBarBottom = it }
+        ToggleRow("Pasek nawigacji", "Wstecz, dalej, start, karty i menu na dole", s.navBar) { s.navBar = it }
+        ToggleRow("Przycisk strony startowej", null, s.showHomeButton) { s.showHomeButton = it }
+        ToggleRow("Przycisk odświeżania", null, s.showReloadButton) { s.showReloadButton = it }
+        ToggleRow("Licznik kart", null, s.showTabCounter) { s.showTabCounter = it }
+        ToggleRow("Pasek postępu", null, s.showProgress) { s.showProgress = it }
+        ToggleRow("Ukrywaj paski przy przewijaniu", null, s.hideBarsOnScroll) { s.hideBarsOnScroll = it }
+        ToggleRow("Przesuń pasek adresu, aby zmienić kartę", null, s.swipeTabs) { s.swipeTabs = it }
+        ToggleRow("Wibracje przy dotyku", null, s.haptics) { s.haptics = it }
+        ChipsRow("Ciemne strony", listOf("auto" to "Zgodnie z motywem", "force" to "Zawsze", "off" to "Nigdy"), s.webDarkMode) {
+            web { s.webDarkMode = it }
+        }
+
+        // ---------------- Wyszukiwanie ----------------
+        SectionTitle("Wyszukiwanie")
+        ChipsRow("Wyszukiwarka", SEARCH_ENGINES.map { it.id to it.name }, s.searchEngine) {
+            s.searchEngine = it
+            if (it == "custom") ask("Adres wyszukiwania z %s w miejscu zapytania", s.customSearchUrl) { v -> s.customSearchUrl = v.trim() }
+        }
+        ToggleRow("Podpowiedzi", "Wysyła wpisywany tekst do wyszukiwarki", s.searchSuggestions) { s.searchSuggestions = it }
+        Text(
+            "Skróty: " + BrowserState.BANGS.keys.joinToString("  ") { "!$it" },
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+        )
+
+        // ---------------- Prywatność ----------------
+        SectionTitle("Prywatność i bezpieczeństwo")
+        ToggleRow("Blokowanie reklam i śledzenia", "Domen na liście: ${state.adBlocker.size}", s.adBlock) { s.adBlock = it }
+        ToggleRow("Ukrywanie miejsc po reklamach", null, s.cosmeticFilter) { s.cosmeticFilter = it }
+        ToggleRow("Ukrywanie banerów cookies", null, s.hideCookieBanners) { s.hideCookieBanners = it }
+        val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else "nigdy"
+        ClickRow(if (filtersBusy) "Pobieranie listy filtrów…" else "Aktualizuj listę filtrów", "StevenBlack · ostatnio: $date") {
+            if (!filtersBusy) {
+                filtersBusy = true
+                scope.launch {
+                    runCatching { state.adBlocker.update() }
+                        .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.snack("Lista filtrów: $it domen") }
+                        .onFailure { state.toast("Nie udało się pobrać: ${it.message}") }
+                    filtersBusy = false
+                }
+            }
+        }
+        ToggleRow("Tylko HTTPS", "Automatycznie przechodzi na szyfrowane połączenie", s.httpsOnly) { s.httpsOnly = it }
+        ToggleRow("Bezpieczne przeglądanie", "Ostrzega przed groźnymi stronami", s.safeBrowsing) { v -> web { s.safeBrowsing = v } }
+        ToggleRow("Ciasteczka stron trzecich", null, s.thirdPartyCookies) { v -> web { s.thirdPartyCookies = v } }
+        ToggleRow("Nie śledź (DNT i GPC)", null, s.doNotTrack) { s.doNotTrack = it }
+        ToggleRow("Blokuj wyskakujące okna", null, s.blockPopups) { v -> web { s.blockPopups = v } }
+        ToggleRow("Zapisuj historię", null, s.saveHistory) { s.saveHistory = it }
+        ToggleRow("Czyść dane przy zamknięciu", null, s.clearOnExit) { s.clearOnExit = it }
+        ClickRow("Wyczyść dane przeglądania", "Pamięć podręczna, ciasteczka, historia") { clearDialog = true }
+        if (state.store.sites.isNotEmpty()) {
+            SectionTitle("Wyjątki stron")
+            state.store.sites.values.sortedBy { it.host }.forEach { r ->
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(r.host, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            buildList {
+                                if (!r.adBlock) add("reklamy dozwolone")
+                                if (!r.javascript) add("bez JavaScript")
+                                if (r.desktop) add("desktop")
+                                if (!r.darkMode) add("bez przyciemniania")
+                                if (r.textZoom > 0) add("tekst ${r.textZoom}%")
+                            }.joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    RoundIcon(Icons.Rounded.Close, "Usuń wyjątek") {
+                        state.store.saveRule(SiteRule(r.host))
+                        state.applySettingsToAll()
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { choice = null }) { Text("Zamknij") } },
-        )
+            }
+        }
+
+        // ---------------- Treści ----------------
+        SectionTitle("Treści stron")
+        ToggleRow("JavaScript", null, s.javascript) { v -> web { s.javascript = v } }
+        ToggleRow("Wczytuj obrazy", null, s.loadImages) { v -> web { s.loadImages = v } }
+        ToggleRow("Blokuj autoodtwarzanie", "Multimedia startują po dotknięciu", s.blockAutoplay) { v -> web { s.blockAutoplay = v } }
+        ToggleRow("Wersja desktop domyślnie", null, s.desktopDefault) { s.desktopDefault = it }
+        ToggleRow("Wymuś powiększanie", "Także na stronach, które je blokują", s.forceZoom) { s.forceZoom = it }
+        ToggleRow("Przeciągnij, aby odświeżyć", null, s.pullToRefresh) { s.pullToRefresh = it }
+        SliderRow("Rozmiar tekstu", s.textZoom, 50..200, "%", step = 10) { v -> web { s.textZoom = v } }
+        SliderRow("Tempo czytania na głos", s.ttsRate, 50..200, "%", step = 10) { s.ttsRate = it }
+        ClickRow("User-Agent", value = if (s.customUserAgent.isBlank()) "Domyślny" else "Własny") {
+            ask("Własny User-Agent (puste = domyślny)", s.customUserAgent) { v -> web { s.customUserAgent = v.trim() } }
+        }
+
+        // ---------------- Karty ----------------
+        SectionTitle("Karty i pobieranie")
+        ToggleRow("Przywracaj karty", "Po ponownym uruchomieniu", s.restoreTabs) { s.restoreTabs = it }
+        ToggleRow("Otwieraj linki w tle", "Z kafelków i menu kontekstowego", s.linksInBackground) { s.linksInBackground = it }
+        ToggleRow("Potwierdzaj zamykanie wszystkich kart", null, s.confirmCloseAll) { s.confirmCloseAll = it }
+        ToggleRow("Pytaj przed pobraniem", "Pozwala zmienić nazwę pliku", s.askDownload) { s.askDownload = it }
+
+        // ---------------- Kopia ----------------
+        SectionTitle("Kopia zapasowa")
+        ClickRow("Eksportuj", "Ustawienia, kafelki, zakładki") { exportLauncher.launch("OpenExplorer-kopia.json") }
+        ClickRow("Importuj z pliku") { importLauncher.launch(arrayOf("application/json", "*/*")) }
+
+        // ---------------- Aktualizacje ----------------
+        SectionTitle("Aktualizacje")
+        ToggleRow("Sprawdzaj automatycznie", "Nowe wersje z GitHub przy uruchomieniu", s.autoUpdate) { s.autoUpdate = it }
+        val sub = when (val st = updater.state) {
+            UpdateState.Checking -> "Sprawdzanie…"
+            UpdateState.UpToDate -> "Masz najnowszą wersję"
+            is UpdateState.Available -> "Dostępna wersja ${st.info.version}"
+            is UpdateState.Downloading -> "Pobieranie ${(st.progress * 100).toInt()}%"
+            is UpdateState.Ready -> "Gotowa do instalacji"
+            is UpdateState.Failed -> "Błąd: ${st.message}"
+            UpdateState.Idle -> "Wersja ${BuildConfig.VERSION_NAME}"
+        }
+        ClickRow("Sprawdź aktualizacje", sub) {
+            scope.launch {
+                s.lastUpdateCheck = System.currentTimeMillis()
+                s.skippedVersion = ""
+                updater.check()
+            }
+        }
+
+        SectionTitle("O aplikacji")
+        ClickRow("OpenExplorer ${BuildConfig.VERSION_NAME}", "Kod źródłowy i wydania na GitHub") {
+            state.newTab("https://github.com/${BuildConfig.UPDATE_REPO}")
+            onBack()
+        }
+        ClickRow("Przywróć ustawienia domyślne") { s.resetAll(); state.applySettingsToAll(); state.snack("Przywrócono ustawienia") }
+        Box(Modifier.height(40.dp))
     }
 
     textInput?.let { (label, initial, onSave) ->
@@ -328,40 +392,11 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit) {
                 TextButton(onClick = {
                     state.clearData(cache, cookies, history, storage)
                     clearDialog = false
-                    state.toast("Wyczyszczono dane")
+                    state.snack("Wyczyszczono dane")
                 }) { Text("Wyczyść") }
             },
             dismissButton = { TextButton(onClick = { clearDialog = false }) { Text("Anuluj") } },
         )
-    }
-}
-
-private fun androidx.compose.foundation.lazy.LazyListScope.section(title: String) {
-    item {
-        Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 6.dp))
-    }
-}
-
-@Composable
-private fun Toggle(title: String, subtitle: String?, value: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable { onChange(!value) }.padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Switch(value, onChange, Modifier.padding(start = 12.dp))
-    }
-}
-
-@Composable
-private fun Clickable(title: String, subtitle: String?, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp)) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -374,25 +409,18 @@ private fun CheckRow(label: String, value: Boolean, onChange: (Boolean) -> Unit)
 }
 
 @Composable
-private fun SliderRow(title: String, value: Int, range: ClosedFloatingPointRange<Float>, steps: Int, onChange: (Int) -> Unit) {
-    var local by remember(value) { mutableFloatStateOf(value.toFloat()) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp)) {
-        Row {
-            Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            Text("${local.toInt()}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-        }
-        Slider(local, { local = it }, valueRange = range, steps = steps, onValueChangeFinished = { onChange(Math.round(local)) })
-    }
-}
-
-@Composable
-private fun AccentPicker(selected: Long, colors: List<Long> = ACCENTS, onPick: (Long) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        colors.take(8).forEach { c ->
+private fun ColorDots(colors: List<Long>, selected: Long, onPick: (Long) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        colors.take(9).forEach { c ->
+            val col = Color(c)
             Box(
-                Modifier.size(32.dp).clip(CircleShape).background(Color(c)).clickable { onPick(c) },
+                Modifier.size(30.dp).clip(CircleShape).background(col)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape).clickable { onPick(c) },
                 contentAlignment = Alignment.Center,
-            ) { if (c == selected) Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
+            ) {
+                if (c == selected) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp),
+                    tint = if (col.luminance() > 0.55f) Color.Black else Color.White)
+            }
         }
     }
 }
@@ -402,6 +430,7 @@ private fun setDefaultBrowser(ctx: Context) {
         if (Build.VERSION.SDK_INT >= 29) {
             val rm = ctx.getSystemService(RoleManager::class.java)
             if (rm.isRoleAvailable(RoleManager.ROLE_BROWSER) && !rm.isRoleHeld(RoleManager.ROLE_BROWSER)) {
+                @Suppress("DEPRECATION")
                 (ctx as? android.app.Activity)?.startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_BROWSER), 42)
                 return
             }

@@ -10,6 +10,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -29,32 +32,33 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.NorthWest
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.NorthWest
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,6 +70,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
@@ -74,9 +79,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.blacksingularities.openexplorer.browser.BrowserDialog
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.browser.Tab
 import kotlinx.coroutines.Dispatchers
@@ -86,12 +93,16 @@ import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private data class Suggestion(val text: String, val url: String?, val kind: Int) // 0 zapytanie, 1 historia, 2 zakładka
 
 @Composable
 fun BrowserScreen(
     state: BrowserState,
+    editTiles: Boolean,
+    onEditTiles: (Boolean) -> Unit,
     onOpenTabs: () -> Unit,
     onOpenMenu: () -> Unit,
 ) {
@@ -100,49 +111,67 @@ fun BrowserScreen(
     var editing by remember { mutableStateOf(false) }
     val bottom = settings.addressBarBottom
     val barsShown = state.barsVisible || editing || tab.showHome
+    val dims = if (settings.density == "compact") CompactDims else NormalDims
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        if (!bottom) {
+    CompositionLocalProvider(LocalDims provides dims, LocalHaptics provides settings.haptics) {
+        Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             Box(Modifier.statusBarsPadding())
-            AnimatedVisibility(barsShown, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-                Toolbar(state, tab, editing, { editing = it }, onOpenTabs, onOpenMenu, bottom = false)
+            if (!bottom) {
+                AnimatedVisibility(barsShown, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+                    Toolbar(state, tab, editing, { editing = it }, onOpenTabs, onOpenMenu)
+                }
             }
-        } else Box(Modifier.statusBarsPadding())
 
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            // WebView karty (pozostaje w drzewie także pod stroną startową, by zachować stan).
-            if (tab.webView != null || !tab.showHome) {
-                key(tab.id, tab.generation) {
-                    AndroidView(
-                        factory = { state.containerFor(tab).also { (it.parent as? ViewGroup)?.removeView(it) } },
-                        modifier = Modifier.fillMaxSize(),
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                // WebView karty (zostaje w drzewie także pod stroną startową, by zachować stan strony).
+                if (tab.webView != null || !tab.showHome) {
+                    key(tab.id, tab.generation) {
+                        AndroidView(
+                            factory = { state.containerFor(tab).also { (it.parent as? ViewGroup)?.removeView(it) } },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+                if (tab.showHome) {
+                    HomePage(
+                        settings = settings,
+                        store = state.store,
+                        incognito = tab.incognito,
+                        editMode = editTiles,
+                        onEditMode = onEditTiles,
+                        onOpen = { state.load(tab, it) },
+                        onOpenNewTab = { url, inc -> state.newTab(url, inc, background = settings.linksInBackground && !inc) },
+                        onSearchClick = { editing = true },
+                    )
+                }
+                if (editing) {
+                    SuggestionsPanel(state, tab, onPick = { editing = false; state.navigate(it, tab) }, bottom = bottom)
+                }
+                if (state.findMode) {
+                    FindBar(state, tab, Modifier.align(if (bottom) Alignment.BottomCenter else Alignment.TopCenter))
+                }
+                if (tab.loading && !tab.showHome && settings.showProgress) {
+                    LinearProgressIndicator(
+                        progress = { tab.progress / 100f },
+                        modifier = Modifier.fillMaxWidth().height(2.dp).align(if (bottom) Alignment.BottomCenter else Alignment.TopCenter),
+                        trackColor = Color.Transparent,
+                        drawStopIndicator = {},
                     )
                 }
             }
-            if (tab.showHome) {
-                HomePage(
-                    settings = settings,
-                    store = state.store,
-                    incognito = tab.incognito,
-                    onOpen = { state.load(tab, it) },
-                    onOpenNewTab = { state.newTab(it, tab.incognito, background = settings.linksInBackground) },
-                    onSearchClick = { editing = true },
-                )
-            }
-            if (editing) {
-                SuggestionsPanel(state, tab, onPick = { editing = false; state.navigate(it, tab) }, bottom = bottom)
-            }
-            if (state.findMode) {
-                FindBar(state, tab, Modifier.align(if (bottom) Alignment.BottomCenter else Alignment.TopCenter))
-            }
-        }
 
-        if (bottom) {
-            AnimatedVisibility(barsShown, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-                Toolbar(state, tab, editing, { editing = it }, onOpenTabs, onOpenMenu, bottom = true)
+            if (bottom) {
+                AnimatedVisibility(barsShown, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+                    Toolbar(state, tab, editing, { editing = it }, onOpenTabs, onOpenMenu)
+                }
             }
+            if (settings.navBar && !editing) {
+                AnimatedVisibility(barsShown, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+                    NavBar(state, tab, onOpenTabs, onOpenMenu)
+                }
+            }
+            Box(Modifier.navigationBarsPadding().imePadding())
         }
-        Box(Modifier.navigationBarsPadding().imePadding())
     }
 }
 
@@ -154,54 +183,53 @@ private fun Toolbar(
     setEditing: (Boolean) -> Unit,
     onOpenTabs: () -> Unit,
     onOpenMenu: () -> Unit,
-    bottom: Boolean,
 ) {
-    val colors = MaterialTheme.colorScheme
-    Surface(color = colors.surface, tonalElevation = 0.dp) {
-        Column {
-            if (bottom) Progress(tab, top = true)
-            Row(
-                Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (!editing) {
-                    IconButton(onClick = { state.goHome(tab) }) { Icon(Icons.Filled.Home, "Strona startowa") }
-                }
-                AddressField(state, tab, editing, setEditing, Modifier.weight(1f))
-                if (!editing) {
-                    if (state.settings.showTabCounter) {
-                        IconButton(onClick = onOpenTabs) { TabCounter(state.tabs.count { it.incognito == tab.incognito }, tab.incognito) }
-                    }
-                    IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.MoreVert, "Menu") }
-                }
+    val s = state.settings
+    val dims = LocalDims.current
+    Row(
+        Modifier.fillMaxWidth().height(dims.bar).background(MaterialTheme.colorScheme.background).padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (!editing && s.showHomeButton && !s.navBar) RoundIcon(Icons.Rounded.Home, "Strona startowa") { state.goHome(tab) }
+        AddressField(state, tab, editing, setEditing, Modifier.weight(1f).padding(horizontal = 4.dp))
+        if (!editing && !s.navBar) {
+            if (s.showTabCounter) {
+                Box(
+                    Modifier.size(dims.button).clip(CircleShape).clickable(onClick = onOpenTabs),
+                    contentAlignment = Alignment.Center,
+                ) { TabCounter(state.tabs.count { it.incognito == tab.incognito }, tab.incognito) }
             }
-            if (!bottom) Progress(tab, top = false)
+            RoundIcon(Icons.Rounded.MoreVert, "Menu", onClick = onOpenMenu)
         }
     }
 }
 
 @Composable
-private fun Progress(tab: Tab, top: Boolean) {
-    Box(Modifier.fillMaxWidth().height(2.dp)) {
-        if (tab.loading && !tab.showHome) {
-            LinearProgressIndicator(
-                progress = { tab.progress / 100f },
-                modifier = Modifier.fillMaxWidth().height(2.dp),
-                trackColor = Color.Transparent,
-                drawStopIndicator = {},
-            )
+private fun NavBar(state: BrowserState, tab: Tab, onOpenTabs: () -> Unit, onOpenMenu: () -> Unit) {
+    val dims = LocalDims.current
+    Row(
+        Modifier.fillMaxWidth().height(dims.bar).background(MaterialTheme.colorScheme.background).padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", enabled = !tab.showHome || tab.parentId != null) { state.back() }
+        RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, "Dalej", enabled = tab.canGoForward && !tab.showHome) { state.forward() }
+        RoundIcon(Icons.Rounded.Home, "Strona startowa", active = tab.showHome) { state.goHome(tab) }
+        Box(Modifier.size(dims.button).clip(CircleShape).clickable(onClick = onOpenTabs), contentAlignment = Alignment.Center) {
+            TabCounter(state.tabs.count { it.incognito == tab.incognito }, tab.incognito)
         }
+        RoundIcon(Icons.Rounded.MoreVert, "Menu", onClick = onOpenMenu)
     }
 }
 
 @Composable
 fun TabCounter(count: Int, incognito: Boolean) {
     Box(
-        Modifier.size(22.dp).border(1.8.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(6.dp)),
+        Modifier.size(20.dp).border(1.6.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(6.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        if (incognito && count == 0) Icon(Icons.Filled.VisibilityOff, null, Modifier.size(12.dp))
-        else Text(if (count > 99) ":D" else "$count", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        if (incognito && count == 0) Icon(Icons.Rounded.VisibilityOff, null, Modifier.size(12.dp))
+        else Text(if (count > 99) "∞" else "$count", fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -214,10 +242,13 @@ private fun AddressField(
     modifier: Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
+    val dims = LocalDims.current
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val haptic = rememberHaptic()
     var value by remember { mutableStateOf(TextFieldValue("")) }
+    var swipe by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(state.suggestQuery) {
         val q = state.suggestQuery
@@ -233,74 +264,92 @@ private fun AddressField(
         } else focusManager.clearFocus()
     }
 
-    Surface(
-        shape = CircleShape,
-        color = if (tab.incognito) colors.surfaceContainerHighest else colors.surfaceContainerHigh,
-        modifier = modifier.height(44.dp),
+    Row(
+        modifier.height(dims.field).clip(CircleShape)
+            .background(if (tab.incognito) colors.surfaceContainerHighest else colors.surfaceContainerHigh)
+            .padding(start = 4.dp, end = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (editing) {
-                IconButton(onClick = { setEditing(false) }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Anuluj", Modifier.size(20.dp))
+        if (editing) {
+            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Anuluj", size = dims.field - 6.dp, iconSize = 18.dp) { setEditing(false) }
+            Box(Modifier.weight(1f).padding(start = 4.dp)) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = { value = it; state.suggestQuery = it.text },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
+                    cursorBrush = SolidColor(colors.primary),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
+                    keyboardActions = KeyboardActions(onGo = { setEditing(false); state.navigate(value.text, tab) }),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
+                if (value.text.isEmpty()) {
+                    Text("Szukaj lub wpisz adres  ·  !yt, !w, !gh…", color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Box(Modifier.weight(1f).padding(start = 4.dp)) {
-                    BasicTextField(
-                        value = value,
-                        onValueChange = {
-                            value = it
-                            state.suggestQuery = it.text
-                        },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
-                        cursorBrush = SolidColor(colors.primary),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
-                        keyboardActions = KeyboardActions(onGo = {
-                            setEditing(false)
-                            state.navigate(value.text, tab)
-                        }),
-                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
-                    )
-                    if (value.text.isEmpty()) {
-                        Text("Szukaj lub wpisz adres", color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+            }
+            if (value.text.isNotEmpty()) {
+                RoundIcon(Icons.Rounded.Close, "Wyczyść", size = dims.field - 6.dp, iconSize = 18.dp) {
+                    value = TextFieldValue("")
+                    state.suggestQuery = ""
+                }
+            }
+        } else {
+            val statusIcon = when {
+                tab.showHome -> Icons.Rounded.Search
+                tab.incognito -> Icons.Rounded.VisibilityOff
+                tab.secure -> Icons.Rounded.Lock
+                tab.url.startsWith("http://") -> Icons.Rounded.Warning
+                else -> Icons.Rounded.Public
+            }
+            RoundIcon(
+                statusIcon, "Informacje o stronie", size = dims.field - 6.dp, iconSize = 16.dp,
+                tint = if (tab.url.startsWith("http://") && !tab.showHome) colors.error else colors.onSurfaceVariant,
+            ) {
+                if (tab.showHome) setEditing(true) else state.dialog = BrowserDialog.SiteInfo(tab)
+            }
+            Row(
+                Modifier.weight(1f).fillMaxSize()
+                    .offset { IntOffset(swipe.roundToInt() / 3, 0) }
+                    .clickable { setEditing(true); state.suggestQuery = "" }
+                    .then(
+                        if (state.settings.swipeTabs) Modifier.pointerInput(tab.id) {
+                            detectHorizontalDragGestures(
+                                onDragEnd = {
+                                    if (abs(swipe) > 160) {
+                                        haptic()
+                                        state.switchRelative(if (swipe < 0) 1 else -1)
+                                    }
+                                    swipe = 0f
+                                },
+                                onDragCancel = { swipe = 0f },
+                            ) { change, amount ->
+                                change.consume()
+                                swipe += amount
+                            }
+                        } else Modifier,
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (tab.showHome) "Szukaj lub wpisz adres" else tab.host.ifEmpty { tab.url },
+                    color = if (tab.showHome) colors.onSurfaceVariant else colors.onSurface,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f).padding(start = 2.dp),
+                )
+                if (!tab.showHome && tab.blocked > 0 && state.settings.adBlock) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
+                        Icon(Icons.Rounded.Shield, "Zablokowane", Modifier.size(13.dp), tint = colors.onSurfaceVariant)
+                        Text("${tab.blocked}", fontSize = 10.sp, color = colors.onSurfaceVariant, modifier = Modifier.padding(start = 2.dp))
                     }
                 }
-                if (value.text.isNotEmpty()) {
-                    IconButton(onClick = { value = TextFieldValue(""); state.suggestQuery = "" }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Filled.Close, "Wyczyść", Modifier.size(20.dp))
-                    }
-                }
-            } else {
-                Row(
-                    Modifier.weight(1f).fillMaxSize().clip(CircleShape).clickable { setEditing(true); state.suggestQuery = "" },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    when {
-                        tab.showHome -> Icon(Icons.Filled.Search, null, Modifier.size(18.dp), tint = colors.onSurfaceVariant)
-                        tab.incognito -> Icon(Icons.Filled.VisibilityOff, null, Modifier.size(18.dp), tint = colors.onSurfaceVariant)
-                        tab.secure -> Icon(Icons.Filled.Lock, "Połączenie szyfrowane", Modifier.size(16.dp), tint = colors.onSurfaceVariant)
-                        tab.url.startsWith("http://") -> Icon(Icons.Filled.Warning, "Połączenie nieszyfrowane", Modifier.size(18.dp), tint = colors.error)
-                        else -> Icon(Icons.Filled.Public, null, Modifier.size(18.dp), tint = colors.onSurfaceVariant)
-                    }
-                    Text(
-                        if (tab.showHome) "Szukaj lub wpisz adres" else tab.host.ifEmpty { tab.url },
-                        color = if (tab.showHome) colors.onSurfaceVariant else colors.onSurface,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f).padding(start = 10.dp),
-                    )
-                    if (!tab.showHome && tab.blocked > 0 && state.settings.adBlock) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 2.dp)) {
-                            Icon(Icons.Filled.Shield, "Zablokowane elementy", Modifier.size(14.dp), tint = colors.primary)
-                            Text("${tab.blocked}", fontSize = 11.sp, color = colors.primary, modifier = Modifier.padding(start = 2.dp))
-                        }
-                    }
-                }
-                if (!tab.showHome) {
-                    IconButton(onClick = { state.reload() }, modifier = Modifier.size(36.dp)) {
-                        Icon(if (tab.loading) Icons.Filled.Close else Icons.Filled.Refresh, if (tab.loading) "Zatrzymaj" else "Odśwież",
-                            Modifier.size(20.dp))
-                    }
-                }
+            }
+            if (!tab.showHome && state.settings.showReloadButton) {
+                RoundIcon(
+                    if (tab.loading) Icons.Rounded.Close else Icons.Rounded.Refresh,
+                    if (tab.loading) "Zatrzymaj" else "Odśwież", size = dims.field - 6.dp, iconSize = 18.dp,
+                ) { state.reload() }
             }
         }
     }
@@ -312,13 +361,14 @@ private fun SuggestionsPanel(state: BrowserState, tab: Tab, onPick: (String) -> 
     var remote by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(query) {
         remote = emptyList()
-        if (query.isBlank() || !state.settings.searchSuggestions || tab.incognito) return@LaunchedEffect
-        delay(180)
+        if (query.isBlank() || !state.settings.searchSuggestions || tab.incognito || query.startsWith("!")) return@LaunchedEffect
+        delay(160)
         remote = fetchSuggestions(query, state.settings.searchEngine)
     }
     val q = query.trim().lowercase()
     val local = if (q.isEmpty()) {
-        state.store.history.distinctBy { it.url }.take(8).map { Suggestion(it.title.ifBlank { it.url }, it.url, 1) }
+        if (tab.incognito) emptyList()
+        else state.store.history.distinctBy { it.url }.take(8).map { Suggestion(it.title.ifBlank { it.url }, it.url, 1) }
     } else {
         val bm = state.store.bookmarks.filter { it.title.lowercase().contains(q) || it.url.lowercase().contains(q) }
             .take(4).map { Suggestion(it.title, it.url, 2) }
@@ -330,26 +380,28 @@ private fun SuggestionsPanel(state: BrowserState, tab: Tab, onPick: (String) -> 
     val items = (if (q.isNotEmpty()) listOf(Suggestion(query.trim(), null, 0)) else emptyList()) +
         remote.filter { it.lowercase() != q }.take(6).map { Suggestion(it, null, 0) } + local
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(reverseLayout = bottom) {
             items(items) { s ->
                 Row(
-                    Modifier.fillMaxWidth().clickable { onPick(s.url ?: s.text) }.padding(horizontal = 18.dp, vertical = 12.dp),
+                    Modifier.fillMaxWidth().clickable { onPick(s.url ?: s.text) }.padding(start = 18.dp, end = 6.dp, top = 9.dp, bottom = 9.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        when (s.kind) { 1 -> Icons.Filled.History; 2 -> Icons.Filled.Star; else -> Icons.Filled.Search },
-                        null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
+                    if (s.url != null) {
+                        SiteLogo(s.url, s.text, 0L, "auto", "", "small", false, Modifier.size(20.dp), RoundedCornerShape(5.dp))
+                    } else {
+                        Icon(Icons.Rounded.Search, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
                         Text(s.text, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
                         if (s.url != null) Text(s.url, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    if (s.kind == 0) {
-                        IconButton(onClick = { state.suggestQuery = s.text + " " }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Filled.NorthWest, "Uzupełnij", Modifier.size(18.dp))
-                        }
+                    when (s.kind) {
+                        0 -> RoundIcon(Icons.Rounded.NorthWest, "Uzupełnij", size = 34.dp, iconSize = 18.dp,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant) { state.suggestQuery = s.text + " " }
+                        1 -> Icon(Icons.Rounded.History, null, Modifier.padding(end = 8.dp).size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        else -> Icon(Icons.Rounded.Star, null, Modifier.padding(end = 8.dp).size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -379,23 +431,24 @@ private fun FindBar(state: BrowserState, tab: Tab, modifier: Modifier) {
     var text by remember { mutableStateOf("") }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    Surface(modifier.fillMaxWidth().padding(8.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shadowElevation = 6.dp) {
-        Row(Modifier.padding(start = 16.dp, end = 4.dp).height(52.dp), verticalAlignment = Alignment.CenterVertically) {
-            BasicTextField(
-                text, { text = it; state.find(it) }, singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { state.findNext(true) }),
-                modifier = Modifier.weight(1f).focusRequester(focus),
-            )
-            Text(if (text.isEmpty()) "" else "${tab.findIndex}/${tab.findCount}", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            IconButton(onClick = { state.findNext(false) }) { Icon(Icons.Filled.KeyboardArrowUp, "Poprzedni") }
-            IconButton(onClick = { state.findNext(true) }) { Icon(Icons.Filled.KeyboardArrowDown, "Następny") }
-            IconButton(onClick = { state.closeFind() }) { Icon(Icons.Filled.Close, "Zamknij") }
-        }
+    Row(
+        modifier.fillMaxWidth().padding(8.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .padding(start = 18.dp, end = 4.dp).height(48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BasicTextField(
+            text, { text = it; state.find(it) }, singleLine = true,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { state.findNext(true) }),
+            modifier = Modifier.weight(1f).focusRequester(focus),
+        )
+        Text(if (text.isEmpty()) "" else "${tab.findIndex}/${tab.findCount}", style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        RoundIcon(Icons.Rounded.KeyboardArrowUp, "Poprzedni", size = 38.dp) { state.findNext(false) }
+        RoundIcon(Icons.Rounded.KeyboardArrowDown, "Następny", size = 38.dp) { state.findNext(true) }
+        RoundIcon(Icons.Rounded.Close, "Zamknij", size = 38.dp) { state.closeFind() }
     }
 }
 
@@ -405,9 +458,8 @@ fun Favicon(tab: Tab, size: Int = 18) {
     if (fav != null) {
         Image(fav.asImageBitmap(), null, Modifier.size(size.dp).clip(RoundedCornerShape(4.dp)))
     } else if (tab.showHome || tab.url.isEmpty()) {
-        Icon(if (tab.incognito) Icons.Filled.VisibilityOff else Icons.Filled.Home, null, Modifier.size(size.dp))
+        Icon(if (tab.incognito) Icons.Rounded.VisibilityOff else Icons.Rounded.Home, null, Modifier.size(size.dp))
     } else {
-        SiteIcon(tab.url, tab.title, 0L, "auto", "", Modifier.size(size.dp), RoundedCornerShape(4.dp))
+        SiteLogo(tab.url, tab.title, 0L, "auto", "", "small", false, Modifier.size(size.dp), RoundedCornerShape(4.dp))
     }
 }
-

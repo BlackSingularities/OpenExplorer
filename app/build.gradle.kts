@@ -89,6 +89,8 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     // Logo stron na kafelkach.
     implementation("io.coil-kt:coil-compose:2.7.0")
+    // Kody QR adresów stron.
+    implementation("com.google.zxing:core:3.5.3")
 
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
