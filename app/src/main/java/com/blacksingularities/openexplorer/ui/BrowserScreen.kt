@@ -195,7 +195,7 @@ fun BrowserScreen(
                 }
 
                 // Przycisk „do góry”.
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     state.showScrollTop && !tab.showHome && !editing,
                     Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = bottomPad + 16.dp),
                     enter = scaleIn(initialScale = 0.6f) + fadeIn(),
@@ -217,7 +217,7 @@ fun BrowserScreen(
                     }
                 }
 
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     editing,
                     enter = fadeIn(tween(140)) + slideInVertically(tween(180)) { if (bottom) it / 12 else -it / 12 },
                     exit = fadeOut(tween(120)),
