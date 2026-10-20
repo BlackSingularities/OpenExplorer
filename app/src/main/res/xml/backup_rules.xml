@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hasła są zaszyfrowane kluczem, który nie opuszcza telefonu – kopia byłaby bezużyteczna. -->
+<full-backup-content>
+    <exclude domain="file" path="data/passwords.bin" />
+    <exclude domain="file" path="data/passwords.bin.tmp" />
+</full-backup-content>

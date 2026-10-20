@@ -1,5 +1,31 @@
 # Zmiany
 
+## 1.2.0
+
+Własny menedżer haseł, płynniejsze przewijanie i czytelniejsze ustawienia.
+
+**Hasła**
+- Wbudowany menedżer haseł – niezależny od Google, Edge i innych usług. Proponuje zapisanie hasła po zalogowaniu, uzupełnia loginy jednym dotknięciem, obsługuje logowanie dwuetapowe (najpierw login, potem hasło).
+- Hasła są szyfrowane AES-256 kluczem z Android Keystore, który nie opuszcza telefonu; plik jest wyłączony z kopii w chmurze.
+- Ekran „Hasła” (menu → Hasła) odblokowuje się odciskiem palca, twarzą lub PIN-em, nie trafia na zrzuty ekranu i blokuje się po wyjściu z aplikacji.
+- Wyszukiwanie, filtry słabych i powtórzonych haseł, miernik siły, generator silnych haseł (także na stronach rejestracji), notatki.
+- Import haseł z CSV (Edge, Chrome, Firefox, Bitwarden…) i eksport do CSV.
+- Kopiowane hasło jest oznaczone jako poufne i znika ze schowka po minucie.
+- Opcjonalnie: uzupełnianie bez pytania i potwierdzanie odciskiem palca przed każdym uzupełnieniem.
+- Systemowe autouzupełnianie (np. okienka Edge) domyślnie wyłączone – można je włączyć w ustawieniach.
+- Przycisk z okiem przy polach haseł na stronach (gdy strona nie ma własnego) i w polach haseł aplikacji.
+
+**Przewijanie i pasek adresu**
+- Paski płynnie odjeżdżają razem z przewijaną stroną zamiast zmieniać jej rozmiar – koniec szarpania przy przewijaniu.
+- Przycisk „do góry” po przewinięciu długiej strony; szybsze rysowanie fragmentów poza ekranem.
+- „Wstecz” przy otwartym pasku adresu zamyka pasek i wraca do strony (także gdy klawiatura chowa się przyciskiem „Wstecz”).
+- Dopisywanie adresów podczas pisania („you” → „youtube.com”), podpowiedź skopiowanego linku, przełączanie na otwarte karty z podpowiedzi.
+
+**Inne**
+- Zamykanie kart przesunięciem w bok na liście kart, płynne przesuwanie pozostałych.
+- „Wyjdź” w menu; „Usuwaj dane po wyjściu” działa też wtedy, gdy system sam zamknął aplikację.
+- Jaśniejsze nazwy i opisy wielu opcji oraz pozycji menu, nowa kategoria „Hasła i autouzupełnianie”.
+
 ## 1.1.2
 
 Dopracowane automatyczne aktualizacje.

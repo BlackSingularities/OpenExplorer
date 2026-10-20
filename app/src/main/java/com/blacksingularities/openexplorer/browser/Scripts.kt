@@ -88,6 +88,196 @@ object Scripts {
             "#iubenda-cs-banner,.iubenda-cs-container,#rodo-popup,.rodo-popup,.cookies-info,#cookies-info" +
             "{display:none!important}"
 
+    /** Nazwa obiektu łączącego strony z menedżerem haseł (WebViewCompat.addWebMessageListener). */
+    const val PASS_BRIDGE = "__oePassBridge"
+
+    /**
+     * Menedżer haseł po stronie strony (tylko główna ramka): wykrywa formularze logowania,
+     * zgłasza wysłanie loginu i hasła, wypełnia pola na prośbę aplikacji i dodaje przycisk
+     * z okiem do pól haseł. Hasła trafiają do strony wyłącznie po stronie aplikacji
+     * (odpowiedź do tej samej ramki, z której przyszło zgłoszenie).
+     */
+    const val PASSWORDS = """
+(function(){
+  if (window.top !== window || window.__oePassInit) return;
+  window.__oePassInit = true;
+  var B = window.__oePassBridge;
+  if (!B) return;
+  var cfg = { eye: false, on: false };
+  var revealed = [], eyes = [], lastSent = '', announced = '', pending = false, raf = 0;
+  var EYE = '<svg viewBox="0 0 24 24"><path d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>';
+  var EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M2.1 3.5 3.5 2.1l18.4 18.4-1.4 1.4-3.3-3.3A11.7 11.7 0 0 1 12 19c-5 0-9.3-3.1-11-7a12.5 12.5 0 0 1 3.9-4.9L2.1 3.5zM12 5c5 0 9.3 3.1 11 7a12.7 12.7 0 0 1-3.3 4.4l-3.1-3.1a4.5 4.5 0 0 0-5-5L8.4 5.4C9.5 5.1 10.7 5 12 5zm-4.4 5.4a4.5 4.5 0 0 0 6 6l-1.6-1.6a2.5 2.5 0 0 1-2.8-2.8l-1.6-1.6z"/></svg>';
+  function post(o){ try { B.postMessage(JSON.stringify(o)); } catch (e) {} }
+  function vis(el){ if (!el || !el.isConnected) return false; var r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2; }
+  function arr(l){ return Array.prototype.slice.call(l); }
+  function pwInputs(){
+    var a = arr(document.querySelectorAll('input[type=password]'));
+    revealed.forEach(function(x){ if (x.isConnected && a.indexOf(x) < 0) a.push(x); });
+    return a;
+  }
+  function typeOf(i){ return (i.getAttribute('type') || 'text').toLowerCase(); }
+  function isUserLike(i){
+    var t = typeOf(i);
+    if (t !== 'text' && t !== 'email' && t !== 'tel') return false;
+    var ac = (i.getAttribute('autocomplete') || '').toLowerCase();
+    var n = ((i.name || '') + ' ' + (i.id || '')).toLowerCase();
+    return ac.indexOf('username') >= 0 || ac.indexOf('email') >= 0 || t === 'email' || /user|login|mail|konto|account|nick|phone|identifier/.test(n);
+  }
+  function isNew(pw){
+    var ac = (pw.getAttribute('autocomplete') || '').toLowerCase();
+    var n = ((pw.name || '') + ' ' + (pw.id || '')).toLowerCase();
+    return ac.indexOf('new-password') >= 0 || /new|confirm|repeat|retype|nowe|powt/.test(n);
+  }
+  function userFor(pw){
+    var scope = (pw && (pw.form || pw.closest('form'))) || document;
+    var ins = arr(scope.querySelectorAll('input'));
+    var idx = pw ? ins.indexOf(pw) : ins.length;
+    for (var i = idx - 1; i >= 0; i--) {
+      var t = typeOf(ins[i]);
+      if ((t === 'text' || t === 'email' || t === 'tel') && vis(ins[i]) && revealed.indexOf(ins[i]) < 0) return ins[i];
+    }
+    return ins.filter(function(x){ return isUserLike(x) && vis(x); })[0] || null;
+  }
+  function setVal(el, v){
+    try { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v); } catch (e) { el.value = v; }
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function collect(){
+    var pws = pwInputs().filter(function(p){ return p.value; });
+    if (!pws.length) return null;
+    var nw = pws.filter(isNew);
+    var pw = nw.length ? nw[nw.length - 1] : (pws.length >= 2 ? pws[pws.length - 1] : pws[0]);
+    var u = userFor(pws[0]);
+    return { u: u ? u.value : '', p: pw.value, n: nw.length > 0 || pws.length >= 2 };
+  }
+  function submit(){
+    if (!cfg.on) return;
+    var c = collect();
+    if (!c) return;
+    var key = c.u + '\n' + c.p;
+    if (key === lastSent) return;
+    lastSent = key;
+    post({ t: 'submit', u: c.u, p: c.p, n: c.n });
+  }
+  function fill(u, p){
+    var pws = pwInputs().filter(vis);
+    var pw = pws.filter(function(x){ return !isNew(x); })[0] || pws[0] || null;
+    var uf = pw ? userFor(pw) : arr(document.querySelectorAll('input')).filter(function(x){ return vis(x) && isUserLike(x); })[0];
+    if (uf && u) setVal(uf, u);
+    if (pw && p) setVal(pw, p);
+    lastSent = (u || '') + '\n' + (p || '');
+  }
+  function gen(p){
+    var pws = pwInputs().filter(vis);
+    var targets = pws.filter(isNew);
+    if (!targets.length) targets = pws.length >= 2 ? pws.slice(1) : pws;
+    targets.forEach(function(x){ setVal(x, p); });
+  }
+  function ownToggle(pw){
+    var sel = '[aria-label*="assword" i],[aria-label*="asło" i],[title*="assword" i],[title*="asło" i],[class*="toggle" i],[class*="reveal" i],[class*="eye" i],[class*="show-pass" i],[class*="visibility" i]';
+    var p = pw.parentElement;
+    for (var i = 0; i < 3 && p; i++, p = p.parentElement) {
+      var hit = arr(p.querySelectorAll(sel)).some(function(x){ return x !== pw && x.tagName !== 'INPUT'; });
+      if (hit) return true;
+      if (p.tagName === 'FORM') break;
+    }
+    return false;
+  }
+  function place(e){
+    var r = e.pw.getBoundingClientRect();
+    if (r.width < 48 || r.height < 16 || getComputedStyle(e.pw).visibility === 'hidden') { e.btn.style.display = 'none'; return; }
+    var s = 36;
+    e.btn.style.display = 'flex';
+    e.btn.style.left = (r.right + window.scrollX - s - 2) + 'px';
+    e.btn.style.top = (r.top + window.scrollY + (r.height - s) / 2) + 'px';
+    e.btn.style.color = getComputedStyle(e.pw).color;
+  }
+  function placeAll(){
+    eyes = eyes.filter(function(e){ if (!e.pw.isConnected) { e.host.remove(); e.pw.__oeEye = null; return false; } return true; });
+    eyes.forEach(place);
+  }
+  function addEye(pw){
+    if (pw.__oeEye || pw.__oeNoEye) return;
+    if (ownToggle(pw)) { pw.__oeNoEye = true; return; }
+    var host = document.createElement('span');
+    host.style.cssText = 'position:absolute!important;top:0!important;left:0!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;display:block!important;z-index:2147483646!important';
+    var sh = host.attachShadow({ mode: 'closed' });
+    sh.innerHTML = '<style>button{all:initial;box-sizing:border-box;position:absolute;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:18px;cursor:pointer;-webkit-tap-highlight-color:transparent}button:active{background:rgba(127,127,127,.22)}svg{width:20px;height:20px;fill:currentColor;opacity:.72}</style><button type="button" aria-label="Pokaż hasło"></button>';
+    var btn = sh.querySelector('button');
+    btn.innerHTML = EYE;
+    btn.addEventListener('mousedown', function(ev){ ev.preventDefault(); });
+    btn.addEventListener('click', function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      var show = pw.type === 'password';
+      pw.type = show ? 'text' : 'password';
+      if (show && revealed.indexOf(pw) < 0) revealed.push(pw);
+      btn.innerHTML = show ? EYE_OFF : EYE;
+      btn.setAttribute('aria-label', show ? 'Ukryj hasło' : 'Pokaż hasło');
+    });
+    document.documentElement.appendChild(host);
+    var e = { pw: pw, host: host, btn: btn };
+    pw.__oeEye = e;
+    eyes.push(e);
+    place(e);
+  }
+  function scan(){
+    var pws = pwInputs().filter(vis);
+    var users = pws.length ? [] : arr(document.querySelectorAll('input[autocomplete~=username],input[type=email]')).filter(vis);
+    var sig = pws.length + ':' + users.length + ':' + pws.some(isNew);
+    if (cfg.on && (pws.length || users.length) && sig !== announced) {
+      announced = sig;
+      post({ t: 'form', pw: pws.length, nw: pws.some(isNew) });
+    }
+    if (cfg.eye) pws.forEach(addEye);
+    placeAll();
+  }
+  function later(){
+    if (pending) return;
+    pending = true;
+    setTimeout(function(){ pending = false; scan(); }, 350);
+  }
+  document.addEventListener('submit', submit, true);
+  document.addEventListener('click', function(ev){
+    var b = ev.target && ev.target.closest && ev.target.closest('button,input[type=submit],input[type=button],[role=button]');
+    if (!b) return;
+    var t = ((b.innerText || b.value || '') + ' ' + (b.getAttribute('aria-label') || '')).toLowerCase();
+    var isSubmit = (b.tagName === 'BUTTON' && (b.getAttribute('type') || 'submit').toLowerCase() === 'submit' && b.form) ||
+      (b.tagName === 'INPUT' && typeOf(b) === 'submit') ||
+      /log ?in|sign|zaloguj|dalej|next|continue|submit|wejd|rejestr|utw[oó]rz|create|register|zapisz|save|zmie[nń]/.test(t);
+    if (isSubmit) submit();
+  }, true);
+  document.addEventListener('keydown', function(ev){
+    if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT') submit();
+  }, true);
+  document.addEventListener('change', function(ev){
+    var t = ev.target;
+    if (cfg.on && t && t.tagName === 'INPUT' && isUserLike(t) && t.value && t.value.length < 200) post({ t: 'user', v: t.value });
+  }, true);
+  document.addEventListener('focusin', later, true);
+  document.addEventListener('scroll', function(){
+    if (!eyes.length || raf) return;
+    raf = requestAnimationFrame(function(){ raf = 0; placeAll(); });
+  }, true);
+  window.addEventListener('resize', placeAll);
+  B.onmessage = function(ev){
+    var m;
+    try { m = JSON.parse(ev.data); } catch (x) { return; }
+    if (m.t === 'cfg') { cfg = m; announced = ''; scan(); }
+    else if (m.t === 'fill') fill(m.u, m.p);
+    else if (m.t === 'gen') gen(m.p);
+  };
+  function start(){
+    scan();
+    new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['type', 'hidden'] });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  post({ t: 'hello' });
+})();"""
+
+    /** Płynne przewinięcie na początek strony. */
+    const val SCROLL_TOP = "window.scrollTo({top:0,behavior:'smooth'});"
+
     /** Adres największej ikony strony (apple-touch-icon / icon). */
     const val TOUCH_ICON = """
 (function(){

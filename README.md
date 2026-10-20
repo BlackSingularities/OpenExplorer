@@ -12,9 +12,14 @@ Szybka, minimalistyczna i rozbudowana przeglądarka internetowa na Androida (8.0
 
 **Przeglądanie**
 - Karty z miniaturami, karty incognito w osobnym profilu WebView (osobne ciasteczka i pamięć), przywracanie sesji.
-- Pasek adresu z podpowiedziami wyszukiwarki, historii i zakładek; pozycja na górze lub na dole, chowanie przy przewijaniu.
+- Pasek adresu z podpowiedziami wyszukiwarki, historii i zakładek; pozycja na górze lub na dole, płynne chowanie razem z przewijaną stroną, dopisywanie adresów podczas pisania, link ze schowka, przycisk „do góry”.
 - 7 wyszukiwarek i własna, przeciągnij by odświeżyć, wersja desktop, tryb czytania, tłumaczenie strony, wyszukiwanie na stronie, źródło strony, drukowanie / zapis do PDF, skrót strony na ekranie głównym, udostępnianie.
 - Menu kontekstowe linków i obrazów, pobieranie plików z wyborem nazwy, wideo na pełnym ekranie, wysyłanie plików, kamera, mikrofon i lokalizacja na żądanie stron.
+
+**Hasła**
+- Własny menedżer haseł (bez Google i Edge): zapisywanie po zalogowaniu, uzupełnianie jednym dotknięciem, generator silnych haseł.
+- Szyfrowanie AES-256 kluczem z Android Keystore, odblokowanie odciskiem palca lub PIN-em, ochrona przed zrzutami ekranu.
+- Import i eksport CSV (Edge, Chrome, Firefox, Bitwarden), wykrywanie słabych i powtórzonych haseł, przycisk z okiem przy polach haseł.
 
 **Prywatność i bezpieczeństwo**
 - Blokowanie reklam i śledzenia (lista wbudowana i pełna lista StevenBlack do pobrania).
