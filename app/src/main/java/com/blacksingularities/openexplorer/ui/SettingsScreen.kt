@@ -489,6 +489,7 @@ fun SettingsScreen(
 
             }
             "about" -> {
+                androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.blacksingularities.openexplorer.R.drawable.brand_mark), null, Modifier.size(56.dp))
                 ClickRow("OpenExplorer ${BuildConfig.VERSION_NAME}", "Kod źródłowy i wydania na GitHub") {
                     state.newTab("https://github.com/${BuildConfig.UPDATE_REPO}")
                     onBack()
