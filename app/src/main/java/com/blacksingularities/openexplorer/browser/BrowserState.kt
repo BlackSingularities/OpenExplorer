@@ -91,7 +91,6 @@ sealed interface BrowserDialog {
         val incognito: Boolean,
     ) : BrowserDialog
     data class LinkMenu(val link: String?, val image: String?, val incognito: Boolean) : BrowserDialog
-    data class Source(val title: String, val html: String) : BrowserDialog
     data class Ssl(val url: String, val error: String, val handler: SslErrorHandler) : BrowserDialog
     data class Qr(val url: String, val title: String) : BrowserDialog
     data class SiteInfo(val tab: Tab) : BrowserDialog
@@ -311,6 +310,9 @@ class BrowserState(
     }
 
     fun navigate(input: String, tab: Tab? = current) {
+        if (input.trim().startsWith("view-source:", ignoreCase = true)) {
+            return viewSourceOf(input.trim().substring("view-source:".length))
+        }
         val url = resolveInput(input)
         if (url.isEmpty() || tab == null) return
         load(tab, url)
@@ -1006,12 +1008,104 @@ class BrowserState(
         }
     }
 
+    /** Otwarty podgląd kodu strony (pełny ekran) albo null. */
+    var sourceView by mutableStateOf<SourceView?>(null)
+
+    /** Kod bieżącej strony: aktualny DOM od razu, oryginał z serwera i lista zasobów w tle. */
     fun viewSource() {
         val tab = current ?: return
-        tab.webView?.evaluateJavascript(Scripts.SOURCE) { raw ->
-            val html = runCatching { JSONTokener(raw).nextValue() as? String }.getOrNull() ?: raw ?: ""
-            dialog = BrowserDialog.Source(tab.url, html)
+        if (tab.showHome) return toast("Strona startowa nie ma kodu do pokazania")
+        val wv = tab.webView
+        val view = SourceView(tab.url, tab.title, tab.incognito, hasDom = wv != null)
+        sourceView = view
+        if (wv != null) {
+            wv.evaluateJavascript(Scripts.SOURCE) { raw -> view.dom = decodeJs(raw) }
+            wv.evaluateJavascript(Scripts.RESOURCES) { raw ->
+                view.resources = runCatching {
+                    val arr = org.json.JSONArray(decodeJs(raw))
+                    List(arr.length()) { i ->
+                        val o = arr.getJSONObject(i)
+                        SourceResource(o.optString("type"), o.optString("url"))
+                    }
+                }.getOrDefault(emptyList())
+            }
         }
+        fetchSource(view, wv?.settings?.userAgentString ?: defaultUa)
+    }
+
+    /** „view-source:adres” wpisane w pasek adresu. */
+    fun viewSourceOf(url: String) {
+        val target = resolveInput(url).ifEmpty { return }
+        val view = SourceView(target, Uri.parse(target).host ?: target, current?.incognito == true)
+        sourceView = view
+        fetchSource(view, current?.webView?.settings?.userAgentString ?: defaultUa)
+    }
+
+    /** Otwiera kod zasobu (skryptu, arkusza stylów) z listy zasobów. */
+    fun viewResource(url: String) {
+        val view = SourceView(url, url.substringAfterLast('/').substringBefore('?').ifBlank { url }, sourceView?.incognito == true)
+        view.parent = sourceView
+        sourceView = view
+        fetchSource(view, current?.webView?.settings?.userAgentString ?: defaultUa)
+    }
+
+    fun closeSource() {
+        sourceView = sourceView?.parent
+    }
+
+    private fun decodeJs(raw: String?): String =
+        runCatching { JSONTokener(raw).nextValue() as? String }.getOrNull() ?: ""
+
+    private fun fetchSource(view: SourceView, ua: String) {
+        val url = view.url
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            view.serverError = "Kod z serwera jest dostępny tylko dla stron http i https"
+            return
+        }
+        val cookies = if (view.incognito) null else runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull()
+        Thread {
+            val result = runCatching {
+                val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                conn.connectTimeout = 15_000
+                conn.readTimeout = 20_000
+                conn.instanceFollowRedirects = true
+                conn.setRequestProperty("User-Agent", ua)
+                conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.8")
+                if (!cookies.isNullOrBlank()) conn.setRequestProperty("Cookie", cookies)
+                try {
+                    val code = conn.responseCode
+                    val stream = if (code >= 400) conn.errorStream else conn.inputStream
+                    val charset = Regex("charset=([\w-]+)", RegexOption.IGNORE_CASE)
+                        .find(conn.contentType ?: "")?.groupValues?.get(1)
+                    val bytes = stream?.use { input ->
+                        val out = java.io.ByteArrayOutputStream()
+                        val buf = ByteArray(16 * 1024)
+                        while (out.size() < MAX_SOURCE) {
+                            val r = input.read(buf)
+                            if (r < 0) break
+                            out.write(buf, 0, r)
+                        }
+                        out.toByteArray()
+                    } ?: ByteArray(0)
+                    val cs = runCatching { charset(charset ?: "UTF-8") }.getOrDefault(Charsets.UTF_8)
+                    val info = SourceInfo(
+                        status = code,
+                        contentType = conn.contentType ?: "",
+                        size = bytes.size.toLong(),
+                        truncated = bytes.size >= MAX_SOURCE,
+                        headers = conn.headerFields.filterKeys { it != null }
+                            .map { (k, v) -> k to v.joinToString(", ") }.sortedBy { it.first.lowercase() },
+                    )
+                    String(bytes, cs) to info
+                } finally {
+                    conn.disconnect()
+                }
+            }
+            main.post {
+                result.onSuccess { (text, info) -> view.server = text; view.info = info }
+                    .onFailure { view.serverError = "Nie udało się pobrać kodu: ${it.message ?: it.javaClass.simpleName}" }
+            }
+        }.start()
     }
 
     fun touchIcon(callback: (String) -> Unit) {
@@ -1205,6 +1299,9 @@ class BrowserState(
     }
 
     companion object {
+        /** Największy pobierany kod strony (8 MB). */
+        const val MAX_SOURCE = 8 * 1024 * 1024
+
         const val INCOGNITO_PROFILE = "incognito"
 
         val BANGS = mapOf(

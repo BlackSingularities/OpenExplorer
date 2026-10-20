@@ -1,5 +1,17 @@
 # Zmiany
 
+## 1.3.0
+
+Nowy podgląd kodu strony (menu → Kod strony).
+
+- Pełnoekranowy podgląd zamiast małego okienka, z kolorowaniem składni HTML, JavaScriptu i CSS oraz numerami linii (przyklejonymi przy przewijaniu w bok).
+- Dwie wersje kodu: „Z serwera” (oryginał, jak view-source:) i „Po wczytaniu” (aktualny DOM po wykonaniu skryptów).
+- Szukanie w kodzie z licznikiem wyników i przechodzeniem między nimi, „Przejdź do linii”, skok na początek i koniec.
+- „Uporządkuj wcięcia” dla zminifikowanego HTML, zawijanie długich wierszy, zmiana wielkości tekstu, wyłączanie kolorów i numerów.
+- Lista zasobów strony (skrypty, style, ramki, obrazy, zapytania) – dotknięcie otwiera kod zasobu.
+- Nagłówki odpowiedzi serwera, kod statusu, typ i rozmiar.
+- Kopiowanie i udostępnianie kodu; obsługa „view-source:adres” w pasku adresu.
+
 ## 1.2.0
 
 Własny menedżer haseł, płynniejsze przewijanie i czytelniejsze ustawienia.

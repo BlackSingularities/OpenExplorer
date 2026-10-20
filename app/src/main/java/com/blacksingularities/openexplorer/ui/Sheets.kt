@@ -449,20 +449,6 @@ fun BrowserDialogs(state: BrowserState) {
                 confirmButton = {},
             )
         }
-        is BrowserDialog.Source -> AlertDialog(
-            onDismissRequest = { state.dialog = null },
-            title = { Text("Źródło strony", maxLines = 1) },
-            text = {
-                SelectionContainer {
-                    Text(
-                        d.html.take(300_000), fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp,
-                        modifier = Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState()),
-                    )
-                }
-            },
-            confirmButton = { TextButton(onClick = { copy(ctx, d.html); state.snack("Skopiowano źródło") }) { Text("Kopiuj") } },
-            dismissButton = { TextButton(onClick = { state.dialog = null }) { Text("Zamknij") } },
-        )
         is BrowserDialog.Ssl -> AlertDialog(
             onDismissRequest = { state.dialog = null; d.handler.cancel() },
             title = { Text("Połączenie nie jest prywatne") },
