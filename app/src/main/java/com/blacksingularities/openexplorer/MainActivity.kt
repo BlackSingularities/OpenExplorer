@@ -190,6 +190,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
                         if (menuOpen) {
                             MenuSheet(state, { menuOpen = false }, { if (it == "exit") exitBrowser() else screen = it }) { editTiles = true }
                         }
+                        state.sourceView?.let { com.blacksingularities.openexplorer.ui.SourceScreen(state, it) }
                         BrowserDialogs(state)
                         UpdateBanner(
                             updater,

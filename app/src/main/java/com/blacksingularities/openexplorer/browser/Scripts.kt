@@ -54,7 +54,33 @@ object Scripts {
 })();"""
     }
 
-    const val SOURCE = "document.documentElement.outerHTML"
+    const val SOURCE = """(function(){
+  var d = document.doctype, t = '';
+  if (d) t = '<!DOCTYPE ' + d.name + (d.publicId ? ' PUBLIC "' + d.publicId + '"' : '') + (d.systemId ? ' "' + d.systemId + '"' : '') + '>
+';
+  return t + document.documentElement.outerHTML;
+})();"""
+
+    /** Zasoby strony: skrypty, style, obrazy, ramki, czcionki i inne pobrane pliki. */
+    const val RESOURCES = """(function(){
+  var seen = {}, out = [];
+  function add(type, url) {
+    if (!url || url.indexOf('data:') === 0 || url.indexOf('blob:') === 0 || seen[url]) return;
+    seen[url] = 1; out.push({type: type, url: url});
+  }
+  document.querySelectorAll('script[src]').forEach(function(e){ add('script', e.src); });
+  document.querySelectorAll('link[rel~="stylesheet"][href]').forEach(function(e){ add('style', e.href); });
+  document.querySelectorAll('iframe[src]').forEach(function(e){ add('frame', e.src); });
+  document.querySelectorAll('img[src]').forEach(function(e){ add('image', e.currentSrc || e.src); });
+  try {
+    performance.getEntriesByType('resource').forEach(function(r){
+      var t = r.initiatorType;
+      add(t === 'script' ? 'script' : t === 'css' || t === 'link' ? 'style' : t === 'img' ? 'image' :
+          t === 'xmlhttprequest' || t === 'fetch' ? 'fetch' : 'other', r.name);
+    });
+  } catch (e) {}
+  return JSON.stringify(out.slice(0, 1000));
+})();"""
 
     /** Tekst strony do czytania na głos (bez menu, stopek i skryptów). */
     const val PAGE_TEXT = """
