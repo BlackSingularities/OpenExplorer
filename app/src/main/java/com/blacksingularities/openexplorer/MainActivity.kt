@@ -75,6 +75,13 @@ import com.blacksingularities.openexplorer.ui.LocalDims
 import com.blacksingularities.openexplorer.ui.LocalHaptics
 import com.blacksingularities.openexplorer.ui.NormalDims
 import com.blacksingularities.openexplorer.ui.OfflineScreen
+import com.blacksingularities.openexplorer.ui.PasswordsScreen
+import android.app.KeyguardManager
+import android.hardware.biometrics.BiometricManager
+import android.hardware.biometrics.BiometricPrompt
+import android.os.Build
+import android.os.CancellationSignal
+import android.view.WindowManager
 import com.blacksingularities.openexplorer.ui.SnackHost
 import com.blacksingularities.openexplorer.ui.UpdateBanner
 import kotlinx.coroutines.launch
@@ -89,6 +96,15 @@ class MainActivity : ComponentActivity(), BrowserHost {
 
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var permissionCallback: ((Boolean) -> Unit)? = null
+    private var authCallback: ((Boolean) -> Unit)? = null
+    /** Kiedy aplikacja zeszła z ekranu (hasła blokują się po dłuższej nieobecności). */
+    private var stoppedAt = 0L
+
+    private val authLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val cb = authCallback
+        authCallback = null
+        cb?.invoke(result.resultCode == Activity.RESULT_OK)
+    }
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val cb = fileCallback ?: return@registerForActivityResult
@@ -115,7 +131,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
         )
         super.onCreate(savedInstanceState)
         val app = application as OpenExplorerApp
-        state = BrowserState(this, app.settings, app.store, app.adBlocker)
+        state = BrowserState(this, app.settings, app.store, app.adBlocker, app.passwords)
         updater = app.updater
         state.restoreSession()
         handleIntent(intent, initial = true)
@@ -152,7 +168,12 @@ class MainActivity : ComponentActivity(), BrowserHost {
                             val back = { screen = "browser" }
                             when (sc) {
                                 "tabs" -> TabsScreen(state, back)
-                                "settings" -> SettingsScreen(state, updater, back) { screen = "browser"; editTiles = true; state.current?.let { state.goHome(it) } }
+                                "settings" -> SettingsScreen(
+                                    state, updater, back,
+                                    onEditTiles = { screen = "browser"; editTiles = true; state.current?.let { state.goHome(it) } },
+                                    onOpenPasswords = { screen = "passwords" },
+                                )
+                                "passwords" -> PasswordsScreen(state, back, onOpen = { openFromLibrary(it) }) { title, cb -> authenticate(title, cb) }
                                 "bookmarks" -> BookmarksScreen(state, back) { openFromLibrary(it) }
                                 "history" -> HistoryScreen(state, back) { openFromLibrary(it) }
                                 "downloads" -> DownloadsScreen(state, back)
@@ -167,7 +188,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
                             }
                         }
                         if (menuOpen) {
-                            MenuSheet(state, { menuOpen = false }, { screen = it }) { editTiles = true }
+                            MenuSheet(state, { menuOpen = false }, { if (it == "exit") exitBrowser() else screen = it }) { editTiles = true }
                         }
                         BrowserDialogs(state)
                         UpdateBanner(
@@ -188,6 +209,11 @@ class MainActivity : ComponentActivity(), BrowserHost {
                     }
                 }
                 LaunchedEffect(state.fullscreen) { setFullscreenBars(state.fullscreen != null) }
+                // Ekran haseł nie trafia na zrzuty ekranu ani do podglądu ostatnich aplikacji.
+                LaunchedEffect(screen) {
+                    if (screen == "passwords") window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
             }
         }
     }
@@ -200,6 +226,12 @@ class MainActivity : ComponentActivity(), BrowserHost {
             state.back() -> Unit
             else -> moveTaskToBack(true)
         }
+    }
+
+    /** „Wyjdź” z menu: zamyka aplikację (i czyści dane, jeśli tak ustawiono). */
+    private fun exitBrowser() {
+        menuOpen = false
+        finishAndRemoveTask()
     }
 
     private fun openFromLibrary(url: String) {
@@ -332,10 +364,64 @@ class MainActivity : ComponentActivity(), BrowserHost {
 
     override fun isDarkTheme(): Boolean = darkTheme
 
+    /**
+     * Potwierdzenie tożsamości systemowym oknem: odcisk palca / twarz albo PIN, wzór lub hasło
+     * blokady ekranu. Bez ustawionej blokady ekranu nie ma czego sprawdzać – wtedy przepuszcza.
+     */
+    override fun authenticate(title: String, onResult: (Boolean) -> Unit) {
+        val km = getSystemService(KeyguardManager::class.java)
+        if (km == null || !km.isDeviceSecure) {
+            onResult(true)
+            return
+        }
+        val callback = object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) = onResult(true)
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) = onResult(false)
+        }
+        try {
+            when {
+                Build.VERSION.SDK_INT >= 30 -> BiometricPrompt.Builder(this)
+                    .setTitle(title)
+                    .setSubtitle("OpenExplorer")
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+                    .build()
+                    .authenticate(CancellationSignal(), mainExecutor, callback)
+                Build.VERSION.SDK_INT >= 29 -> BiometricPrompt.Builder(this)
+                    .setTitle(title)
+                    .setSubtitle("OpenExplorer")
+                    .setDeviceCredentialAllowed(true)
+                    .build()
+                    .authenticate(CancellationSignal(), mainExecutor, callback)
+                else -> {
+                    @Suppress("DEPRECATION")
+                    val intent = km.createConfirmDeviceCredentialIntent(title, "OpenExplorer")
+                    if (intent == null) onResult(true) else {
+                        authCallback = onResult
+                        authLauncher.launch(intent)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            onResult(false)
+            toast("Nie udało się potwierdzić tożsamości")
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         Updater.foreground = false
         state.onPause()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        stoppedAt = System.currentTimeMillis()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Hasła zostają odblokowane przy krótkich wyjściach (np. wybór pliku), ale nie po dłuższej nieobecności.
+        if (stoppedAt > 0 && System.currentTimeMillis() - stoppedAt > 30_000L) state.passwordsUnlocked = false
     }
 
     override fun onResume() {

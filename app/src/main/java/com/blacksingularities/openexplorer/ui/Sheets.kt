@@ -53,6 +53,17 @@ import androidx.compose.material.icons.rounded.FindInPage
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import androidx.compose.material.icons.rounded.Print
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Refresh
@@ -152,35 +163,37 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
                 add(MenuAction(Icons.Rounded.VisibilityOff, "Incognito", onClick = run { state.newTab(incognito = true) }))
                 add(MenuAction(Icons.Rounded.Bookmarks, "Zakładki", onClick = run { onNavigate("bookmarks") }))
                 add(MenuAction(Icons.Rounded.History, "Historia", onClick = run { onNavigate("history") }))
-                add(MenuAction(Icons.Rounded.Download, "Pobrane", onClick = run { onNavigate("downloads") }))
-                add(MenuAction(Icons.Rounded.DownloadForOffline, "Offline", onClick = run { onNavigate("offline") }))
+                add(MenuAction(Icons.Rounded.Download, "Pobrane pliki", onClick = run { onNavigate("downloads") }))
+                add(MenuAction(Icons.Rounded.DownloadForOffline, "Zapisane strony", onClick = run { onNavigate("offline") }))
+                add(MenuAction(Icons.Rounded.Key, "Hasła", onClick = run { onNavigate("passwords") }))
                 if (state.closed.isNotEmpty()) add(MenuAction(Icons.Rounded.RestorePage, "Przywróć kartę", onClick = run { state.reopenClosed() }))
                 if (page) {
-                    add(MenuAction(Icons.Rounded.FindInPage, "Znajdź", onClick = run { state.findMode = true }))
-                    add(MenuAction(Icons.Rounded.DesktopWindows, "Desktop", tab.desktop, onClick = run { state.toggleDesktop() }))
-                    add(MenuAction(Icons.AutoMirrored.Rounded.MenuBook, "Czytnik", tab.readerMode, onClick = run { state.readerMode() }))
-                    add(MenuAction(if (state.speaking) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp, if (state.speaking) "Zatrzymaj" else "Czytaj",
+                    add(MenuAction(Icons.Rounded.FindInPage, "Znajdź na stronie", onClick = run { state.findMode = true }))
+                    add(MenuAction(Icons.Rounded.DesktopWindows, "Wersja komputerowa", tab.desktop, onClick = run { state.toggleDesktop() }))
+                    add(MenuAction(Icons.AutoMirrored.Rounded.MenuBook, "Tryb czytania", tab.readerMode, onClick = run { state.readerMode() }))
+                    add(MenuAction(if (state.speaking) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp, if (state.speaking) "Przestań czytać" else "Czytaj na głos",
                         state.speaking, onClick = run { state.readAloud() }))
-                    add(MenuAction(Icons.Rounded.FormatSize, "Tekst", onClick = run { state.dialog = BrowserDialog.PageZoom(tab) }))
-                    add(MenuAction(Icons.Rounded.Translate, "Tłumacz", onClick = run {
+                    add(MenuAction(Icons.Rounded.FormatSize, "Wielkość tekstu", onClick = run { state.dialog = BrowserDialog.PageZoom(tab) }))
+                    add(MenuAction(Icons.Rounded.Translate, "Przetłumacz", onClick = run {
                         val lang = Locale.getDefault().language
                         state.load(tab, "https://translate.google.com/translate?sl=auto&tl=$lang&u=" + java.net.URLEncoder.encode(tab.url, "UTF-8"))
                     }))
-                    add(MenuAction(Icons.Rounded.DownloadForOffline, "Zapisz offline", onClick = run { state.saveOffline() }))
-                    add(MenuAction(Icons.Rounded.Screenshot, "Zrzut", onClick = run { state.screenshot() }))
+                    add(MenuAction(Icons.Rounded.DownloadForOffline, "Zapisz bez sieci", onClick = run { state.saveOffline() }))
+                    add(MenuAction(Icons.Rounded.Screenshot, "Zrzut ekranu", onClick = run { state.screenshot() }))
                     add(MenuAction(Icons.Rounded.QrCode2, "Kod QR", onClick = run { state.dialog = BrowserDialog.Qr(tab.url, tab.title) }))
-                    add(MenuAction(Icons.Rounded.DashboardCustomize, "Do kafelków", onClick = run {
+                    add(MenuAction(Icons.Rounded.DashboardCustomize, "Dodaj kafelek", onClick = run {
                         state.store.saveTile(Tile(title = tab.title.take(24).ifBlank { tab.host }, url = tab.url))
                         state.snack("Dodano do strony startowej")
                     }))
-                    add(MenuAction(Icons.Rounded.AddToHomeScreen, "Na ekran", onClick = run { addShortcut(ctx, tab) }))
-                    add(MenuAction(Icons.Rounded.Print, "PDF", onClick = run { print(ctx, tab) }))
-                    add(MenuAction(Icons.Rounded.Code, "Źródło", onClick = run { state.viewSource() }))
+                    add(MenuAction(Icons.Rounded.AddToHomeScreen, "Skrót na pulpicie", onClick = run { addShortcut(ctx, tab) }))
+                    add(MenuAction(Icons.Rounded.Print, "Drukuj / PDF", onClick = run { print(ctx, tab) }))
+                    add(MenuAction(Icons.Rounded.Code, "Kod strony", onClick = run { state.viewSource() }))
                     add(MenuAction(Icons.Rounded.ContentCopy, "Kopiuj adres", onClick = run { copy(ctx, tab.url); state.snack("Skopiowano adres") }))
                 } else {
-                    add(MenuAction(Icons.Rounded.Wallpaper, "Kafelki", onClick = run { onEditTiles() }))
+                    add(MenuAction(Icons.Rounded.Wallpaper, "Edytuj kafelki", onClick = run { onEditTiles() }))
                 }
                 add(MenuAction(Icons.Rounded.Settings, "Ustawienia", onClick = run { onNavigate("settings") }))
+                add(MenuAction(Icons.AutoMirrored.Rounded.ExitToApp, "Wyjdź", onClick = run { onNavigate("exit") }))
             }
             LazyVerticalGrid(GridCells.Adaptive(76.dp), Modifier.heightIn(max = 480.dp).padding(top = 6.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
                 items(actions) { a ->
@@ -196,8 +209,8 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
                             Icon(a.icon, null, Modifier.size(20.dp),
                                 tint = if (a.active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
                         }
-                        Text(a.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1,
-                            overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp, start = 2.dp, end = 2.dp))
+                        Text(a.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, minLines = 2,
+                            lineHeight = 13.sp, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp, start = 2.dp, end = 2.dp))
                     }
                 }
             }
@@ -282,7 +295,9 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
                     GridCells.Adaptive(150.dp), contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 90.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(list, key = { it.id }) { t -> TabCard(t, t.id == current?.id, { state.select(t.id); onClose() }, { state.close(t.id) }) }
+                    items(list, key = { it.id }) { t ->
+                        TabCard(t, t.id == current?.id, { state.select(t.id); onClose() }, { state.close(t.id) }, Modifier.animateItem())
+                    }
                 }
             }
         }
@@ -307,10 +322,35 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
 }
 
 @Composable
-private fun TabCard(tab: Tab, selected: Boolean, onClick: () -> Unit, onClose: () -> Unit) {
+private fun TabCard(tab: Tab, selected: Boolean, onClick: () -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
+    // Przesunięcie karty w bok zamyka ją (jak w Chrome).
+    val drag = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
     Column(
-        Modifier.fillMaxWidth().aspectRatio(0.8f).clip(RoundedCornerShape(18.dp)).background(colors.surfaceContainerHigh)
+        modifier
+            .graphicsLayer {
+                translationX = drag.value
+                alpha = 1f - (abs(drag.value) / size.width.coerceAtLeast(1f)).coerceIn(0f, 1f) * 0.85f
+            }
+            .pointerInput(tab.id) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        scope.launch {
+                            val w = size.width.toFloat()
+                            if (abs(drag.value) > w * 0.35f) {
+                                drag.animateTo(if (drag.value > 0) w * 1.2f else -w * 1.2f, tween(160))
+                                onClose()
+                            } else drag.animateTo(0f, spring(dampingRatio = 0.7f))
+                        }
+                    },
+                    onDragCancel = { scope.launch { drag.animateTo(0f) } },
+                ) { change, amount ->
+                    change.consume()
+                    scope.launch { drag.snapTo(drag.value + amount) }
+                }
+            }
+            .fillMaxWidth().aspectRatio(0.8f).clip(RoundedCornerShape(18.dp)).background(colors.surfaceContainerHigh)
             .then(if (selected) Modifier.border(2.dp, colors.primary, RoundedCornerShape(18.dp)) else Modifier)
             .clickable(onClick = onClick),
     ) {
@@ -503,10 +543,15 @@ private fun SiteInfoSheet(state: BrowserState, tab: Tab) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, top = 10.dp))
             }
             SectionTitle("Ustawienia tej strony")
-            ToggleRow("Blokowanie reklam", null, rule.adBlock) { v -> state.updateRule(tab) { it.copy(adBlock = v) } }
+            ToggleRow("Blokuj reklamy", null, rule.adBlock) { v -> state.updateRule(tab) { it.copy(adBlock = v) } }
             ToggleRow("JavaScript", null, rule.javascript) { v -> state.updateRule(tab) { it.copy(javascript = v) } }
-            ToggleRow("Zawsze wersja desktop", null, rule.desktop) { v -> state.updateRule(tab) { it.copy(desktop = v) } }
-            ToggleRow("Przyciemnianie strony", null, rule.darkMode) { v -> state.updateRule(tab) { it.copy(darkMode = v) } }
+            ToggleRow("Zawsze wersja komputerowa", null, rule.desktop) { v -> state.updateRule(tab) { it.copy(desktop = v) } }
+            ToggleRow("Ciemny wygląd", "Gdy włączony jest ciemny motyw", rule.darkMode) { v -> state.updateRule(tab) { it.copy(darkMode = v) } }
+            val saved = state.passwords.forHost(host).count { it.host == host }
+            if (saved > 0) {
+                Text("Zapisane loginy dla tej strony: $saved (menu → Hasła)", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
+            }
             ClickRow("Wyczyść ciasteczka i dane strony", "Wylogowuje z $host") { state.clearSiteData(tab); state.dialog = null }
         }
     }

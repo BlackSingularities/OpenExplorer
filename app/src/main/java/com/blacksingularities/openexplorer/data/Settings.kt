@@ -79,6 +79,8 @@ class Settings(context: Context) {
     var swipeTabs by b("swipe_tabs", true)
     var haptics by b("haptics", true)
     var showProgress by b("show_progress", true)
+    /** Okrągły przycisk „do góry” po dłuższym przewinięciu strony. */
+    var scrollTopButton by b("scroll_top_button", true)
 
     // Strona startowa
     var homeColumns by i("home_columns", 3)
@@ -124,6 +126,23 @@ class Settings(context: Context) {
     var customSearchUrl by s("custom_search_url", "")
     var searchSuggestions by b("search_suggestions", true)
     var homepageUrl by s("homepage_url", "")
+    /** Dopisywanie reszty adresu podczas pisania („you” → „youtube.com”). */
+    var inlineAutocomplete by b("inline_autocomplete", true)
+    /** Podpowiedź „otwórz skopiowany link” w pasku adresu. */
+    var clipboardSuggestion by b("clipboard_suggestion", true)
+
+    // Hasła
+    /** Własny menedżer haseł (zapisywanie i uzupełnianie na stronach). */
+    var passwordManager by b("password_manager", true)
+    var offerSavePasswords by b("offer_save_passwords", true)
+    /** Wypełnianie bez dotknięcia, gdy dla strony jest dokładnie jeden login. */
+    var passwordAutofill by b("password_autofill", false)
+    /** Odcisk palca / PIN przed każdym uzupełnieniem hasła na stronie. */
+    var passwordAuthFill by b("password_auth_fill", false)
+    /** Przycisk z okiem przy polach haseł na stronach. */
+    var revealPasswordButton by b("reveal_password_button", true)
+    /** Systemowe autouzupełnianie (Google, Edge, Bitwarden…) w polach stron. */
+    var systemAutofill by b("system_autofill", false)
 
     // Prywatność i bezpieczeństwo
     var adBlock by b("ad_block", true)

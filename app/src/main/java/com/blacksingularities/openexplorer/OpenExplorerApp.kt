@@ -16,6 +16,11 @@ class OpenExplorerApp : Application(), ImageLoaderFactory {
     lateinit var adBlocker: AdBlocker
         private set
 
+    /** Menedżer haseł (plik zaszyfrowany kluczem z Android Keystore), wczytywany przy pierwszym użyciu. */
+    val passwords: com.blacksingularities.openexplorer.data.PasswordStore by lazy {
+        com.blacksingularities.openexplorer.data.PasswordStore(this)
+    }
+
     /** Jedna instancja aktualizatora dla interfejsu, zadania w tle i odbiornika instalacji. */
     val updater: com.blacksingularities.openexplorer.update.Updater by lazy {
         com.blacksingularities.openexplorer.update.Updater(this)

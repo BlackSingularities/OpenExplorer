@@ -44,6 +44,15 @@ class Tab(
     var pageHost: String? = null
 
     var webView: WebView? = null
+
+    /** Połączenie z menedżerem haseł w bieżącym dokumencie (główna ramka) i jego domena. */
+    var passReply: androidx.webkit.JavaScriptReplyProxy? = null
+    var passHost: String? = null
+    var passScheme: String? = null
+    /** Skrypt haseł wstrzykiwany automatycznie na początku każdego dokumentu. */
+    var passScriptAtStart = false
+    /** Ta strona została już wypełniona automatycznie (nie powtarzaj po każdej zmianie formularza). */
+    var autoFilled = false
     var container: SwipeRefreshLayout? = null
 
     val secure: Boolean get() = url.startsWith("https://")

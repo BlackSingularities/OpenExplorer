@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Search
@@ -100,7 +101,13 @@ private fun applyPreset(s: Settings, preset: String) {
 }
 
 @Composable
-fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, onEditTiles: () -> Unit) {
+fun SettingsScreen(
+    state: BrowserState,
+    updater: Updater,
+    onBack: () -> Unit,
+    onEditTiles: () -> Unit,
+    onOpenPasswords: () -> Unit,
+) {
     val s = state.settings
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -150,12 +157,13 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
     val pages = listOf(
         SettingsPage("home", "Strona startowa", "Kafelki, loga, siatka, tło", Icons.Rounded.Dashboard),
         SettingsPage("look", "Wygląd", "Motyw, kolory, paski, gesty", Icons.Rounded.Palette),
-        SettingsPage("search", "Wyszukiwanie", s.engine.name + " · skróty !yt, !w…", Icons.Rounded.Search),
+        SettingsPage("search", "Wyszukiwanie i pasek adresu", s.engine.name + " · podpowiedzi, uzupełnianie adresów", Icons.Rounded.Search),
+        SettingsPage("passwords", "Hasła i autouzupełnianie", "${state.passwords.items.size} zapisanych · oko przy hasłach", Icons.Rounded.Key),
         SettingsPage("privacy", "Prywatność i bezpieczeństwo", "Reklamy, HTTPS, ciasteczka, wyjątki stron", Icons.Rounded.Shield),
-        SettingsPage("content", "Treści stron", "JavaScript, tekst, czytanie na głos", Icons.Rounded.Language),
-        SettingsPage("tabs", "Karty i pobieranie", "Sesja, linki w tle, pobieranie", Icons.Rounded.Tab),
-        SettingsPage("backup", "Kopia zapasowa", "Eksport i import danych", Icons.Rounded.Backup),
-        SettingsPage("updates", "Aktualizacje", "Wersja " + BuildConfig.VERSION_NAME, Icons.Rounded.SystemUpdate),
+        SettingsPage("content", "Wyświetlanie stron", "JavaScript, wielkość tekstu, czytanie na głos", Icons.Rounded.Language),
+        SettingsPage("tabs", "Karty i pobieranie", "Przywracanie kart, nowe karty, pobieranie", Icons.Rounded.Tab),
+        SettingsPage("backup", "Kopia zapasowa", "Eksport i import ustawień, kafelków i zakładek", Icons.Rounded.Backup),
+        SettingsPage("updates", "Aktualizacje", "Automatycznie z GitHub · wersja " + BuildConfig.VERSION_NAME, Icons.Rounded.SystemUpdate),
         SettingsPage("about", "O aplikacji", "OpenExplorer " + BuildConfig.VERSION_NAME, Icons.Rounded.Info),
     )
     var page by rememberSaveable { mutableStateOf<String?>(null) }
@@ -205,27 +213,27 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
 
                     SliderRow("Kolumny", s.homeColumns, 1..10) { s.homeColumns = it }
                     if (!s.homeAllTiles) SliderRow("Wiersze", s.homeRows, 1..12) { s.homeRows = it }
-                    ToggleRow("Wszystkie kafelki", "Siatka bez limitu wierszy", s.homeAllTiles) { s.homeAllTiles = it }
-                    SliderRow("Wielkość logo", s.tileIconScale, 25..100, "%") { s.tileIconScale = it }
-                    SliderRow("Zaokrąglenie", s.tileCorner, 0..50, "%") { s.tileCorner = it }
-                    SliderRow("Odstępy", s.tileSpacing, 0..40, " dp") { s.tileSpacing = it }
-                    SliderRow("Szerokość siatki", s.homeWidth, 240..1000, " dp", step = 20) { s.homeWidth = it }
-                    ChipsRow("Logo", listOf("hd" to "Duże logo", "small" to "Ikona", "letter" to "Litery"), s.logoSource) { s.logoSource = it }
-                    ToggleRow("Tło kafelków", "Wyłączone = same loga", s.tileBackground) { s.tileBackground = it }
-                    ToggleRow("Przycinaj logo do kształtu", null, s.tileClip) { s.tileClip = it }
-                    ToggleRow("Podpisy", null, s.tileLabels) { s.tileLabels = it }
-                    if (s.tileLabels) SliderRow("Rozmiar podpisów", s.tileLabelSize, 8..18, " sp") { s.tileLabelSize = it }
-                    ToggleRow("Loga w odcieniach szarości", null, s.tileGrayscale) { s.tileGrayscale = it }
-                    ToggleRow("Przycisk dodawania kafelka", null, s.tileAddButton) { s.tileAddButton = it }
-                    ChipsRow("Położenie", listOf("center" to "Na środku", "top" to "U góry"), s.homeAlign) { s.homeAlign = it }
-                    ChipsRow("Pole wyszukiwania", listOf("pill" to "Pigułka", "line" to "Minimalne", "none" to "Brak"), s.homeSearchStyle) { s.homeSearchStyle = it }
+                    ToggleRow("Pokazuj wszystkie kafelki", "Bez limitu wierszy – strona przewija się w dół", s.homeAllTiles) { s.homeAllTiles = it }
+                    SliderRow("Wielkość logo w kafelku", s.tileIconScale, 25..100, "%") { s.tileIconScale = it }
+                    SliderRow("Zaokrąglenie rogów", s.tileCorner, 0..50, "%") { s.tileCorner = it }
+                    SliderRow("Odstępy między kafelkami", s.tileSpacing, 0..40, " dp") { s.tileSpacing = it }
+                    SliderRow("Maksymalna szerokość siatki", s.homeWidth, 240..1000, " dp", step = 20) { s.homeWidth = it }
+                    ChipsRow("Skąd brać logo", listOf("hd" to "Duże logo strony", "small" to "Mała ikona", "letter" to "Pierwsza litera"), s.logoSource) { s.logoSource = it }
+                    ToggleRow("Tło pod logo", "Wyłączone – widać same loga", s.tileBackground) { s.tileBackground = it }
+                    ToggleRow("Przycinaj logo do kształtu kafelka", "Wyłączone – logo w oryginalnym kształcie", s.tileClip) { s.tileClip = it }
+                    ToggleRow("Nazwy pod kafelkami", null, s.tileLabels) { s.tileLabels = it }
+                    if (s.tileLabels) SliderRow("Wielkość nazw", s.tileLabelSize, 8..18, " sp") { s.tileLabelSize = it }
+                    ToggleRow("Czarno-białe loga", null, s.tileGrayscale) { s.tileGrayscale = it }
+                    ToggleRow("Kafelek „+” do dodawania stron", null, s.tileAddButton) { s.tileAddButton = it }
+                    ChipsRow("Położenie kafelków", listOf("center" to "Na środku ekranu", "top" to "U góry"), s.homeAlign) { s.homeAlign = it }
+                    ChipsRow("Pole wyszukiwania", listOf("pill" to "Zaokrąglone", "line" to "Sama linia", "none" to "Ukryte"), s.homeSearchStyle) { s.homeSearchStyle = it }
                     ToggleRow("Zegar i data", null, s.homeClock) { s.homeClock = it }
-                    if (s.homeClock) SliderRow("Rozmiar zegara", s.homeClockSize, 28..96, " sp", step = 4) { s.homeClockSize = it }
-                    ToggleRow("Nazwa przeglądarki", null, s.homeLogo) { s.homeLogo = it }
-                    ToggleRow("Ostatnio odwiedzane", null, s.homeRecent) { s.homeRecent = it }
-                    if (s.homeRecent) SliderRow("Liczba ostatnich", s.homeRecentCount, 1..10) { s.homeRecentCount = it }
+                    if (s.homeClock) SliderRow("Wielkość zegara", s.homeClockSize, 28..96, " sp", step = 4) { s.homeClockSize = it }
+                    ToggleRow("Napis „OpenExplorer”", "Nad polem wyszukiwania", s.homeLogo) { s.homeLogo = it }
+                    ToggleRow("Ostatnio odwiedzone strony", "Lista pod kafelkami", s.homeRecent) { s.homeRecent = it }
+                    if (s.homeRecent) SliderRow("Ile ostatnich stron", s.homeRecentCount, 1..10) { s.homeRecentCount = it }
                     ChipsRow(
-                        "Tło",
+                        "Tło strony startowej",
                         listOf("none" to "Brak", "aurora" to "Zorza", "gradient" to "Gradient", "solid" to "Kolor", "image" to "Obraz"),
                         s.homeWallpaper,
                     ) {
@@ -237,8 +245,8 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
                         SliderRow("Przyciemnienie", s.homeWallpaperDim, 0..80, "%") { s.homeWallpaperDim = it }
                         if (Build.VERSION.SDK_INT >= 31) SliderRow("Rozmycie", s.homeWallpaperBlur, 0..30, " dp") { s.homeWallpaperBlur = it }
                     }
-                    ClickRow("Własna strona domowa", value = s.homepageUrl.ifBlank { "Kafelki" }) {
-                        ask("Adres strony domowej (puste = kafelki)", s.homepageUrl) { s.homepageUrl = it.trim() }
+                    ClickRow("Przycisk „Start” otwiera", "Kafelki albo wybraną stronę", value = s.homepageUrl.ifBlank { "Kafelki" }) {
+                        ask("Adres strony (puste = kafelki)", s.homepageUrl) { s.homepageUrl = it.trim() }
                     }
                     ClickRow("Przywróć domyślne kafelki") { resetConfirm = true }
 
@@ -258,18 +266,23 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
                     s.palette,
                 ) { s.palette = it }
                 if (s.palette == "accent") ColorDots(ACCENTS, s.accent) { s.accent = it }
-                ToggleRow("Czerń AMOLED", "W trybie ciemnym", s.amoled) { s.amoled = it }
-                ChipsRow("Gęstość", listOf("compact" to "Kompaktowa", "normal" to "Zwykła"), s.density) { s.density = it }
-                ToggleRow("Pasek adresu na dole", "Wygodniejszy przy obsłudze jedną ręką", s.addressBarBottom) { s.addressBarBottom = it }
-                ToggleRow("Pasek nawigacji", "Wstecz, dalej, start, karty i menu na dole", s.navBar) { s.navBar = it }
-                ToggleRow("Przycisk strony startowej", null, s.showHomeButton) { s.showHomeButton = it }
-                ToggleRow("Przycisk odświeżania", null, s.showReloadButton) { s.showReloadButton = it }
-                ToggleRow("Licznik kart", null, s.showTabCounter) { s.showTabCounter = it }
-                ToggleRow("Pasek postępu", null, s.showProgress) { s.showProgress = it }
-                ToggleRow("Ukrywaj paski przy przewijaniu", null, s.hideBarsOnScroll) { s.hideBarsOnScroll = it }
-                ToggleRow("Przesuń pasek adresu, aby zmienić kartę", null, s.swipeTabs) { s.swipeTabs = it }
-                ToggleRow("Wibracje przy dotyku", null, s.haptics) { s.haptics = it }
-                ChipsRow("Ciemne strony", listOf("auto" to "Zgodnie z motywem", "force" to "Zawsze", "off" to "Nigdy"), s.webDarkMode) {
+                ToggleRow("Głęboka czerń w ciemnym motywie", "Czarne tło zamiast szarego – oszczędza baterię na ekranach OLED", s.amoled) { s.amoled = it }
+                ChipsRow("Wielkość przycisków i pasków", listOf("compact" to "Mniejsze", "normal" to "Większe"), s.density) { s.density = it }
+                ToggleRow("Pasek adresu na dole ekranu", "Wygodniejszy przy obsłudze jedną ręką", s.addressBarBottom) { s.addressBarBottom = it }
+                ToggleRow("Dolny pasek przycisków", "Wstecz, dalej, start, karty i menu zawsze pod ręką", s.navBar) { s.navBar = it }
+                ToggleRow("Przycisk „Start” w pasku adresu", null, s.showHomeButton) { s.showHomeButton = it }
+                ToggleRow("Przycisk odświeżania w pasku adresu", null, s.showReloadButton) { s.showReloadButton = it }
+                ToggleRow("Przycisk z liczbą kart", null, s.showTabCounter) { s.showTabCounter = it }
+                ToggleRow("Linia postępu wczytywania", null, s.showProgress) { s.showProgress = it }
+                ToggleRow("Chowaj paski podczas przewijania", "Paski płynnie odjeżdżają razem ze stroną – więcej miejsca na treść", s.hideBarsOnScroll) { s.hideBarsOnScroll = it }
+                ToggleRow("Przycisk „do góry”", "Pojawia się po przewinięciu długiej strony", s.scrollTopButton) { s.scrollTopButton = it }
+                ToggleRow("Zmiana karty przesunięciem paska adresu", "Przeciągnij pasek w lewo lub w prawo", s.swipeTabs) { s.swipeTabs = it }
+                ToggleRow("Wibracje przy dotyku przycisków", null, s.haptics) { s.haptics = it }
+                ChipsRow(
+                    "Ciemny wygląd stron",
+                    listOf("auto" to "Gdy motyw jest ciemny", "force" to "Zawsze (odwraca kolory)", "off" to "Nigdy"),
+                    s.webDarkMode,
+                ) {
                     web { s.webDarkMode = it }
                 }
 
@@ -280,21 +293,54 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
                     s.searchEngine = it
                     if (it == "custom") ask("Adres wyszukiwania z %s w miejscu zapytania", s.customSearchUrl) { v -> s.customSearchUrl = v.trim() }
                 }
-                ToggleRow("Podpowiedzi", "Wysyła wpisywany tekst do wyszukiwarki", s.searchSuggestions) { s.searchSuggestions = it }
+                ToggleRow("Podpowiedzi wyszukiwarki", "Wpisywany tekst trafia do ${s.engine.name}, by zaproponować zapytania", s.searchSuggestions) { s.searchSuggestions = it }
+                ToggleRow("Dopisuj adresy podczas pisania", "„you” → „youtube.com” na podstawie historii i zakładek", s.inlineAutocomplete) { s.inlineAutocomplete = it }
+                ToggleRow("Proponuj skopiowany link", "Po otwarciu paska adresu – jednym dotknięciem", s.clipboardSuggestion) { s.clipboardSuggestion = it }
                 Text(
-                    "Skróty: " + BrowserState.BANGS.keys.joinToString("  ") { "!$it" },
+                    "Skróty wyszukiwania – wpisz np. „!yt koty” albo „!w Kraków”: " + BrowserState.BANGS.keys.joinToString("  ") { "!$it" },
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
                 )
 
 
             }
+            "passwords" -> {
+                ClickRow(
+                    "Zapisane hasła",
+                    "${state.passwords.items.size} loginów · zaszyfrowane, tylko na tym telefonie · wymaga odcisku palca lub PIN-u",
+                ) { onOpenPasswords() }
+                ToggleRow("Wbudowany menedżer haseł", "Zapisuje i uzupełnia loginy na stronach – bez Google, Edge i innych usług", s.passwordManager) {
+                    s.passwordManager = it
+                }
+                if (s.passwordManager) {
+                    ToggleRow("Pytaj o zapisanie hasła", "Po zalogowaniu się na stronie (nigdy w incognito)", s.offerSavePasswords) { s.offerSavePasswords = it }
+                    ToggleRow("Uzupełniaj bez pytania", "Gdy dla strony jest zapisane tylko jedno konto", s.passwordAutofill) { s.passwordAutofill = it }
+                    ToggleRow(
+                        "Potwierdzaj odciskiem palca lub PIN-em",
+                        "Przed każdym uzupełnieniem hasła na stronie",
+                        s.passwordAuthFill,
+                    ) { s.passwordAuthFill = it }
+                }
+                ToggleRow("Przycisk „pokaż hasło” na stronach", "Oko przy polach haseł (gdy strona nie ma własnego)", s.revealPasswordButton) {
+                    s.revealPasswordButton = it
+                }
+                ToggleRow(
+                    "Systemowe autouzupełnianie",
+                    "Okienka Google, Edge, Bitwardena itp. w polach stron. Wyłączone – nie wyskakują",
+                    s.systemAutofill,
+                ) { v -> web { s.systemAutofill = v } }
+                Text(
+                    "Hasła z Edge, Chrome lub innego menedżera przeniesiesz przez plik CSV: wyeksportuj je tam, a potem w „Zapisane hasła” wybierz ⋮ → Importuj z pliku CSV.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+            }
             "privacy" -> {
-                ToggleRow("Blokowanie reklam i śledzenia", "Domen na liście: ${state.adBlocker.size}", s.adBlock) { s.adBlock = it }
-                ToggleRow("Ukrywanie miejsc po reklamach", null, s.cosmeticFilter) { s.cosmeticFilter = it }
-                ToggleRow("Ukrywanie banerów cookies", null, s.hideCookieBanners) { s.hideCookieBanners = it }
+                ToggleRow("Blokuj reklamy i śledzenie", "Domen na liście: ${state.adBlocker.size}", s.adBlock) { s.adBlock = it }
+                ToggleRow("Ukrywaj puste ramki po reklamach", "Strony nie mają dziur w miejscach zablokowanych reklam", s.cosmeticFilter) { s.cosmeticFilter = it }
+                ToggleRow("Ukrywaj okienka zgody na cookies", "Popularne banery RODO znikają same", s.hideCookieBanners) { s.hideCookieBanners = it }
                 val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else "nigdy"
-                ClickRow(if (filtersBusy) "Pobieranie listy filtrów…" else "Aktualizuj listę filtrów", "StevenBlack · ostatnio: $date") {
+                ClickRow(if (filtersBusy) "Pobieranie listy blokowanych domen…" else "Pobierz pełną listę blokowanych domen", "StevenBlack · ostatnio: $date") {
                     if (!filtersBusy) {
                         filtersBusy = true
                         scope.launch {
@@ -305,16 +351,20 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
                         }
                     }
                 }
-                ToggleRow("Tylko HTTPS", "Automatycznie przechodzi na szyfrowane połączenie", s.httpsOnly) { s.httpsOnly = it }
-                ToggleRow("Bezpieczne przeglądanie", "Ostrzega przed groźnymi stronami", s.safeBrowsing) { v -> web { s.safeBrowsing = v } }
-                ToggleRow("Ciasteczka stron trzecich", null, s.thirdPartyCookies) { v -> web { s.thirdPartyCookies = v } }
-                ToggleRow("Nie śledź (DNT i GPC)", null, s.doNotTrack) { s.doNotTrack = it }
-                ToggleRow("Blokuj wyskakujące okna", null, s.blockPopups) { v -> web { s.blockPopups = v } }
-                ToggleRow("Zapisuj historię", null, s.saveHistory) { s.saveHistory = it }
-                ToggleRow("Czyść dane przy zamknięciu", null, s.clearOnExit) { s.clearOnExit = it }
-                ClickRow("Wyczyść dane przeglądania", "Pamięć podręczna, ciasteczka, historia") { clearDialog = true }
+                ToggleRow("Zawsze łącz przez HTTPS", "Adresy http:// są zamieniane na szyfrowane https://", s.httpsOnly) { s.httpsOnly = it }
+                ToggleRow("Ostrzegaj przed niebezpiecznymi stronami", "Wyłudzanie danych i złośliwe oprogramowanie (Google Safe Browsing)", s.safeBrowsing) { v -> web { s.safeBrowsing = v } }
+                ToggleRow("Zezwalaj na ciasteczka innych firm", "Potrzebne przy niektórych logowaniach i osadzonych treściach, ale służą też do śledzenia", s.thirdPartyCookies) { v -> web { s.thirdPartyCookies = v } }
+                ToggleRow("Proś strony o nieśledzenie", "Wysyła sygnały „Do Not Track” i „Global Privacy Control”", s.doNotTrack) { s.doNotTrack = it }
+                ToggleRow("Blokuj wyskakujące okna", "Okna otwierane przez stronę bez Twojego dotknięcia", s.blockPopups) { v -> web { s.blockPopups = v } }
+                ToggleRow("Zapisuj historię odwiedzin", null, s.saveHistory) { s.saveHistory = it }
+                ToggleRow(
+                    "Usuwaj dane po wyjściu",
+                    "Historia, ciasteczka i dane stron znikają po „Wyjdź” w menu i przy każdym uruchomieniu – zaczynasz od czystej karty",
+                    s.clearOnExit,
+                ) { s.clearOnExit = it }
+                ClickRow("Wyczyść dane przeglądania teraz", "Pamięć podręczna, ciasteczka, historia, dane stron") { clearDialog = true }
                 if (state.store.sites.isNotEmpty()) {
-                    SectionTitle("Wyjątki stron")
+                    SectionTitle("Własne ustawienia stron")
                     state.store.sites.values.sortedBy { it.host }.forEach { r ->
                         Row(
                             Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
@@ -326,14 +376,14 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
                                     buildList {
                                         if (!r.adBlock) add("reklamy dozwolone")
                                         if (!r.javascript) add("bez JavaScript")
-                                        if (r.desktop) add("desktop")
-                                        if (!r.darkMode) add("bez przyciemniania")
+                                        if (r.desktop) add("wersja komputerowa")
+                                        if (!r.darkMode) add("bez ciemnego wyglądu")
                                         if (r.textZoom > 0) add("tekst ${r.textZoom}%")
                                     }.joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            RoundIcon(Icons.Rounded.Close, "Usuń wyjątek") {
+                            RoundIcon(Icons.Rounded.Close, "Przywróć domyślne dla tej strony") {
                                 state.store.saveRule(SiteRule(r.host))
                                 state.applySettingsToAll()
                             }
@@ -344,42 +394,55 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
 
             }
             "content" -> {
-                ToggleRow("JavaScript", null, s.javascript) { v -> web { s.javascript = v } }
-                ToggleRow("Wczytuj obrazy", null, s.loadImages) { v -> web { s.loadImages = v } }
-                ToggleRow("Blokuj autoodtwarzanie", "Multimedia startują po dotknięciu", s.blockAutoplay) { v -> web { s.blockAutoplay = v } }
-                ToggleRow("Wersja desktop domyślnie", null, s.desktopDefault) { s.desktopDefault = it }
-                ToggleRow("Wymuś powiększanie", "Także na stronach, które je blokują", s.forceZoom) { s.forceZoom = it }
-                ToggleRow("Przeciągnij, aby odświeżyć", null, s.pullToRefresh) { s.pullToRefresh = it }
-                SliderRow("Rozmiar tekstu", s.textZoom, 50..200, "%", step = 10) { v -> web { s.textZoom = v } }
-                SliderRow("Tempo czytania na głos", s.ttsRate, 50..200, "%", step = 10) { s.ttsRate = it }
-                ClickRow("User-Agent", value = if (s.customUserAgent.isBlank()) "Domyślny" else "Własny") {
+                ToggleRow("JavaScript", "Wyłączenie przyspiesza strony, ale wiele z nich przestaje działać", s.javascript) { v -> web { s.javascript = v } }
+                ToggleRow("Pokazuj obrazy", "Wyłączone – oszczędza dane komórkowe", s.loadImages) { v -> web { s.loadImages = v } }
+                ToggleRow("Nie odtwarzaj filmów i dźwięków samoczynnie", "Ruszają dopiero po dotknięciu", s.blockAutoplay) { v -> web { s.blockAutoplay = v } }
+                ToggleRow("Zawsze otwieraj wersję komputerową", "Strony jak na komputerze zamiast mobilnych", s.desktopDefault) { s.desktopDefault = it }
+                ToggleRow("Pozwalaj powiększać każdą stronę", "Także te, które blokują przybliżanie palcami", s.forceZoom) { s.forceZoom = it }
+                ToggleRow("Odświeżanie pociągnięciem w dół", "Na samej górze strony", s.pullToRefresh) { s.pullToRefresh = it }
+                SliderRow("Wielkość tekstu na stronach", s.textZoom, 50..200, "%", step = 10) { v -> web { s.textZoom = v } }
+                SliderRow("Szybkość czytania na głos", s.ttsRate, 50..200, "%", step = 10) { s.ttsRate = it }
+                ClickRow(
+                    "Identyfikator przeglądarki (User-Agent)", "Jak przeglądarka przedstawia się stronom",
+                    value = if (s.customUserAgent.isBlank()) "Domyślny" else "Własny",
+                ) {
                     ask("Własny User-Agent (puste = domyślny)", s.customUserAgent) { v -> web { s.customUserAgent = v.trim() } }
                 }
 
 
             }
             "tabs" -> {
-                ToggleRow("Przywracaj karty", "Po ponownym uruchomieniu", s.restoreTabs) { s.restoreTabs = it }
-                ToggleRow("Otwieraj linki w tle", "Z kafelków i menu kontekstowego", s.linksInBackground) { s.linksInBackground = it }
-                ToggleRow("Potwierdzaj zamykanie wszystkich kart", null, s.confirmCloseAll) { s.confirmCloseAll = it }
-                ToggleRow("Pytaj przed pobraniem", "Pozwala zmienić nazwę pliku", s.askDownload) { s.askDownload = it }
+                ToggleRow("Przywracaj karty po ponownym uruchomieniu", null, s.restoreTabs) { s.restoreTabs = it }
+                ToggleRow("Nowe karty otwieraj w tle", "Przy otwieraniu kafelka w nowej karcie zostajesz na bieżącej stronie", s.linksInBackground) { s.linksInBackground = it }
+                ToggleRow("Pytaj przed zamknięciem wszystkich kart", null, s.confirmCloseAll) { s.confirmCloseAll = it }
+                ToggleRow("Pytaj o nazwę pliku przed pobraniem", "Wyłączone – pobieranie startuje od razu", s.askDownload) { s.askDownload = it }
+                Text(
+                    "Kartę zamkniesz też, przesuwając ją w bok na liście kart.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
 
 
             }
             "backup" -> {
-                ClickRow("Eksportuj", "Ustawienia, kafelki, zakładki") { exportLauncher.launch("OpenExplorer-kopia.json") }
-                ClickRow("Importuj z pliku") { importLauncher.launch(arrayOf("application/json", "*/*")) }
+                ClickRow("Zapisz kopię do pliku", "Ustawienia, kafelki i zakładki (bez haseł)") { exportLauncher.launch("OpenExplorer-kopia.json") }
+                ClickRow("Przywróć z pliku kopii") { importLauncher.launch(arrayOf("application/json", "*/*")) }
+                Text(
+                    "Hasła kopiujesz osobno: Hasła i autouzupełnianie → Zapisane hasła → ⋮ → Eksportuj do pliku CSV.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
 
 
             }
             "updates" -> {
-                ToggleRow("Sprawdzaj automatycznie", "Przy otwarciu aplikacji i co kilka godzin w tle", s.autoUpdate) {
+                ToggleRow("Aktualizuj automatycznie z GitHub", "Sprawdza przy otwarciu aplikacji i co kilka godzin w tle", s.autoUpdate) {
                     s.autoUpdate = it
                     com.blacksingularities.openexplorer.update.UpdateWorker.schedule(ctx, replace = true)
                 }
                 if (s.autoUpdate) {
-                    ToggleRow("Pobieraj automatycznie", "Aktualizacja czeka gotowa do instalacji", s.updateAutoDownload) { s.updateAutoDownload = it }
-                    ToggleRow("Tylko przez Wi-Fi", null, s.updateWifiOnly) {
+                    ToggleRow("Pobieraj nowe wersje od razu", "Aktualizacja czeka gotowa do instalacji", s.updateAutoDownload) { s.updateAutoDownload = it }
+                    ToggleRow("Pobieraj tylko przez Wi-Fi", "Nie zużywa danych komórkowych", s.updateWifiOnly) {
                         s.updateWifiOnly = it
                         com.blacksingularities.openexplorer.update.UpdateWorker.schedule(ctx, replace = true)
                     }
@@ -416,7 +479,7 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
                         if (!updater.install(r)) state.toast("Zezwól na instalację i wróć do aplikacji")
                     }
                 }
-                ClickRow("Sprawdź aktualizacje", sub) {
+                ClickRow("Sprawdź teraz", sub) {
                     scope.launch {
                         updater.bannerHiddenFor = ""
                         updater.check()
@@ -470,8 +533,8 @@ fun SettingsScreen(state: BrowserState, updater: Updater, onBack: () -> Unit, on
                 Column {
                     CheckRow("Pamięć podręczna", cache) { cache = it }
                     CheckRow("Historia", history) { history = it }
-                    CheckRow("Ciasteczka (wylogowuje)", cookies) { cookies = it }
-                    CheckRow("Dane stron (pamięć lokalna)", storage) { storage = it }
+                    CheckRow("Ciasteczka (wylogowuje ze stron)", cookies) { cookies = it }
+                    CheckRow("Dane zapisane przez strony", storage) { storage = it }
                 }
             },
             confirmButton = {
