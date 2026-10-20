@@ -1075,7 +1075,7 @@ class BrowserState(
                 try {
                     val code = conn.responseCode
                     val stream = if (code >= 400) conn.errorStream else conn.inputStream
-                    val charset = Regex("charset=([\w-]+)", RegexOption.IGNORE_CASE)
+                    val charset = Regex("charset=([\\w-]+)", RegexOption.IGNORE_CASE)
                         .find(conn.contentType ?: "")?.groupValues?.get(1)
                     val bytes = stream?.use { input ->
                         val out = java.io.ByteArrayOutputStream()
