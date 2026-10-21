@@ -494,6 +494,14 @@ fun SettingsScreen(
                     state.newTab("https://github.com/${BuildConfig.UPDATE_REPO}")
                     onBack()
                 }
+                ClickRow("Projekt i wykonanie: redzikowski.com") {
+                    state.newTab("https://redzikowski.com")
+                    onBack()
+                }
+                ClickRow("☕ Postaw kawę", "Wesprzyj rozwój na buycoffee.to") {
+                    state.newTab("https://buycoffee.to/adamredzikowski")
+                    onBack()
+                }
                 ClickRow("Przywróć ustawienia domyślne") { s.resetAll(); state.applySettingsToAll(); state.snack("Przywrócono ustawienia") }
 
             }
