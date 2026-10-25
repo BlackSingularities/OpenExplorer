@@ -68,6 +68,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.BuildConfig
+import com.blacksingularities.openexplorer.browser.AdBlocker
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.data.CONTAINER_COLORS
 import com.blacksingularities.openexplorer.data.Container
@@ -123,6 +124,8 @@ fun SettingsScreen(
     var textInput by remember { mutableStateOf<Triple<String, String, (String) -> Unit>?>(null) }
     var resetConfirm by remember { mutableStateOf(false) }
     var filtersBusy by remember { mutableStateOf(false) }
+    /** Listy filtrów w trakcie włączania (true) albo wyłączania (false). */
+    var listsBusy by remember { mutableStateOf(emptyMap<String, Boolean>()) }
     /** Kontener w oknie edycji (nowy, gdy nie ma go jeszcze w Store) i kontener do usunięcia. */
     var containerEdit by remember { mutableStateOf<Container?>(null) }
     var containerDelete by remember { mutableStateOf<Container?>(null) }
@@ -363,21 +366,6 @@ fun SettingsScreen(
                 ToggleRow(stringResource(R.string.settings_ad_block), stringResource(R.string.settings_ad_block_hint, state.adBlocker.size), s.adBlock) { s.adBlock = it }
                 ToggleRow(stringResource(R.string.settings_cosmetic_filter), stringResource(R.string.settings_cosmetic_filter_hint), s.cosmeticFilter) { s.cosmeticFilter = it }
                 ToggleRow(stringResource(R.string.settings_hide_cookie_banners), stringResource(R.string.settings_hide_cookie_banners_hint), s.hideCookieBanners) { s.hideCookieBanners = it }
-                val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else stringResource(R.string.settings_filters_never)
-                ClickRow(
-                    stringResource(if (filtersBusy) R.string.settings_filters_busy else R.string.settings_filters_download),
-                    stringResource(R.string.settings_filters_hint, date),
-                ) {
-                    if (!filtersBusy) {
-                        filtersBusy = true
-                        scope.launch {
-                            runCatching { state.adBlocker.update() }
-                                .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.snack(ctx.resources.getQuantityString(R.plurals.settings_filters_updated, it, it)) }
-                                .onFailure { state.toast(ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
-                            filtersBusy = false
-                        }
-                    }
-                }
                 ToggleRow(stringResource(R.string.settings_https_only), stringResource(R.string.settings_https_only_hint), s.httpsOnly) { s.httpsOnly = it }
                 ToggleRow(stringResource(R.string.settings_safe_browsing), stringResource(R.string.settings_safe_browsing_hint), s.safeBrowsing) { v -> web { s.safeBrowsing = v } }
                 ToggleRow(stringResource(R.string.settings_third_party_cookies), stringResource(R.string.settings_third_party_cookies_hint), s.thirdPartyCookies) { v -> web { s.thirdPartyCookies = v } }
@@ -390,6 +378,62 @@ fun SettingsScreen(
                     s.clearOnExit,
                 ) { s.clearOnExit = it }
                 ClickRow(stringResource(R.string.settings_clear_now), stringResource(R.string.settings_clear_now_hint)) { clearDialog = true }
+                SectionTitle(stringResource(R.string.settings_filter_lists))
+                // Odczyt liczników subskrybuje zmiany – po pobraniu lub usunięciu listy wiersze się odświeżają.
+                val counts = state.adBlocker.counts
+                AdBlocker.LISTS.forEach { list ->
+                    val busy = listsBusy[list.id]
+                    val enabled = busy ?: state.adBlocker.isEnabled(list)
+                    val (name, desc) = when (list.id) {
+                        "stevenblack" -> R.string.adblock_list_stevenblack to R.string.adblock_list_stevenblack_hint
+                        "easylist" -> R.string.adblock_list_easylist to R.string.adblock_list_easylist_hint
+                        "easyprivacy" -> R.string.adblock_list_easyprivacy to R.string.adblock_list_easyprivacy_hint
+                        else -> R.string.adblock_list_polish to R.string.adblock_list_polish_hint
+                    }
+                    val count = counts[list.id]
+                    val sub = when {
+                        busy == true -> stringResource(R.string.adblock_list_busy)
+                        enabled && busy == null && count != null -> stringResource(
+                            R.string.adblock_list_info, count, DateFormat.getDateInstance().format(Date(state.adBlocker.updated(list))),
+                        )
+                        else -> stringResource(desc)
+                    }
+                    ToggleRow(stringResource(name), sub, enabled) { on ->
+                        if (busy == null) {
+                            listsBusy = listsBusy + (list.id to on)
+                            scope.launch {
+                                if (on) {
+                                    runCatching { state.adBlocker.enable(list) }
+                                        .onSuccess {
+                                            if (s.filtersUpdated == 0L) s.filtersUpdated = System.currentTimeMillis()
+                                            state.snack(ctx.resources.getQuantityString(R.plurals.settings_filters_updated, it, it))
+                                        }
+                                        .onFailure { state.toast(ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
+                                } else {
+                                    runCatching { state.adBlocker.disable(list) }
+                                }
+                                listsBusy = listsBusy - list.id
+                            }
+                        }
+                    }
+                }
+                if (counts.isNotEmpty()) {
+                    val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else stringResource(R.string.settings_filters_never)
+                    ClickRow(
+                        stringResource(if (filtersBusy) R.string.settings_filters_busy else R.string.settings_filters_download),
+                        stringResource(R.string.settings_filters_hint, date),
+                    ) {
+                        if (!filtersBusy) {
+                            filtersBusy = true
+                            scope.launch {
+                                runCatching { state.adBlocker.update() }
+                                    .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.snack(ctx.resources.getQuantityString(R.plurals.settings_filters_updated, it, it)) }
+                                    .onFailure { state.toast(ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
+                                filtersBusy = false
+                            }
+                        }
+                    }
+                }
                 if (state.store.sites.isNotEmpty()) {
                     SectionTitle(stringResource(R.string.settings_site_rules))
                     state.store.sites.values.sortedBy { it.host }.forEach { r ->

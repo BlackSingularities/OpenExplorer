@@ -45,6 +45,10 @@ class Tab(
     @Volatile
     var pageHost: String? = null
 
+    /** Adres bieżącej strony dla wyjątków list filtrów (`@@…$document`) – też czytany z wątku sieci. */
+    @Volatile
+    var pageUrl: String? = null
+
     var webView: WebView? = null
 
     /** Adres http://, który „Tylko HTTPS” zamienił na https:// – do czasu wczytania strony. */

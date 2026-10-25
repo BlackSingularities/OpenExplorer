@@ -1,55 +1,173 @@
 package com.blacksingularities.openexplorer.browser
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import com.blacksingularities.openexplorer.R
 
+/** Lista filtrów do pobrania: plik hosts (same domeny) albo lista w formacie Adblock Plus. */
+class FilterList(val id: String, val url: String, val hosts: Boolean = false, val minRules: Int = 1000)
+
 /**
- * Blokowanie reklam i śledzenia po domenach (dopasowanie domeny i wszystkich jej nadrzędnych).
- * Wbudowana lista działa od razu; pełną listę hostów (StevenBlack) można pobrać w ustawieniach.
+ * Blokowanie reklam i śledzenia. Wbudowana lista domen działa od razu; w ustawieniach można
+ * dobrać listy StevenBlack (domeny), EasyList, EasyPrivacy i Polskie Filtry (reguły ABP).
+ * Lista jest włączona, gdy jej plik leży w pamięci aplikacji.
  */
 class AdBlocker(context: Context) {
     private val app = context.applicationContext
-    private val file = File(context.filesDir, "hosts.txt")
+    private val dir = File(context.filesDir, "filters")
+    private val main = Handler(Looper.getMainLooper())
+    private val lock = Mutex()
 
     @Volatile
-    private var domains: Set<String> = BUILT_IN
+    private var engine: FilterEngine = FilterEngine.Builder().apply { addHosts(BUILT_IN) }.build()
 
-    val size: Int get() = domains.size
+    /** Liczba reguł na każdej włączonej liście (stan dla ustawień). */
+    var counts by mutableStateOf<Map<String, Int>>(emptyMap())
+        private set
+
+    /** Liczba wszystkich reguł (z wbudowaną listą). */
+    var size by mutableStateOf(BUILT_IN.size)
+        private set
 
     init {
-        Thread {
-            if (file.exists()) {
-                runCatching { domains = BUILT_IN + parse(file.readLines()) }
-            }
-        }.apply { isDaemon = true }.start()
+        Thread { runCatching { reload() } }.apply { isDaemon = true }.start()
     }
 
-    fun isBlocked(host: String?): Boolean = matches(host, domains)
+    private fun file(list: FilterList) = if (list.hosts) File(app.filesDir, "hosts.txt") else File(dir, "${list.id}.txt")
 
-    /** Pobiera pełną listę filtrów. Zwraca liczbę domen. */
-    suspend fun update(): Int = withContext(Dispatchers.IO) {
-        val conn = URL(HOSTS_URL).openConnection() as HttpURLConnection
+    fun isEnabled(list: FilterList) = file(list).exists()
+
+    /** Data pobrania listy (0 – nie pobrana). */
+    fun updated(list: FilterList): Long = file(list).takeIf { it.exists() }?.lastModified() ?: 0L
+
+    val hasLists: Boolean get() = LISTS.any { isEnabled(it) }
+
+    /**
+     * Czy zablokować żądanie podstrony lub zasobu. Wywoływane z wątku sieci WebView
+     * dla każdego żądania – tylko odczyt z gotowego, niezmiennego indeksu.
+     */
+    fun shouldBlock(url: String, pageHost: String?, pageUrl: String?, accept: String?): Boolean =
+        engine.shouldBlock(url, pageHost, pageUrl, ReqType.guess(url, accept))
+
+    /** Ukrywanie elementów dla strony; null – strona ma wyjątek na listach. */
+    fun cosmetic(pageHost: String?, pageUrl: String?): CosmeticCss? = engine.cosmetic(pageHost, pageUrl)
+
+    /** Pobiera i włącza listę. Zwraca liczbę jej reguł. */
+    suspend fun enable(list: FilterList): Int = lock.withLock {
+        withContext(Dispatchers.IO) {
+            download(list)
+            reload()[list.id] ?: 0
+        }
+    }
+
+    /** Wyłącza listę i usuwa jej plik. */
+    suspend fun disable(list: FilterList) = lock.withLock {
+        withContext(Dispatchers.IO) {
+            file(list).delete()
+            reload()
+        }
+    }
+
+    /** Odświeża wszystkie włączone listy. Zwraca liczbę wszystkich reguł; błąd, gdy któraś się nie pobrała. */
+    suspend fun update(): Int = lock.withLock {
+        withContext(Dispatchers.IO) {
+            var error: Throwable? = null
+            for (list in LISTS) {
+                if (isEnabled(list)) runCatching { download(list) }.onFailure { error = error ?: it }
+            }
+            reload()
+            error?.let { throw it }
+            engine.size
+        }
+    }
+
+    private fun download(list: FilterList) {
+        val conn = URL(list.url).openConnection() as HttpURLConnection
         conn.connectTimeout = 15000
         conn.readTimeout = 30000
         try {
-            val lines = conn.inputStream.bufferedReader().readLines()
-            val parsed = parse(lines)
-            if (parsed.size < 1000) error(app.getString(R.string.adblock_incomplete))
-            file.writeText(parsed.joinToString("\n"))
-            domains = BUILT_IN + parsed
-            domains.size
+            val text = conn.inputStream.use { input ->
+                val buf = java.io.ByteArrayOutputStream()
+                val chunk = ByteArray(64 * 1024)
+                while (true) {
+                    val n = input.read(chunk)
+                    if (n < 0) break
+                    buf.write(chunk, 0, n)
+                    if (buf.size() > MAX_SIZE) error(app.getString(R.string.adblock_incomplete))
+                }
+                buf.toString("UTF-8")
+            }
+            val lines = text.lines()
+            val out: String
+            if (list.hosts) {
+                val parsed = parse(lines)
+                if (parsed.size < list.minRules) error(app.getString(R.string.adblock_incomplete))
+                out = parsed.joinToString("\n")
+            } else {
+                val n = FilterEngine.Builder().addAbp(lines)
+                if (n < list.minRules) error(app.getString(R.string.adblock_incomplete))
+                out = text
+            }
+            dir.mkdirs()
+            val target = file(list)
+            val tmp = File(target.parentFile, target.name + ".tmp")
+            tmp.writeText(out)
+            if (!tmp.renameTo(target)) {
+                target.delete()
+                if (!tmp.renameTo(target)) error(app.getString(R.string.adblock_incomplete))
+            }
         } finally {
             conn.disconnect()
         }
     }
 
+    /** Buduje indeks od nowa ze wszystkich pobranych list (w tle, przeglądanie działa w tym czasie na starym). */
+    private fun reload(): Map<String, Int> {
+        val start = SystemClock.elapsedRealtime()
+        val b = FilterEngine.Builder()
+        b.addHosts(BUILT_IN)
+        val found = LinkedHashMap<String, Int>()
+        for (list in LISTS) {
+            val f = file(list)
+            if (!f.exists()) continue
+            found[list.id] = runCatching {
+                if (list.hosts) b.addHosts(f.useLines { parse(it.toList()) }) else f.useLines { b.addAbp(it) }
+            }.getOrDefault(0)
+        }
+        val e = b.build()
+        engine = e
+        Log.i("AdBlocker", "Wczytano ${e.networkRules} reguł sieciowych i ${e.cosmeticRules} kosmetycznych w ${SystemClock.elapsedRealtime() - start} ms")
+        main.post {
+            counts = found
+            size = e.size
+        }
+        return found
+    }
+
     companion object {
         const val HOSTS_URL = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+        private const val MAX_SIZE = 16 * 1024 * 1024
+
+        /** Dostępne listy w kolejności wyświetlania; nazwy i opisy w napisach adblock_list_*. */
+        val LISTS = listOf(
+            FilterList("stevenblack", HOSTS_URL, hosts = true),
+            FilterList("easylist", "https://easylist.to/easylist/easylist.txt"),
+            FilterList("easyprivacy", "https://easylist.to/easylist/easyprivacy.txt"),
+            FilterList("polish", "https://raw.githubusercontent.com/MajkiIT/polish-ads-filter/master/polish-adblock-filters/adblock.txt", minRules = 500),
+        )
 
         /** Domena albo któraś z jej nadrzędnych jest na liście (bez samej końcówki typu „pl”). */
         fun matches(host: String?, domains: Set<String>): Boolean {

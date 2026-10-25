@@ -367,11 +367,22 @@
     <string name="settings_system_autofill_hint">Google, Edge, Bitwarden etc. pop-ups in page fields. Off – they don\'t appear</string>
     <string name="settings_passwords_import_hint">Move passwords from Edge, Chrome or another manager with a CSV file: export them there, then in “Saved passwords” choose ⋮ → Import from CSV file.</string>
     <string name="settings_ad_block">Block ads and tracking</string>
-    <string name="settings_ad_block_hint">Domains on the list: %d</string>
+    <string name="settings_ad_block_hint">Blocking rules: %d</string>
     <string name="settings_filters_never">never</string>
-    <string name="settings_filters_hint">StevenBlack · last updated: %s · then refreshed weekly over Wi-Fi</string>
-    <string name="settings_filters_busy">Downloading the blocked domains list…</string>
-    <string name="settings_filters_download">Download the full blocked domains list</string>
+    <string name="settings_filters_hint">Last updated: %s · then refreshed weekly over Wi-Fi</string>
+    <string name="settings_filters_busy">Refreshing filter lists…</string>
+    <string name="settings_filters_download">Refresh enabled lists now</string>
+    <string name="settings_filter_lists">Filter lists</string>
+    <string name="adblock_list_busy">Downloading…</string>
+    <string name="adblock_list_info">Rules: %1$d · downloaded %2$s</string>
+    <string name="adblock_list_stevenblack">StevenBlack</string>
+    <string name="adblock_list_stevenblack_hint">Ads, tracking and malicious sites – domains only</string>
+    <string name="adblock_list_easylist">EasyList</string>
+    <string name="adblock_list_easylist_hint">Ads – addresses and hiding ad slots on pages</string>
+    <string name="adblock_list_easyprivacy">EasyPrivacy</string>
+    <string name="adblock_list_easyprivacy_hint">Tracking scripts and analytics</string>
+    <string name="adblock_list_polish">Official Polish Filters</string>
+    <string name="adblock_list_polish_hint">Ads on Polish sites – best together with EasyList</string>
     <string name="settings_clear_on_exit">Clear data on exit</string>
     <string name="settings_clear_on_exit_hint">History, cookies and site data are removed after “Exit” in the menu and on every launch – you start with a clean tab</string>
     <string name="settings_clear_now">Clear browsing data now</string>
@@ -551,8 +562,8 @@
     <string name="settings_clear_cookies">Cookies (signs you out of sites)</string>
     <string name="settings_clear_storage">Data stored by sites</string>
     <plurals name="settings_filters_updated">
-        <item quantity="one">Filter list: %d domain</item>
-        <item quantity="other">Filter list: %d domains</item>
+        <item quantity="one">Filters: %d rule</item>
+        <item quantity="other">Filters: %d rules</item>
     </plurals>
     <plurals name="settings_page_passwords_hint">
         <item quantity="one">%d saved · eye icon on passwords</item>
