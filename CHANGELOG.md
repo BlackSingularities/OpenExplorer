@@ -1,5 +1,16 @@
 # Zmiany
 
+## 1.4.0
+
+Listy filtrów EasyList, EasyPrivacy i Oficjalne Polskie Filtry w blokerze reklam.
+
+- Nowa sekcja „Listy filtrów” w Prywatności: StevenBlack (same domeny, jak dotąd), EasyList, EasyPrivacy i Oficjalne Polskie Filtry – każdą włącza się osobno, przy liście widać liczbę reguł i datę pobrania.
+- Bloker rozumie reguły w formacie Adblock Plus / uBlock: adresy i ścieżki z `*` i `^`, opcje `third-party`, `script`, `image`, `domain=` i inne, wyjątki `@@` (także dla całej strony).
+- Ukrywanie elementów z list: reguły ogólne i przypisane do konkretnych stron, z wyjątkami `#@#`.
+- Reguły są zindeksowane po domenach i fragmentach adresów – sprawdzenie żądania nie przegląda całej listy.
+- Włączone listy odświeżają się same raz w tygodniu przez Wi-Fi; „Odśwież włączone listy teraz” robi to od razu.
+- Reguły, których przeglądarka nie obsługuje (wyrażenia regularne, skryptlety, filtry proceduralne), są pomijane.
+
 ## 1.3.2
 
 Bezpieczniejsze aktualizacje i HTTPS, zgodność z Androidem 16.

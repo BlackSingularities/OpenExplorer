@@ -321,6 +321,7 @@ class BrowserState(
         tab.upgradedFrom = url.takeIf { it != target }
         tab.url = target
         tab.pageHost = Uri.parse(target).host
+        tab.pageUrl = target
         val wv = tab.webView
         wv?.let { applySettings(it, tab, tab.pageHost) }
         if (wv == null) tab.pendingUrl = target else wv.loadUrl(target, headers())
@@ -535,6 +536,7 @@ class BrowserState(
                 }
                 "https" -> {
                     if (request.isForMainFrame) {
+                        tab.pageUrl = uri.toString()
                         val h = uri.host
                         if (h != tab.pageHost) {
                             tab.pageHost = h
@@ -569,8 +571,8 @@ class BrowserState(
         }
 
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-            if (settings.adBlock && !request.isForMainFrame && adBlocker.isBlocked(request.url.host) &&
-                store.rule(tab.pageHost)?.adBlock != false
+            if (settings.adBlock && !request.isForMainFrame && store.rule(tab.pageHost)?.adBlock != false &&
+                adBlocker.shouldBlock(request.url.toString(), tab.pageHost, tab.pageUrl, request.requestHeaders?.entries?.firstOrNull { it.key.equals("Accept", true) }?.value)
             ) {
                 main.post { tab.blocked++ }
                 return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
@@ -585,6 +587,7 @@ class BrowserState(
             tab.blocked = 0
             tab.readerMode = false
             tab.pageHost = Uri.parse(url).host
+            tab.pageUrl = url
             tab.autoFilled = false
             logins.onPageStarted(tab)
             if (tab.id == currentId) {
@@ -655,11 +658,20 @@ class BrowserState(
 
     private fun injectCss(view: WebView, tab: Tab) {
         val adOk = settings.adBlock && store.rule(tab.pageHost)?.adBlock != false
+        val cosmetic = if (adOk && settings.cosmeticFilter) adBlocker.cosmetic(tab.pageHost, tab.url) else null
         val css = buildString {
             if (adOk && settings.cosmeticFilter) append(Scripts.COSMETIC_CSS)
+            if (cosmetic != null) append(cosmetic.specific)
             if (settings.hideCookieBanners) append(Scripts.COOKIE_CSS)
         }
         if (css.isNotEmpty()) view.evaluateJavascript(Scripts.injectStyle("__oe_filters", css), null)
+        // Ogólny arkusz z list bywa duży – wysyłany raz na dokument, nie przy każdym wywołaniu.
+        val generic = cosmetic?.generic.orEmpty()
+        if (generic.isNotEmpty()) {
+            view.evaluateJavascript("!!document.getElementById('__oe_generic')") { present ->
+                if (present != "true") view.evaluateJavascript(Scripts.injectStyle("__oe_generic", generic), null)
+            }
+        }
     }
 
     private fun updateNav(view: WebView) {
