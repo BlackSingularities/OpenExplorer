@@ -98,6 +98,14 @@ object Scripts {
             "(document.head||document.documentElement).appendChild(s);}s.textContent=$q;})();"
     }
 
+    /**
+     * Własny skrypt użytkownika dla domeny: uruchamiany raz na dokument (onPageFinished potrafi
+     * przyjść kilka razy), błąd w skrypcie trafia do konsoli zamiast przerywać stronę.
+     */
+    fun userScript(code: String): String =
+        "(function(){if(window.__oe_user_js)return;window.__oe_user_js=true;try{\n" + code +
+            "\n}catch(e){console.error('OpenExplorer – własny skrypt: '+e);}})();"
+
     /** Ukrywanie typowych miejsc na reklamy (uzupełnia blokowanie domen). */
     const val COSMETIC_CSS =
         ".adsbygoogle,ins.adsbygoogle,[id^='google_ads_'],[id^='div-gpt-ad'],[data-ad-slot],[data-google-query-id]," +

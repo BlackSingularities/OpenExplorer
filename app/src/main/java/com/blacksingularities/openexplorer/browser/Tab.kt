@@ -16,6 +16,8 @@ class Tab(
     title: String = "",
     /** Karta, z której otwarto tę kartę – wstecz na pierwszej stronie wraca do niej. */
     val parentId: Long? = null,
+    /** Kontener karty (osobny profil WebView); puste = domyślny profil. Karty incognito nie mają kontenera. */
+    val containerId: String = "",
 ) {
     var url by mutableStateOf(url)
     var title by mutableStateOf(title)
@@ -42,6 +44,10 @@ class Tab(
     /** Domena bieżącej strony (czytana także z wątku sieci przez bloker). */
     @Volatile
     var pageHost: String? = null
+
+    /** Adres bieżącej strony dla wyjątków list filtrów (`@@…$document`) – też czytany z wątku sieci. */
+    @Volatile
+    var pageUrl: String? = null
 
     var webView: WebView? = null
 

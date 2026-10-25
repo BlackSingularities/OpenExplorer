@@ -6,11 +6,13 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Language
@@ -66,7 +68,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.BuildConfig
+import com.blacksingularities.openexplorer.browser.AdBlocker
 import com.blacksingularities.openexplorer.browser.BrowserState
+import com.blacksingularities.openexplorer.data.CONTAINER_COLORS
+import com.blacksingularities.openexplorer.data.Container
 import com.blacksingularities.openexplorer.data.SEARCH_ENGINES
 import com.blacksingularities.openexplorer.data.SearchEngine
 import com.blacksingularities.openexplorer.data.Settings
@@ -119,6 +124,11 @@ fun SettingsScreen(
     var textInput by remember { mutableStateOf<Triple<String, String, (String) -> Unit>?>(null) }
     var resetConfirm by remember { mutableStateOf(false) }
     var filtersBusy by remember { mutableStateOf(false) }
+    /** Listy filtrów w trakcie włączania (true) albo wyłączania (false). */
+    var listsBusy by remember { mutableStateOf(emptyMap<String, Boolean>()) }
+    /** Kontener w oknie edycji (nowy, gdy nie ma go jeszcze w Store) i kontener do usunięcia. */
+    var containerEdit by remember { mutableStateOf<Container?>(null) }
+    var containerDelete by remember { mutableStateOf<Container?>(null) }
 
     fun ask(label: String, initial: String, onSave: (String) -> Unit) {
         textInput = Triple(label, initial, onSave)
@@ -158,7 +168,7 @@ fun SettingsScreen(
     }
     fun pickWallpaper() = wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
 
-    val pages = listOf(
+    val pages = listOfNotNull(
         SettingsPage("home", stringResource(R.string.settings_page_home), stringResource(R.string.settings_page_home_hint), Icons.Rounded.Dashboard),
         SettingsPage("look", stringResource(R.string.settings_page_look), stringResource(R.string.settings_page_look_hint), Icons.Rounded.Palette),
         SettingsPage("search", stringResource(R.string.settings_page_search), stringResource(R.string.settings_page_search_hint, engineName(s.engine)), Icons.Rounded.Search),
@@ -167,7 +177,10 @@ fun SettingsScreen(
         SettingsPage("content", stringResource(R.string.settings_page_content), stringResource(R.string.settings_page_content_hint), Icons.Rounded.Language),
         SettingsPage("tabs", stringResource(R.string.settings_page_tabs), stringResource(R.string.settings_page_tabs_hint), Icons.Rounded.Tab),
         SettingsPage("backup", stringResource(R.string.settings_page_backup), stringResource(R.string.settings_page_backup_hint), Icons.Rounded.Backup),
-        SettingsPage("updates", stringResource(R.string.settings_page_updates), stringResource(R.string.settings_page_updates_hint, BuildConfig.VERSION_NAME), Icons.Rounded.SystemUpdate),
+        // Wersja F-Droid: aktualizacje dostarcza F-Droid, więc strony aktualizacji nie ma.
+        if (BuildConfig.UPDATER) {
+            SettingsPage("updates", stringResource(R.string.settings_page_updates), stringResource(R.string.settings_page_updates_hint, BuildConfig.VERSION_NAME), Icons.Rounded.SystemUpdate)
+        } else null,
         SettingsPage("about", stringResource(R.string.settings_page_about), "OpenExplorer " + BuildConfig.VERSION_NAME, Icons.Rounded.Info),
     )
     var page by rememberSaveable { mutableStateOf<String?>(null) }
@@ -353,21 +366,6 @@ fun SettingsScreen(
                 ToggleRow(stringResource(R.string.settings_ad_block), stringResource(R.string.settings_ad_block_hint, state.adBlocker.size), s.adBlock) { s.adBlock = it }
                 ToggleRow(stringResource(R.string.settings_cosmetic_filter), stringResource(R.string.settings_cosmetic_filter_hint), s.cosmeticFilter) { s.cosmeticFilter = it }
                 ToggleRow(stringResource(R.string.settings_hide_cookie_banners), stringResource(R.string.settings_hide_cookie_banners_hint), s.hideCookieBanners) { s.hideCookieBanners = it }
-                val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else stringResource(R.string.settings_filters_never)
-                ClickRow(
-                    stringResource(if (filtersBusy) R.string.settings_filters_busy else R.string.settings_filters_download),
-                    stringResource(R.string.settings_filters_hint, date),
-                ) {
-                    if (!filtersBusy) {
-                        filtersBusy = true
-                        scope.launch {
-                            runCatching { state.adBlocker.update() }
-                                .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.snack(ctx.resources.getQuantityString(R.plurals.settings_filters_updated, it, it)) }
-                                .onFailure { state.toast(ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
-                            filtersBusy = false
-                        }
-                    }
-                }
                 ToggleRow(stringResource(R.string.settings_https_only), stringResource(R.string.settings_https_only_hint), s.httpsOnly) { s.httpsOnly = it }
                 ToggleRow(stringResource(R.string.settings_safe_browsing), stringResource(R.string.settings_safe_browsing_hint), s.safeBrowsing) { v -> web { s.safeBrowsing = v } }
                 ToggleRow(stringResource(R.string.settings_third_party_cookies), stringResource(R.string.settings_third_party_cookies_hint), s.thirdPartyCookies) { v -> web { s.thirdPartyCookies = v } }
@@ -380,6 +378,62 @@ fun SettingsScreen(
                     s.clearOnExit,
                 ) { s.clearOnExit = it }
                 ClickRow(stringResource(R.string.settings_clear_now), stringResource(R.string.settings_clear_now_hint)) { clearDialog = true }
+                SectionTitle(stringResource(R.string.settings_filter_lists))
+                // Odczyt liczników subskrybuje zmiany – po pobraniu lub usunięciu listy wiersze się odświeżają.
+                val counts = state.adBlocker.counts
+                AdBlocker.LISTS.forEach { list ->
+                    val busy = listsBusy[list.id]
+                    val enabled = busy ?: state.adBlocker.isEnabled(list)
+                    val (name, desc) = when (list.id) {
+                        "stevenblack" -> R.string.adblock_list_stevenblack to R.string.adblock_list_stevenblack_hint
+                        "easylist" -> R.string.adblock_list_easylist to R.string.adblock_list_easylist_hint
+                        "easyprivacy" -> R.string.adblock_list_easyprivacy to R.string.adblock_list_easyprivacy_hint
+                        else -> R.string.adblock_list_polish to R.string.adblock_list_polish_hint
+                    }
+                    val count = counts[list.id]
+                    val sub = when {
+                        busy == true -> stringResource(R.string.adblock_list_busy)
+                        enabled && busy == null && count != null -> stringResource(
+                            R.string.adblock_list_info, count, DateFormat.getDateInstance().format(Date(state.adBlocker.updated(list))),
+                        )
+                        else -> stringResource(desc)
+                    }
+                    ToggleRow(stringResource(name), sub, enabled) { on ->
+                        if (busy == null) {
+                            listsBusy = listsBusy + (list.id to on)
+                            scope.launch {
+                                if (on) {
+                                    runCatching { state.adBlocker.enable(list) }
+                                        .onSuccess {
+                                            if (s.filtersUpdated == 0L) s.filtersUpdated = System.currentTimeMillis()
+                                            state.snack(ctx.resources.getQuantityString(R.plurals.settings_filters_updated, it, it))
+                                        }
+                                        .onFailure { state.toast(ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
+                                } else {
+                                    runCatching { state.adBlocker.disable(list) }
+                                }
+                                listsBusy = listsBusy - list.id
+                            }
+                        }
+                    }
+                }
+                if (counts.isNotEmpty()) {
+                    val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else stringResource(R.string.settings_filters_never)
+                    ClickRow(
+                        stringResource(if (filtersBusy) R.string.settings_filters_busy else R.string.settings_filters_download),
+                        stringResource(R.string.settings_filters_hint, date),
+                    ) {
+                        if (!filtersBusy) {
+                            filtersBusy = true
+                            scope.launch {
+                                runCatching { state.adBlocker.update() }
+                                    .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.snack(ctx.resources.getQuantityString(R.plurals.settings_filters_updated, it, it)) }
+                                    .onFailure { state.toast(ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
+                                filtersBusy = false
+                            }
+                        }
+                    }
+                }
                 if (state.store.sites.isNotEmpty()) {
                     SectionTitle(stringResource(R.string.settings_site_rules))
                     state.store.sites.values.sortedBy { it.host }.forEach { r ->
@@ -396,6 +450,8 @@ fun SettingsScreen(
                                         if (r.desktop) add(stringResource(R.string.settings_rule_desktop))
                                         if (!r.darkMode) add(stringResource(R.string.settings_rule_no_dark))
                                         if (r.textZoom > 0) add(stringResource(R.string.settings_rule_text_zoom, r.textZoom))
+                                        if (r.css.isNotBlank()) add(stringResource(R.string.settings_rule_css))
+                                        if (r.js.isNotBlank()) add(stringResource(R.string.settings_rule_js))
                                     }.joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -438,6 +494,35 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
+                // Kontenery wymagają profili WebView – na starszych WebView sekcji nie ma.
+                if (state.multiProfile) {
+                    SectionTitle(stringResource(R.string.containers_title))
+                    Text(
+                        stringResource(R.string.containers_hint),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                    )
+                    state.store.containers.forEach { c ->
+                        val count = state.tabs.count { it.containerId == c.id }
+                        Row(
+                            Modifier.fillMaxWidth().clickable { containerEdit = c }.padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(Modifier.size(14.dp).clip(CircleShape).background(Color(c.color)))
+                            Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                                Text(c.name, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    pluralStringResource(R.plurals.containers_tabs, count, count),
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            RoundIcon(Icons.Rounded.Delete, stringResource(R.string.containers_delete)) { containerDelete = c }
+                        }
+                    }
+                    ClickRow(stringResource(R.string.containers_add)) {
+                        containerEdit = Container(name = "", color = CONTAINER_COLORS[state.store.containers.size % CONTAINER_COLORS.size])
+                    }
+                }
 
 
             }
@@ -539,6 +624,55 @@ fun SettingsScreen(
             text = { OutlinedTextField(v, { v = it }, singleLine = true) },
             confirmButton = { TextButton(onClick = { onSave(v); textInput = null }) { Text(stringResource(R.string.common_save)) } },
             dismissButton = { TextButton(onClick = { textInput = null }) { Text(stringResource(R.string.common_cancel)) } },
+        )
+    }
+
+    containerEdit?.let { c ->
+        var name by remember(c.id) { mutableStateOf(c.name) }
+        var color by remember(c.id) { mutableStateOf(c.color) }
+        val isNew = state.store.container(c.id) == null
+        AlertDialog(
+            onDismissRequest = { containerEdit = null },
+            title = { Text(stringResource(if (isNew) R.string.containers_add else R.string.containers_edit)) },
+            text = {
+                Column {
+                    OutlinedTextField(name, { name = it.take(30) }, label = { Text(stringResource(R.string.containers_name)) }, singleLine = true)
+                    Row(
+                        Modifier.padding(top = 14.dp).horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CONTAINER_COLORS.forEach { k ->
+                            Box(
+                                Modifier.size(30.dp).clip(CircleShape).background(Color(k)).clickable { color = k },
+                                contentAlignment = Alignment.Center,
+                            ) { if (k == color) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp), tint = Color.White) }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = name.isNotBlank(), onClick = {
+                    state.store.saveContainer(c.copy(name = name.trim(), color = color))
+                    containerEdit = null
+                }) { Text(stringResource(R.string.common_save)) }
+            },
+            dismissButton = { TextButton(onClick = { containerEdit = null }) { Text(stringResource(R.string.common_cancel)) } },
+        )
+    }
+
+    containerDelete?.let { c ->
+        AlertDialog(
+            onDismissRequest = { containerDelete = null },
+            title = { Text(stringResource(R.string.containers_delete_title, c.name)) },
+            text = { Text(stringResource(R.string.containers_delete_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.deleteContainer(c.id)
+                    containerDelete = null
+                    state.snack(ctx.getString(R.string.containers_deleted, c.name))
+                }) { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { containerDelete = null }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 

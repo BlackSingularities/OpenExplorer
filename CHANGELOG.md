@@ -1,6 +1,6 @@
 # Zmiany
 
-## 1.4.0
+## 1.6.0
 
 Historia przeglądania w bazie danych.
 
@@ -9,6 +9,27 @@ Historia przeglądania w bazie danych.
 - Ekran historii, podpowiedzi w pasku adresu, ostatnie strony i najczęściej odwiedzane domeny czytają z bazy w tle, porcjami – lista historii doczytuje się przy przewijaniu.
 - Nadal najwyżej 5000 wpisów; „Wyczyść historię” i „Usuwaj dane po wyjściu” czyszczą bazę.
 - Testy bazy historii i migracji uruchamiane w CI (Robolectric).
+
+## 1.5.0
+
+Listy filtrów EasyList, EasyPrivacy i Oficjalne Polskie Filtry w blokerze reklam.
+
+- Nowa sekcja „Listy filtrów” w Prywatności: StevenBlack (same domeny, jak dotąd), EasyList, EasyPrivacy i Oficjalne Polskie Filtry – każdą włącza się osobno, przy liście widać liczbę reguł i datę pobrania.
+- Bloker rozumie reguły w formacie Adblock Plus / uBlock: adresy i ścieżki z `*` i `^`, opcje `third-party`, `script`, `image`, `domain=` i inne, wyjątki `@@` (także dla całej strony).
+- Ukrywanie elementów z list: reguły ogólne i przypisane do konkretnych stron, z wyjątkami `#@#`.
+- Reguły są zindeksowane po domenach i fragmentach adresów – sprawdzenie żądania nie przegląda całej listy.
+- Włączone listy odświeżają się same raz w tygodniu przez Wi-Fi; „Odśwież włączone listy teraz” robi to od razu.
+- Reguły, których przeglądarka nie obsługuje (wyrażenia regularne, skryptlety, filtry proceduralne), są pomijane.
+
+## 1.4.0
+
+Kontenery kart, własne style i skrypty dla stron, przygotowanie do F-Droid.
+
+- Kontenery kart (np. „Praca”, „Prywatne”): każdy to osobny profil WebView z własnymi ciasteczkami i danymi stron – np. dwa konta w tym samym serwisie naraz. Kontener widać na liście kart (etykieta i filtr) i w pasku adresu (kolorowa kropka); „Otwórz w kontenerze” w menu linku. Kontenery dodaje się, zmienia i usuwa (razem z danymi) w Ustawieniach → Karty i pobieranie. Na WebView bez obsługi wielu profili funkcja jest ukryta.
+- Własny CSS i JavaScript dla domeny w ustawieniach strony, wstrzykiwane po wczytaniu strony; przy skrypcie wyraźne ostrzeżenie. W kartach incognito własny kod nie działa.
+- Kopia zapasowa obejmuje także ustawienia stron (z własnym kodem) i kontenery.
+- Pobieranie plików, podgląd kodu i „Wyczyść dane strony” używają ciasteczek profilu karty – także w incognito.
+- Wariant „fdroid” bez wbudowanego aktualizatora i uprawnień do instalowania pakietów; opisy w formacie fastlane. Build nie wymaga sekretów, a bez parametrów wersja pochodzi z pliku VERSION.
 
 ## 1.3.2
 

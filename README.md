@@ -12,6 +12,7 @@ Szybka, minimalistyczna i rozbudowana przeglądarka internetowa na Androida (8.0
 
 **Przeglądanie**
 - Karty z miniaturami, karty incognito w osobnym profilu WebView (osobne ciasteczka i pamięć), przywracanie sesji.
+- Kontenery kart (np. „Praca”, „Prywatne”) – osobne profile WebView z własnymi ciasteczkami i danymi stron; wybór na liście kart i w menu linku (na WebView z obsługą wielu profili).
 - Pasek adresu z podpowiedziami wyszukiwarki, historii i zakładek; pozycja na górze lub na dole, płynne chowanie razem z przewijaną stroną, dopisywanie adresów podczas pisania, link ze schowka, przycisk „do góry”.
 - 7 wyszukiwarek i własna, przeciągnij by odświeżyć, wersja desktop, tryb czytania, tłumaczenie strony, wyszukiwanie na stronie, źródło strony, drukowanie / zapis do PDF, skrót strony na ekranie głównym, udostępnianie.
 - Menu kontekstowe linków i obrazów, pobieranie plików z wyborem nazwy, wideo na pełnym ekranie, wysyłanie plików, kamera, mikrofon i lokalizacja na żądanie stron.
@@ -27,7 +28,7 @@ Szybka, minimalistyczna i rozbudowana przeglądarka internetowa na Androida (8.0
 
 **Wygląd**: kompaktowy, czarno-biały interfejs jak w OpenPDF (albo akcent / Material You), AMOLED, pasek adresu na górze lub dole, pasek nawigacji, gest zmiany kart.
 
-**Narzędzia**: panel strony z wyjątkami dla domeny, czytanie na głos, strony offline, zrzuty ekranu, kody QR, rozmiar tekstu dla strony, skróty wyszukiwania (!yt, !w, !gh…), ukrywanie banerów cookies, przywracanie zamkniętych kart.
+**Narzędzia**: panel strony z wyjątkami dla domeny i własnym CSS / JavaScriptem, czytanie na głos, strony offline, zrzuty ekranu, kody QR, rozmiar tekstu dla strony, skróty wyszukiwania (!yt, !w, !gh…), ukrywanie banerów cookies, przywracanie zamkniętych kart.
 
 **Inne**: zakładki, historia z wyszukiwaniem, lista pobranych, kopia zapasowa (JSON), domyślna przeglądarka, automatyczne aktualizacje.
 
@@ -40,10 +41,16 @@ Podpis wydań wymaga sekretów repozytorium: `SIGNING_KEYSTORE_BASE64`, `SIGNING
 ## Budowanie
 
 ```bash
-gradle :app:assembleDebug
+gradle :app:assembleGithubDebug
 ```
 
 Wymaga JDK 17 i Android SDK (compileSdk 36).
+
+Warianty dystrybucji:
+- `github` – wydania z GitHub z wbudowanym aktualizatorem (domyślny),
+- `fdroid` – bez samoaktualizacji i bez uprawnień do instalowania pakietów (`gradle :app:assembleFdroidRelease`).
+
+Build nie wymaga sekretów: bez klucza wydania wariant `github` podpisuje się kluczem debug, a `fdroid` powstaje niepodpisany. Bez parametrów `-PversionCode`/`-PversionName` wersja pochodzi z pliku `VERSION` (1.4.0 → kod 10400). Opisy do sklepów są w `fastlane/metadata/android` (pl-PL, en-US).
 
 ## Licencja
 

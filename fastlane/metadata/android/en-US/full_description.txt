@@ -1,0 +1,27 @@
+<p>OpenExplorer is a fast, minimalist browser built on the system WebView (Chromium), with no Google services and no telemetry.</p>
+
+<p><b>Privacy</b></p>
+<ul>
+<li>Ad and tracker blocking (built-in list plus the full StevenBlack list on demand), cookie banner hiding.</li>
+<li>Incognito tabs in a separate WebView profile.</li>
+<li>Tab containers (e.g. “Work”, “Personal”) – each with its own cookies and site data, e.g. two accounts on the same site at once.</li>
+<li>HTTPS-only mode, DNT/GPC, pop-up and third-party cookie blocking, clearing data on exit.</li>
+</ul>
+
+<p><b>Passwords</b></p>
+<ul>
+<li>Built-in password manager: offers to save after sign-in, fills with one tap, generates strong passwords.</li>
+<li>AES-256 encryption with a key from Android Keystore, unlocked with fingerprint or PIN.</li>
+<li>CSV import and export (Edge, Chrome, Firefox, Bitwarden).</li>
+</ul>
+
+<p><b>Browsing</b></p>
+<ul>
+<li>Start page with site logos in a grid of any size, wallpapers, ready-made layouts.</li>
+<li>Address bar at the top or bottom, hiding on scroll, with suggestions and search shortcuts (!yt, !w, !gh…).</li>
+<li>Reader mode, read aloud, translation, offline pages, screenshots, QR codes, print to PDF.</li>
+<li>Page source viewer with syntax highlighting and a list of resources.</li>
+<li>Per-site settings: blocking exceptions, JavaScript, desktop mode, text size, custom CSS and script.</li>
+</ul>
+
+<p>Interface in English and Polish. Source code under the MIT license.</p>

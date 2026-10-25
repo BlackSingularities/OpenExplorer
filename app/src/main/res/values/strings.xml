@@ -248,6 +248,9 @@
         <item quantity="other">Zostanie zamkniętych %d karty.</item>
     </plurals>
     <string name="tabs_close_tab">Zamknij kartę</string>
+    <string name="tabs_all">Wszystkie</string>
+    <string name="tabs_no_container">Bez kontenera</string>
+    <string name="tabs_new_in_container">Nowa: %s</string>
 
     <!-- Okna stron: uprawnienia, pobieranie -->
     <string name="dialog_permission_title">Prośba o dostęp</string>
@@ -264,6 +267,7 @@
     <string name="link_open_background">Otwórz w tle</string>
     <string name="link_opened_background">Otwarto w tle</string>
     <string name="link_open_incognito">Otwórz w incognito</string>
+    <string name="link_open_container">Otwórz w kontenerze</string>
     <string name="link_copy">Kopiuj adres linku</string>
     <string name="link_share">Udostępnij link</string>
     <string name="link_qr">Kod QR linku</string>
@@ -300,6 +304,17 @@
     <string name="site_desktop">Zawsze wersja komputerowa</string>
     <string name="site_dark">Ciemny wygląd</string>
     <string name="site_dark_hint">Gdy włączony jest ciemny motyw</string>
+    <string name="site_custom_code">Własny wygląd i skrypt</string>
+    <string name="site_custom_css">Własny CSS</string>
+    <string name="site_custom_css_hint">Style dodawane po wczytaniu strony, np. ukrycie elementów</string>
+    <string name="site_custom_js">Własny JavaScript</string>
+    <string name="site_custom_js_hint">Skrypt uruchamiany po wczytaniu strony</string>
+    <string name="site_code_none">brak</string>
+    <string name="site_code_on">włączony</string>
+    <string name="site_code_incognito">Własny CSS i skrypt nie działają w kartach incognito.</string>
+    <string name="site_js_warning_title">Uwaga: skrypt ma pełny dostęp do strony</string>
+    <string name="site_js_warning">Kod widzi wszystko na %s – także wpisywane hasła i dane logowania – i może je wysłać dalej albo działać w Twoim imieniu. Wklejaj tylko kod, który rozumiesz, nigdy na prośbę nieznajomych czy „wsparcia technicznego”.</string>
+    <string name="site_code_applies">Dotyczy %s i jej subdomen. Po zapisaniu strona wczyta się ponownie.</string>
     <string name="site_saved_logins">Zapisane loginy dla tej strony: %d (menu → Hasła)</string>
     <string name="site_clear">Wyczyść ciasteczka i dane strony</string>
     <string name="site_clear_hint">Wylogowuje z %s</string>
@@ -374,11 +389,22 @@
     <string name="settings_system_autofill_hint">Okienka Google, Edge, Bitwardena itp. w polach stron. Wyłączone – nie wyskakują</string>
     <string name="settings_passwords_import_hint">Hasła z Edge, Chrome lub innego menedżera przeniesiesz przez plik CSV: wyeksportuj je tam, a potem w „Zapisane hasła” wybierz ⋮ → Importuj z pliku CSV.</string>
     <string name="settings_ad_block">Blokuj reklamy i śledzenie</string>
-    <string name="settings_ad_block_hint">Domen na liście: %d</string>
+    <string name="settings_ad_block_hint">Reguł blokowania: %d</string>
     <string name="settings_filters_never">nigdy</string>
-    <string name="settings_filters_hint">StevenBlack · ostatnio: %s · potem odświeżana co tydzień przez Wi-Fi</string>
-    <string name="settings_filters_busy">Pobieranie listy blokowanych domen…</string>
-    <string name="settings_filters_download">Pobierz pełną listę blokowanych domen</string>
+    <string name="settings_filters_hint">Ostatnio: %s · potem same co tydzień przez Wi-Fi</string>
+    <string name="settings_filters_busy">Odświeżanie list filtrów…</string>
+    <string name="settings_filters_download">Odśwież włączone listy teraz</string>
+    <string name="settings_filter_lists">Listy filtrów</string>
+    <string name="adblock_list_busy">Pobieranie…</string>
+    <string name="adblock_list_info">Reguł: %1$d · pobrana %2$s</string>
+    <string name="adblock_list_stevenblack">StevenBlack</string>
+    <string name="adblock_list_stevenblack_hint">Reklamy, śledzenie i złośliwe strony – same domeny</string>
+    <string name="adblock_list_easylist">EasyList</string>
+    <string name="adblock_list_easylist_hint">Reklamy – adresy i ukrywanie miejsc na reklamy na stronach</string>
+    <string name="adblock_list_easyprivacy">EasyPrivacy</string>
+    <string name="adblock_list_easyprivacy_hint">Skrypty śledzące i statystyki</string>
+    <string name="adblock_list_polish">Oficjalne Polskie Filtry</string>
+    <string name="adblock_list_polish_hint">Reklamy na polskich stronach – najlepiej razem z EasyList</string>
     <string name="settings_clear_on_exit">Usuwaj dane po wyjściu</string>
     <string name="settings_clear_on_exit_hint">Historia, ciasteczka i dane stron znikają po „Wyjdź” w menu i przy każdym uruchomieniu – zaczynasz od czystej karty</string>
     <string name="settings_clear_now">Wyczyść dane przeglądania teraz</string>
@@ -389,11 +415,28 @@
     <string name="settings_rule_desktop">wersja komputerowa</string>
     <string name="settings_rule_no_dark">bez ciemnego wyglądu</string>
     <string name="settings_rule_text_zoom">tekst %d%%</string>
+    <string name="settings_rule_css">własny CSS</string>
+    <string name="settings_rule_js">własny skrypt</string>
     <string name="settings_rule_reset">Przywróć domyślne dla tej strony</string>
     <string name="settings_user_agent">Identyfikator przeglądarki (User-Agent)</string>
     <string name="settings_user_agent_hint">Jak przeglądarka przedstawia się stronom</string>
     <string name="settings_user_agent_custom">Własny</string>
     <string name="settings_tabs_swipe_hint">Kartę zamkniesz też, przesuwając ją w bok na liście kart.</string>
+    <string name="containers_title">Kontenery kart</string>
+    <string name="containers_hint">Każdy kontener ma osobne ciasteczka i dane stron – np. dwa konta w tym samym serwisie naraz. Kontener wybierzesz na liście kart albo w menu linku.</string>
+    <string name="containers_add">Dodaj kontener</string>
+    <string name="containers_edit">Edytuj kontener</string>
+    <string name="containers_name">Nazwa (np. Praca)</string>
+    <string name="containers_delete">Usuń kontener</string>
+    <string name="containers_delete_title">Usunąć kontener „%s”?</string>
+    <string name="containers_delete_text">Karty z tego kontenera zostaną zamknięte, a jego ciasteczka i dane stron usunięte. Wylogujesz się ze stron otwieranych w tym kontenerze.</string>
+    <string name="containers_deleted">Usunięto kontener „%s”</string>
+    <plurals name="containers_tabs">
+        <item quantity="one">%d otwarta karta</item>
+        <item quantity="few">%d otwarte karty</item>
+        <item quantity="many">%d otwartych kart</item>
+        <item quantity="other">%d otwartej karty</item>
+    </plurals>
     <string name="settings_backup_export">Zapisz kopię do pliku</string>
     <string name="settings_backup_export_hint">Ustawienia, kafelki i zakładki (bez haseł)</string>
     <string name="settings_backup_import">Przywróć z pliku kopii</string>
@@ -543,10 +586,10 @@
     <string name="settings_clear_cookies">Ciasteczka (wylogowuje ze stron)</string>
     <string name="settings_clear_storage">Dane zapisane przez strony</string>
     <plurals name="settings_filters_updated">
-        <item quantity="one">Lista filtrów: %d domena</item>
-        <item quantity="few">Lista filtrów: %d domeny</item>
-        <item quantity="many">Lista filtrów: %d domen</item>
-        <item quantity="other">Lista filtrów: %d domeny</item>
+        <item quantity="one">Filtry: %d reguła</item>
+        <item quantity="few">Filtry: %d reguły</item>
+        <item quantity="many">Filtry: %d reguł</item>
+        <item quantity="other">Filtry: %d reguły</item>
     </plurals>
     <plurals name="settings_page_passwords_hint">
         <item quantity="one">%d zapisane · oko przy hasłach</item>

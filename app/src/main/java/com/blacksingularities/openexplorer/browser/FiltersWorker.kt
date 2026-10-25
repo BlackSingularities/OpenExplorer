@@ -12,14 +12,14 @@ import com.blacksingularities.openexplorer.OpenExplorerApp
 import java.util.concurrent.TimeUnit
 
 /**
- * Odświeżanie pełnej listy blokowanych domen raz w tygodniu – tylko gdy użytkownik ją kiedyś
- * pobrał i blokowanie jest włączone. Wbudowana lista nie wymaga odświeżania.
+ * Odświeżanie list filtrów włączonych w ustawieniach (StevenBlack, EasyList, EasyPrivacy, Polskie Filtry)
+ * raz w tygodniu – tylko gdy któraś jest pobrana i blokowanie jest włączone. Wbudowana lista nie wymaga odświeżania.
  */
 class FiltersWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val app = applicationContext as OpenExplorerApp
         val s = app.settings
-        if (!s.adBlock || s.filtersUpdated == 0L) return Result.success()
+        if (!s.adBlock || !app.adBlocker.hasLists) return Result.success()
         if (System.currentTimeMillis() - s.filtersUpdated < MIN_AGE) return Result.success()
         return runCatching { app.adBlocker.update() }
             .fold(

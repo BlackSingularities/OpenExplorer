@@ -53,17 +53,17 @@ jobs:
           echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
 
       - name: Testy jednostkowe
-        run: gradle testDebugUnitTest --stacktrace
+        run: gradle :app:testGithubDebugUnitTest --stacktrace
 
       # Lint tylko jako raport – nie blokuje wydania (abortOnError = false w build.gradle.kts).
       - name: Lint
-        run: gradle :app:lintDebug --stacktrace
+        run: gradle :app:lintGithubDebug --stacktrace
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: lint-raport
-          path: app/build/reports/lint-results-debug.*
+          path: app/build/reports/lint-results-githubDebug.*
           if-no-files-found: ignore
 
       - name: Budowanie APK
@@ -71,10 +71,17 @@ jobs:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-        run: gradle :app:assembleRelease -PversionCode=${{ steps.ver.outputs.code }} -PversionName=${{ steps.ver.outputs.name }} --stacktrace
+        run: gradle :app:assembleGithubRelease -PversionCode=${{ steps.ver.outputs.code }} -PversionName=${{ steps.ver.outputs.name }} --stacktrace
+
+      # Wersja F-Droid tak, jak zbuduje ją F-Droid: bez sekretów i bez parametrów wersji
+      # (kod wersji z pliku VERSION), niepodpisana. Sprawdza tylko, że da się ją zbudować.
+      - name: Budowanie wersji F-Droid (bez sekretów)
+        run: |
+          env -u SIGNING_KEYSTORE_PATH -u SIGNING_STORE_PASSWORD -u SIGNING_KEY_PASSWORD -u SIGNING_KEY_ALIAS gradle :app:assembleFdroidRelease --stacktrace
+          ls app/build/outputs/apk/fdroid/release/
 
       - name: Przygotowanie pliku
-        run: cp app/build/outputs/apk/release/app-release.apk "OpenExplorer-${{ steps.ver.outputs.name }}.apk"
+        run: cp app/build/outputs/apk/github/release/app-github-release.apk "OpenExplorer-${{ steps.ver.outputs.name }}.apk"
 
       - uses: actions/upload-artifact@v4
         with:

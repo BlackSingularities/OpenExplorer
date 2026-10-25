@@ -3,7 +3,6 @@ package com.blacksingularities.openexplorer.browser
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import android.webkit.CookieManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -25,7 +24,7 @@ class SourceViewer(private val browser: BrowserState) {
         val tab = browser.current ?: return
         if (tab.showHome) return browser.toast(browser.str(R.string.source_home_has_no_code))
         val wv = tab.webView
-        val v = SourceView(tab.url, tab.title, tab.incognito, hasDom = wv != null)
+        val v = SourceView(tab.url, tab.title, tab.incognito, hasDom = wv != null, profile = browser.profileOf(tab))
         view = v
         if (wv != null) {
             wv.evaluateJavascript(Scripts.SOURCE) { raw -> v.dom = decodeJs(raw) }
@@ -45,14 +44,14 @@ class SourceViewer(private val browser: BrowserState) {
     /** „view-source:adres” wpisane w pasek adresu. */
     fun viewUrl(url: String) {
         val target = browser.resolveInput(url).ifEmpty { return }
-        val v = SourceView(target, Uri.parse(target).host ?: target, browser.current?.incognito == true)
+        val v = SourceView(target, Uri.parse(target).host ?: target, browser.current?.incognito == true, profile = browser.profileOf(browser.current))
         view = v
         fetch(v, userAgent)
     }
 
     /** Otwiera kod zasobu (skryptu, arkusza stylów) z listy zasobów. */
     fun viewResource(url: String) {
-        val v = SourceView(url, url.substringAfterLast('/').substringBefore('?').ifBlank { url }, view?.incognito == true)
+        val v = SourceView(url, url.substringAfterLast('/').substringBefore('?').ifBlank { url }, view?.incognito == true, profile = view?.profile)
         v.parent = view
         view = v
         fetch(v, userAgent)
@@ -71,7 +70,7 @@ class SourceViewer(private val browser: BrowserState) {
             view.serverError = browser.str(R.string.source_http_only)
             return
         }
-        val cookies = if (view.incognito) null else runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull()
+        val cookies = if (view.incognito) null else runCatching { browser.cookiesOf(view.profile)?.getCookie(url) }.getOrNull()
         Thread {
             val result = runCatching {
                 val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection

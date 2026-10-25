@@ -8,6 +8,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.blacksingularities.openexplorer.BuildConfig
 import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.OpenExplorerApp
 import java.util.concurrent.TimeUnit
@@ -55,7 +56,8 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         fun schedule(context: Context, replace: Boolean = false) {
             val s = (context.applicationContext as OpenExplorerApp).settings
             val wm = WorkManager.getInstance(context)
-            if (!s.autoUpdate) {
+            // Wersja F-Droid (BuildConfig.UPDATER = false) nie aktualizuje się sama.
+            if (!BuildConfig.UPDATER || !s.autoUpdate) {
                 wm.cancelUniqueWork(NAME)
                 return
             }
