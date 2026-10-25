@@ -103,4 +103,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
     testImplementation("junit:junit:4.13.2")
+    // Prawdziwe org.json w testach jednostkowych (w android.jar są tylko zaślepki).
+    testImplementation("org.json:json:20240303")
 }

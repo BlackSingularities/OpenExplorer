@@ -35,7 +35,8 @@ data class Bookmark(
 
 data class HistoryEntry(val url: String, val title: String, val time: Long)
 
-data class SavedTab(val url: String, val title: String)
+/** Karta zapisana w sesji (albo ostatnio zamknięta); [container] – id kontenera, puste = bez kontenera. */
+data class SavedTab(val url: String, val title: String, val container: String = "")
 
 /** Wyjątki dla jednej domeny. */
 data class SiteRule(
@@ -86,6 +87,7 @@ class Store(context: Context) {
     val history: SnapshotStateList<HistoryEntry> = mutableStateListOf()
     val downloads: SnapshotStateList<Long> = mutableStateListOf()
     val sites = androidx.compose.runtime.mutableStateMapOf<String, SiteRule>()
+    val containers: SnapshotStateList<Container> = mutableStateListOf()
 
     init {
         val t = readArray("tiles")
@@ -102,6 +104,7 @@ class Store(context: Context) {
             sites[r.host] = r
         }
         readArray("downloads")?.let { a -> for (i in 0 until a.length()) downloads += a.getLong(i) }
+        readArray("containers")?.let { containers.addAll(containersFromJson(it)) }
     }
 
     // Kafelki
@@ -228,25 +231,33 @@ class Store(context: Context) {
         write("downloads") { JSONArray(downloads.toList()) }
     }
 
-    // Sesja kart
-    fun saveSession(tabs: List<SavedTab>, active: Int) = write("session", debounce = 500) {
-        JSONArray().put(active).put(JSONArray(tabs.map { JSONObject().put("url", it.url).put("title", it.title) }))
+    // Kontenery kart
+    fun container(id: String): Container? = if (id.isEmpty()) null else containers.firstOrNull { it.id == id }
+
+    fun saveContainer(c: Container) {
+        val i = containers.indexOfFirst { it.id == c.id }
+        if (i >= 0) containers[i] = c else containers += c
+        saveContainers()
     }
 
-    fun loadSession(): Pair<List<SavedTab>, Int> {
-        val a = readArray("session") ?: return emptyList<SavedTab>() to 0
-        return try {
-            val tabs = a.getJSONArray(1).objects().map { SavedTab(it.optString("url"), it.optString("title")) }
-            tabs to a.getInt(0)
-        } catch (_: Exception) {
-            emptyList<SavedTab>() to 0
-        }
+    fun removeContainer(id: String) {
+        containers.removeAll { it.id == id }
+        saveContainers()
     }
+
+    private fun saveContainers() = write("containers") { containersToJson(containers) }
+
+    // Sesja kart
+    fun saveSession(tabs: List<SavedTab>, active: Int) = write("session", debounce = 500) { sessionToJson(tabs, active) }
+
+    fun loadSession(): Pair<List<SavedTab>, Int> =
+        readArray("session")?.let { sessionFromJson(it) } ?: (emptyList<SavedTab>() to 0)
 
     // Kopia zapasowa
     fun export(): JSONObject = JSONObject()
         .put("tiles", JSONArray(tiles.map { it.toJson() }))
         .put("bookmarks", JSONArray(bookmarks.map { it.toJson() }))
+        .put("containers", containersToJson(containers))
 
     fun import(o: JSONObject) {
         o.optJSONArray("tiles")?.let { a ->
@@ -258,6 +269,12 @@ class Store(context: Context) {
             val known = bookmarks.map { it.url }.toHashSet()
             a.objects().map { it.toBookmark() }.filter { it.url !in known }.forEach { bookmarks += it }
             saveBookmarks()
+        }
+        o.optJSONArray("containers")?.let { a ->
+            val merged = mergeContainers(containers.toList(), containersFromJson(a))
+            containers.clear()
+            containers.addAll(merged)
+            saveContainers()
         }
     }
 

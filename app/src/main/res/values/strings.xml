@@ -248,6 +248,9 @@
         <item quantity="other">Zostanie zamkniętych %d karty.</item>
     </plurals>
     <string name="tabs_close_tab">Zamknij kartę</string>
+    <string name="tabs_all">Wszystkie</string>
+    <string name="tabs_no_container">Bez kontenera</string>
+    <string name="tabs_new_in_container">Nowa: %s</string>
 
     <!-- Okna stron: uprawnienia, pobieranie -->
     <string name="dialog_permission_title">Prośba o dostęp</string>
@@ -264,6 +267,7 @@
     <string name="link_open_background">Otwórz w tle</string>
     <string name="link_opened_background">Otwarto w tle</string>
     <string name="link_open_incognito">Otwórz w incognito</string>
+    <string name="link_open_container">Otwórz w kontenerze</string>
     <string name="link_copy">Kopiuj adres linku</string>
     <string name="link_share">Udostępnij link</string>
     <string name="link_qr">Kod QR linku</string>
@@ -394,6 +398,21 @@
     <string name="settings_user_agent_hint">Jak przeglądarka przedstawia się stronom</string>
     <string name="settings_user_agent_custom">Własny</string>
     <string name="settings_tabs_swipe_hint">Kartę zamkniesz też, przesuwając ją w bok na liście kart.</string>
+    <string name="containers_title">Kontenery kart</string>
+    <string name="containers_hint">Każdy kontener ma osobne ciasteczka i dane stron – np. dwa konta w tym samym serwisie naraz. Kontener wybierzesz na liście kart albo w menu linku.</string>
+    <string name="containers_add">Dodaj kontener</string>
+    <string name="containers_edit">Edytuj kontener</string>
+    <string name="containers_name">Nazwa (np. Praca)</string>
+    <string name="containers_delete">Usuń kontener</string>
+    <string name="containers_delete_title">Usunąć kontener „%s”?</string>
+    <string name="containers_delete_text">Karty z tego kontenera zostaną zamknięte, a jego ciasteczka i dane stron usunięte. Wylogujesz się ze stron otwieranych w tym kontenerze.</string>
+    <string name="containers_deleted">Usunięto kontener „%s”</string>
+    <plurals name="containers_tabs">
+        <item quantity="one">%d otwarta karta</item>
+        <item quantity="few">%d otwarte karty</item>
+        <item quantity="many">%d otwartych kart</item>
+        <item quantity="other">%d otwartej karty</item>
+    </plurals>
     <string name="settings_backup_export">Zapisz kopię do pliku</string>
     <string name="settings_backup_export_hint">Ustawienia, kafelki i zakładki (bez haseł)</string>
     <string name="settings_backup_import">Przywróć z pliku kopii</string>

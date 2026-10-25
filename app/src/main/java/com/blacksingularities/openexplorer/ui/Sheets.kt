@@ -54,6 +54,7 @@ import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -100,6 +101,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -119,6 +121,7 @@ import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.browser.BrowserDialog
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.browser.Tab
+import com.blacksingularities.openexplorer.data.Container
 import com.blacksingularities.openexplorer.data.Tile
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
@@ -255,12 +258,28 @@ private fun qrBitmap(text: String, size: Int = 720): Bitmap {
 
 // ---------------- Karty ----------------
 
+/** Etykieta kontenera: zaokrąglony znacznik w kolorze kontenera z jego nazwą. */
+@Composable
+fun ContainerLabel(c: Container, modifier: Modifier = Modifier) {
+    val bg = Color(c.color)
+    Text(
+        c.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
+        color = if (bg.luminance() > 0.55f) Color.Black else Color.White,
+        modifier = modifier.clip(RoundedCornerShape(50)).background(bg).padding(horizontal = 8.dp, vertical = 2.dp),
+    )
+}
+
 @Composable
 fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
     val current = state.current
     var incognito by remember { mutableStateOf(current?.incognito == true) }
     var confirm by remember { mutableStateOf(false) }
-    val list = state.tabs.filter { it.incognito == incognito }
+    val containers = if (state.multiProfile) state.store.containers.toList() else emptyList()
+    // Filtr kontenera zwykłych kart: null = wszystkie, "" = bez kontenera, inaczej id kontenera.
+    var box by remember { mutableStateOf<String?>(null) }
+    val boxFilter = if (incognito) null else box?.takeIf { id -> id.isEmpty() || containers.any { it.id == id } }
+    val list = state.tabs.filter { it.incognito == incognito && (boxFilter == null || it.containerId == boxFilter) }
+    val newIn = boxFilter?.let { id -> containers.firstOrNull { it.id == id } }
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -287,9 +306,32 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
                     RoundIcon(Icons.Rounded.RestorePage, stringResource(R.string.tabs_restore_closed)) { state.reopenClosed() }
                 }
                 TextButton(
-                    onClick = { if (state.settings.confirmCloseAll && list.size > 1) confirm = true else { state.closeAll(incognito); onClose() } },
+                    onClick = { if (state.settings.confirmCloseAll && list.size > 1) confirm = true else { state.closeAll(incognito, boxFilter); onClose() } },
                     enabled = list.isNotEmpty(),
                 ) { Text(stringResource(R.string.tabs_close_all_short), fontSize = 11.sp, textAlign = TextAlign.Center, lineHeight = 13.sp) }
+            }
+            if (!incognito && containers.isNotEmpty()) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val options = listOf<Pair<String?, String>>(null to stringResource(R.string.tabs_all), "" to stringResource(R.string.tabs_no_container)) +
+                        containers.map { it.id to it.name }
+                    options.forEach { (id, label) ->
+                        val on = id == boxFilter
+                        val c = containers.firstOrNull { it.id == id }
+                        Row(
+                            Modifier.clip(RoundedCornerShape(50))
+                                .background(if (on) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
+                                .border(1.dp, if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
+                                .clickable { box = id }.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (c != null) Box(Modifier.padding(end = 6.dp).size(8.dp).clip(RoundedCornerShape(50)).background(Color(c.color)))
+                            Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                        }
+                    }
+                }
             }
             Box(Modifier.weight(1f)) {
                 if (list.isEmpty()) {
@@ -301,15 +343,26 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(list, key = { it.id }) { t ->
-                        TabCard(t, t.id == current?.id, { state.select(t.id); onClose() }, { state.close(t.id) }, Modifier.animateItem())
+                        TabCard(
+                            t, t.id == current?.id, containers.firstOrNull { it.id == t.containerId },
+                            { state.select(t.id); onClose() }, { state.close(t.id) }, Modifier.animateItem(),
+                        )
                     }
                 }
             }
         }
         ExtendedFloatingActionButton(
-            onClick = { state.newTab(incognito = incognito); onClose() },
+            onClick = { state.newTab(incognito = incognito, container = newIn?.id.orEmpty()); onClose() },
             icon = { Icon(if (incognito) Icons.Rounded.VisibilityOff else Icons.Rounded.Add, null) },
-            text = { Text(stringResource(if (incognito) R.string.tabs_new_incognito else R.string.menu_new_tab)) },
+            text = {
+                Text(
+                    when {
+                        incognito -> stringResource(R.string.tabs_new_incognito)
+                        newIn != null -> stringResource(R.string.tabs_new_in_container, newIn.name)
+                        else -> stringResource(R.string.menu_new_tab)
+                    },
+                )
+            },
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp),
@@ -320,14 +373,14 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
             onDismissRequest = { confirm = false },
             title = { Text(stringResource(R.string.tabs_close_all_title)) },
             text = { Text(pluralStringResource(R.plurals.tabs_close_all_text, list.size, list.size)) },
-            confirmButton = { TextButton(onClick = { confirm = false; state.closeAll(incognito); onClose() }) { Text(stringResource(R.string.common_close)) } },
+            confirmButton = { TextButton(onClick = { confirm = false; state.closeAll(incognito, boxFilter); onClose() }) { Text(stringResource(R.string.common_close)) } },
             dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }
 
 @Composable
-private fun TabCard(tab: Tab, selected: Boolean, onClick: () -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
+private fun TabCard(tab: Tab, selected: Boolean, container: Container?, onClick: () -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     // Przesunięcie karty w bok zamyka ją (jak w Chrome).
     val drag = remember { Animatable(0f) }
@@ -376,6 +429,7 @@ private fun TabCard(tab: Tab, selected: Boolean, onClick: () -> Unit, onClose: (
                         color = colors.onSurfaceVariant, maxLines = 1)
                 }
             }
+            if (container != null) ContainerLabel(container, Modifier.align(Alignment.BottomStart).padding(6.dp))
         }
     }
 }
@@ -426,27 +480,49 @@ fun BrowserDialogs(state: BrowserState) {
         is BrowserDialog.LinkMenu -> {
             val target = d.link ?: d.image ?: ""
             val parent = state.current?.id
+            val profile = state.profileOf(state.current)
+            // Rozwinięta lista kontenerów pod „Otwórz w kontenerze”.
+            var pickContainer by remember(d) { mutableStateOf(false) }
+            val containers = if (state.multiProfile && !d.incognito) state.store.containers.toList() else emptyList()
             AlertDialog(
                 onDismissRequest = { state.dialog = null },
                 title = { Text(target, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium) },
                 text = {
-                    Column {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
                         fun act(block: () -> Unit): () -> Unit = { state.dialog = null; block() }
                         if (d.link != null) {
-                            MenuItemRow(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.common_open_new_tab), act { state.newTab(d.link, d.incognito, parent = parent) })
+                            MenuItemRow(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.common_open_new_tab), act { state.newTab(d.link, d.incognito, parent = parent, container = d.container) })
                             MenuItemRow(Icons.Rounded.Add, stringResource(R.string.link_open_background), act {
-                                state.newTab(d.link, d.incognito, background = true, parent = parent)
+                                state.newTab(d.link, d.incognito, background = true, parent = parent, container = d.container)
                                 state.snack(ctx.getString(R.string.link_opened_background), ctx.getString(R.string.source_go)) { state.tabs.lastOrNull { it.url == d.link }?.let { state.select(it.id) } }
                             })
                             if (!d.incognito) MenuItemRow(Icons.Rounded.VisibilityOff, stringResource(R.string.link_open_incognito), act { state.newTab(d.link, incognito = true) })
+                            if (containers.isNotEmpty()) {
+                                MenuItemRow(Icons.Rounded.Layers, stringResource(R.string.link_open_container)) { pickContainer = !pickContainer }
+                                if (pickContainer) {
+                                    // Bez kontenera tylko wtedy, gdy link pochodzi z karty w kontenerze.
+                                    val targets = (if (d.container.isNotEmpty()) listOf<Container?>(null) else emptyList()) +
+                                        containers.filter { it.id != d.container }
+                                    targets.forEach { c ->
+                                        Row(
+                                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                                .clickable(onClick = act { state.newTab(d.link, container = c?.id.orEmpty()) })
+                                                .padding(start = 36.dp, top = 9.dp, bottom = 9.dp, end = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            if (c != null) ContainerLabel(c) else Text(stringResource(R.string.tabs_no_container))
+                                        }
+                                    }
+                                }
+                            }
                             MenuItemRow(Icons.Rounded.ContentCopy, stringResource(R.string.link_copy), act { copy(ctx, d.link); state.snack(ctx.getString(R.string.common_copied)) })
                             MenuItemRow(Icons.Rounded.Share, stringResource(R.string.link_share), act { share(ctx, d.link, "") })
                             MenuItemRow(Icons.Rounded.QrCode2, stringResource(R.string.link_qr), act { state.dialog = BrowserDialog.Qr(d.link, "") })
-                            MenuItemRow(Icons.Rounded.Download, stringResource(R.string.link_download), act { state.downloads.download(d.link, d.incognito) })
+                            MenuItemRow(Icons.Rounded.Download, stringResource(R.string.link_download), act { state.downloads.download(d.link, d.incognito, profile) })
                         }
                         if (d.image != null) {
-                            MenuItemRow(Icons.Rounded.Image, stringResource(R.string.image_open), act { state.newTab(d.image, d.incognito, parent = parent) })
-                            MenuItemRow(Icons.Rounded.Download, stringResource(R.string.image_download), act { state.downloads.download(d.image, d.incognito) })
+                            MenuItemRow(Icons.Rounded.Image, stringResource(R.string.image_open), act { state.newTab(d.image, d.incognito, parent = parent, container = d.container) })
+                            MenuItemRow(Icons.Rounded.Download, stringResource(R.string.image_download), act { state.downloads.download(d.image, d.incognito, profile) })
                             MenuItemRow(Icons.Rounded.ContentCopy, stringResource(R.string.image_copy), act { copy(ctx, d.image); state.snack(ctx.getString(R.string.common_copied)) })
                         }
                     }
@@ -540,6 +616,7 @@ private fun SiteInfoSheet(state: BrowserState, tab: Tab) {
                         style = MaterialTheme.typography.bodySmall,
                         color = if (tab.url.startsWith("http://")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    state.store.container(tab.containerId)?.let { ContainerLabel(it, Modifier.padding(top = 4.dp)) }
                 }
             }
             if (state.settings.adBlock) {

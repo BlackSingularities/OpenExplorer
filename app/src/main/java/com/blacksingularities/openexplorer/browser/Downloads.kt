@@ -6,7 +6,6 @@ import android.net.Uri
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
-import android.webkit.CookieManager
 import android.webkit.URLUtil
 import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.data.Settings
@@ -28,7 +27,7 @@ class Downloads(
             return
         }
         val name = URLUtil.guessFileName(url, disposition, mime)
-        val request = BrowserDialog.Download(url, name, mime, length, ua, tab.incognito)
+        val request = BrowserDialog.Download(url, name, mime, length, ua, tab.incognito, browser.profileOf(tab))
         if (settings.askDownload) browser.dialog = request else start(request)
         // Karta otwarta tylko po to, by pobrać plik, zostaje pusta – zamknij ją.
         if (tab.webView?.url == null && tab.parentId != null) main.post { browser.close(tab.id) }
@@ -37,7 +36,8 @@ class Downloads(
     fun start(d: BrowserDialog.Download, fileName: String = d.fileName) {
         try {
             val req = DownloadManager.Request(Uri.parse(d.url)).apply {
-                CookieManager.getInstance().getCookie(d.url)?.let { addRequestHeader("Cookie", it) }
+                // Ciasteczka z profilu karty (incognito i kontenery mają własne).
+                browser.cookiesOf(d.profile)?.getCookie(d.url)?.let { addRequestHeader("Cookie", it) }
                 addRequestHeader("User-Agent", d.userAgent)
                 setTitle(fileName)
                 setDescription(Uri.parse(d.url).host)
@@ -55,8 +55,8 @@ class Downloads(
     }
 
     /** Pobranie obrazka lub linku z menu kontekstowego. */
-    fun download(url: String, incognito: Boolean) {
+    fun download(url: String, incognito: Boolean, profile: String? = null) {
         val name = URLUtil.guessFileName(url, null, null)
-        start(BrowserDialog.Download(url, name, null, -1, browser.defaultUa, incognito))
+        start(BrowserDialog.Download(url, name, null, -1, browser.defaultUa, incognito, profile))
     }
 }

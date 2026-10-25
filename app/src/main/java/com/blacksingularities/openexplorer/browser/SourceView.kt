@@ -17,7 +17,8 @@ data class SourceInfo(
 )
 
 /** Stan pełnoekranowego podglądu kodu jednej strony lub zasobu. */
-class SourceView(val url: String, val title: String, val incognito: Boolean, val hasDom: Boolean = false) {
+/** [profile] – profil WebView karty (ciasteczka przy pobieraniu kodu z serwera); null = domyślny. */
+class SourceView(val url: String, val title: String, val incognito: Boolean, val hasDom: Boolean = false, val profile: String? = null) {
     /** Kod pobrany z serwera (jak w „view-source:”); null – jeszcze się pobiera. */
     var server by mutableStateOf<String?>(null)
     var serverError by mutableStateOf<String?>(null)
