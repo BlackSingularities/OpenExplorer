@@ -43,6 +43,7 @@ import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.blacksingularities.openexplorer.R
+import com.blacksingularities.openexplorer.data.Container
 import com.blacksingularities.openexplorer.data.Credential
 import com.blacksingularities.openexplorer.data.PasswordStore
 import com.blacksingularities.openexplorer.data.SavedTab
@@ -87,8 +88,11 @@ sealed interface BrowserDialog {
         val size: Long,
         val userAgent: String,
         val incognito: Boolean,
+        /** Profil WebView karty (ciasteczka do pobrania); null = domyślny. */
+        val profile: String? = null,
     ) : BrowserDialog
-    data class LinkMenu(val link: String?, val image: String?, val incognito: Boolean) : BrowserDialog
+    /** [container] – kontener karty, z której otwarto menu (nowe karty z linku trafiają do niego). */
+    data class LinkMenu(val link: String?, val image: String?, val incognito: Boolean, val container: String = "") : BrowserDialog
     data class Ssl(val url: String, val error: String, val handler: SslErrorHandler) : BrowserDialog
     /** „Tylko HTTPS” nie powiodło się – [httpUrl] to oryginalny, nieszyfrowany adres. */
     data class HttpsFallback(val tab: Tab, val httpUrl: String, val reason: String) : BrowserDialog
@@ -180,7 +184,7 @@ class BrowserState(
 
     fun reopenClosed() {
         val t = closed.removeLastOrNull() ?: return
-        newTab(t.url)
+        newTab(t.url, container = t.container)
     }
 
     /** Przełączenie na sąsiednią kartę tego samego rodzaju (gest na pasku adresu). */
@@ -198,9 +202,11 @@ class BrowserState(
         if (settings.clearOnExit) {
             clearData(cache = true, cookies = true, history = true, storage = true)
             store.saveSession(emptyList(), 0)
-        } else if (settings.restoreTabs) {
+        }
+        cleanupProfiles()
+        if (!settings.clearOnExit && settings.restoreTabs) {
             val (saved, active) = store.loadSession()
-            saved.forEach { tabs += Tab(nextId++, false, it.url, it.title) }
+            saved.forEach { tabs += Tab(nextId++, false, it.url, it.title, containerId = validContainer(it.container)) }
             if (tabs.isNotEmpty()) {
                 currentId = tabs[active.coerceIn(0, tabs.lastIndex)].id
                 return
@@ -209,8 +215,15 @@ class BrowserState(
         newTab()
     }
 
-    fun newTab(url: String = "", incognito: Boolean = false, background: Boolean = false, parent: Long? = null): Tab {
-        val tab = Tab(nextId++, incognito, parentId = parent)
+    /** [container] – id kontenera; nieistniejący (albo w karcie incognito) oznacza kartę bez kontenera. */
+    fun newTab(
+        url: String = "",
+        incognito: Boolean = false,
+        background: Boolean = false,
+        parent: Long? = null,
+        container: String = "",
+    ): Tab {
+        val tab = Tab(nextId++, incognito, parentId = parent, containerId = if (incognito) "" else validContainer(container))
         val index = parent?.let { p -> tabs.indexOfFirst { it.id == p } }?.takeIf { it >= 0 }?.plus(1) ?: tabs.size
         tabs.add(index.coerceAtMost(tabs.size), tab)
         if (url.isNotEmpty()) load(tab, url)
@@ -247,10 +260,10 @@ class BrowserState(
         }
         tabs.removeAt(index)
         if (!tab.incognito && tab.url.isNotEmpty()) {
-            val saved = SavedTab(tab.url, tab.title)
+            val saved = SavedTab(tab.url, tab.title, tab.containerId)
             closed += saved
             if (closed.size > 25) closed.removeAt(0)
-            snack(str(R.string.browser_tab_closed), str(R.string.common_undo)) { closed.remove(saved); newTab(saved.url) }
+            snack(str(R.string.browser_tab_closed), str(R.string.common_undo)) { closed.remove(saved); newTab(saved.url, container = saved.container) }
         }
         destroy(tab)
         if (tab.incognito && tabs.none { it.incognito }) clearIncognito()
@@ -258,8 +271,9 @@ class BrowserState(
         saveSession()
     }
 
-    fun closeAll(incognito: Boolean) {
-        tabs.filter { it.incognito == incognito }.forEach { tabs.remove(it); destroy(it) }
+    /** [container] – tylko karty tego kontenera ("" = bez kontenera); null – wszystkie karty danego rodzaju. */
+    fun closeAll(incognito: Boolean, container: String? = null) {
+        tabs.filter { it.incognito == incognito && (container == null || it.containerId == container) }.forEach { tabs.remove(it); destroy(it) }
         if (incognito) clearIncognito()
         if (tabs.none { it.id == currentId }) {
             currentId = -1
@@ -281,7 +295,63 @@ class BrowserState(
     fun saveSession() {
         val normal = tabs.filter { !it.incognito }
         val active = normal.indexOfFirst { it.id == currentId }.coerceAtLeast(0)
-        store.saveSession(normal.map { SavedTab(it.url, it.title) }, active)
+        store.saveSession(normal.map { SavedTab(it.url, it.title, it.containerId) }, active)
+    }
+
+    // ---------- Kontenery i profile WebView ----------
+
+    /** WebView obsługuje osobne profile – bez tego kontenery są ukryte, a incognito używa domyślnego profilu. */
+    val multiProfile: Boolean by lazy { WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE) }
+
+    /** Id istniejącego kontenera albo puste (kontener usunięty lub profile nieobsługiwane). */
+    private fun validContainer(id: String): String = id.takeIf { multiProfile && store.container(it) != null }.orEmpty()
+
+    /** Profil WebView karty: incognito, kontener albo null (domyślny profil). */
+    internal fun profileOf(tab: Tab?): String? = when {
+        tab == null || !multiProfile -> null
+        tab.incognito -> INCOGNITO_PROFILE
+        tab.containerId.isNotEmpty() -> Container.profileName(tab.containerId)
+        else -> null
+    }
+
+    /** Ciasteczka profilu (null = domyślny); null, gdy profil jeszcze nie powstał – wtedy nie ma też ciasteczek. */
+    internal fun cookiesOf(profile: String?): CookieManager? =
+        if (profile == null) CookieManager.getInstance()
+        else runCatching { ProfileStore.getInstance().getProfile(profile)?.cookieManager }.getOrNull()
+
+    private fun storageOf(profile: String?): WebStorage? =
+        if (profile == null) WebStorage.getInstance()
+        else runCatching { ProfileStore.getInstance().getProfile(profile)?.webStorage }.getOrNull()
+
+    /** Usuwa nieużywane profile: incognito z poprzedniego uruchomienia i profile usuniętych kontenerów. */
+    private fun cleanupProfiles() {
+        if (!multiProfile) return
+        runCatching {
+            val ps = ProfileStore.getInstance()
+            val keep = store.containers.map { it.profile }.toHashSet()
+            ps.allProfileNames
+                .filter { it == INCOGNITO_PROFILE || it.startsWith(Container.PROFILE_PREFIX) && it !in keep }
+                .forEach { runCatching { ps.deleteProfile(it) } }
+        }
+    }
+
+    /** Usunięcie kontenera: zamyka jego karty i kasuje ciasteczka oraz dane stron jego profilu. */
+    fun deleteContainer(id: String) {
+        val c = store.container(id) ?: return
+        tabs.filter { it.containerId == id }.forEach { tabs.remove(it); destroy(it) }
+        closed.removeAll { it.container == id }
+        store.removeContainer(id)
+        if (tabs.none { it.id == currentId }) {
+            currentId = -1
+            (tabs.lastOrNull { !it.incognito } ?: tabs.lastOrNull())?.let { select(it.id) } ?: newTab()
+        }
+        saveSession()
+        if (!multiProfile) return
+        cookiesOf(c.profile)?.let { it.removeAllCookies(null); it.flush() }
+        storageOf(c.profile)?.deleteAllData()
+        // Profil da się usunąć dopiero, gdy żaden WebView go nie używa (niszczenie widoków kończy się asynchronicznie).
+        // Jeśli się nie uda, usunie go cleanupProfiles() przy następnym uruchomieniu.
+        main.postDelayed({ runCatching { ProfileStore.getInstance().deleteProfile(c.profile) } }, 500)
     }
 
     // ---------- Nawigacja ----------
@@ -437,10 +507,11 @@ class BrowserState(
     private fun createWebView(tab: Tab, attach: Boolean = true): WebView {
         val themed = ContextThemeWrapper(context, if (host.isDarkTheme()) R.style.WebDark else R.style.WebLight)
         val wv = WebView(themed)
-        if (tab.incognito && WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+        // Osobny profil (incognito albo kontener) trzeba ustawić, zanim WebView cokolwiek wczyta.
+        profileOf(tab)?.let { profile ->
             runCatching {
-                ProfileStore.getInstance().getOrCreateProfile(INCOGNITO_PROFILE)
-                WebViewCompat.setProfile(wv, INCOGNITO_PROFILE)
+                ProfileStore.getInstance().getOrCreateProfile(profile)
+                WebViewCompat.setProfile(wv, profile)
             }
         }
         tab.desktop = tab.desktop || settings.desktopDefault
@@ -618,6 +689,7 @@ class BrowserState(
             injectCss(view, tab)
             if (settings.webDarkMode == "force" && store.rule(tab.pageHost)?.darkMode != false) view.evaluateJavascript(Scripts.FORCE_DARK, null)
             if (settings.forceZoom) view.evaluateJavascript(Scripts.FORCE_ZOOM, null)
+            injectUserScript(view, tab)
             logins.onPageFinished(view, tab)
             if (!tab.incognito) saveSession()
         }
@@ -657,7 +729,8 @@ class BrowserState(
     }
 
     private fun injectCss(view: WebView, tab: Tab) {
-        val adOk = settings.adBlock && store.rule(tab.pageHost)?.adBlock != false
+        val rule = store.rule(tab.pageHost)
+        val adOk = settings.adBlock && rule?.adBlock != false
         val cosmetic = if (adOk && settings.cosmeticFilter) adBlocker.cosmetic(tab.pageHost, tab.url) else null
         val css = buildString {
             if (adOk && settings.cosmeticFilter) append(Scripts.COSMETIC_CSS)
@@ -672,6 +745,19 @@ class BrowserState(
                 if (present != "true") view.evaluateJavascript(Scripts.injectStyle("__oe_generic", generic), null)
             }
         }
+        // Własne style domeny – osobny element, żeby nie mieszać ich z filtrami.
+        rule?.css?.takeIf { it.isNotBlank() && !tab.incognito }?.let { view.evaluateJavascript(Scripts.injectStyle("__oe_user_css", it), null) }
+    }
+
+    /**
+     * Własny skrypt domeny po wczytaniu strony. Nie w incognito: skrypt ma pełny dostęp do strony
+     * (może zapisywać dane i wysyłać je dalej), a incognito ma zostawać czyste i niepowiązane
+     * ze zwykłym przeglądaniem. Z tego samego powodu w incognito nie ma też własnych stylów.
+     */
+    private fun injectUserScript(view: WebView, tab: Tab) {
+        if (tab.incognito || !view.settings.javaScriptEnabled) return
+        val js = store.rule(tab.pageHost)?.js
+        if (!js.isNullOrBlank()) view.evaluateJavascript(Scripts.userScript(js), null)
     }
 
     private fun updateNav(view: WebView) {
@@ -759,7 +845,8 @@ class BrowserState(
                 host.toast(str(R.string.browser_popup_blocked))
                 return false
             }
-            val child = Tab(nextId++, tab.incognito, parentId = tab.id)
+            // Okno otwarte przez stronę musi mieć ten sam profil co strona (wspólne ciasteczka).
+            val child = Tab(nextId++, tab.incognito, parentId = tab.id, containerId = tab.containerId)
             child.showHome = false
             val index = tabs.indexOf(tab) + 1
             tabs.add(index.coerceIn(0, tabs.size), child)
@@ -848,12 +935,12 @@ class BrowserState(
     private fun onLongPress(tab: Tab, wv: WebView): Boolean {
         val r = wv.hitTestResult
         when (r.type) {
-            WebView.HitTestResult.SRC_ANCHOR_TYPE -> dialog = BrowserDialog.LinkMenu(r.extra, null, tab.incognito)
-            WebView.HitTestResult.IMAGE_TYPE -> dialog = BrowserDialog.LinkMenu(null, r.extra, tab.incognito)
+            WebView.HitTestResult.SRC_ANCHOR_TYPE -> dialog = BrowserDialog.LinkMenu(r.extra, null, tab.incognito, tab.containerId)
+            WebView.HitTestResult.IMAGE_TYPE -> dialog = BrowserDialog.LinkMenu(null, r.extra, tab.incognito, tab.containerId)
             WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE -> {
                 val image = r.extra
                 val handler = Handler(Looper.getMainLooper()) { msg ->
-                    dialog = BrowserDialog.LinkMenu(msg.data.getString("url") ?: image, image, tab.incognito)
+                    dialog = BrowserDialog.LinkMenu(msg.data.getString("url") ?: image, image, tab.incognito, tab.containerId)
                     true
                 }
                 wv.requestFocusNodeHref(handler.obtainMessage())
@@ -920,7 +1007,8 @@ class BrowserState(
     fun clearSiteData(tab: Tab) {
         val url = tab.url
         val h = Uri.parse(url).host ?: return
-        val cm = CookieManager.getInstance()
+        val profile = profileOf(tab)
+        val cm = cookiesOf(profile) ?: return
         cm.getCookie(url)?.split(";")?.forEach { c ->
             val name = c.substringBefore('=').trim()
             listOf(h, "." + h.removePrefix("www."), h.removePrefix("www.")).forEach { d ->
@@ -928,7 +1016,7 @@ class BrowserState(
             }
         }
         cm.flush()
-        WebStorage.getInstance().deleteOrigin(Uri.parse(url).scheme + "://" + h)
+        storageOf(profile)?.deleteOrigin(Uri.parse(url).scheme + "://" + h)
         tab.webView?.reload()
         snack(str(R.string.browser_site_data_cleared, h.removePrefix("www.")))
     }
@@ -966,6 +1054,11 @@ class BrowserState(
             WebViewDatabase.getInstance(context).clearHttpAuthUsernamePassword()
         }
         if (storage) WebStorage.getInstance().deleteAllData()
+        // Kontenery mają własne ciasteczka i dane stron – czyszczenie obejmuje także je.
+        if (multiProfile && (cookies || storage)) store.containers.forEach { c ->
+            if (cookies) cookiesOf(c.profile)?.let { it.removeAllCookies(null); it.flush() }
+            if (storage) storageOf(c.profile)?.deleteAllData()
+        }
         if (history) {
             store.clearHistory()
             tabs.forEach { it.webView?.clearHistory() }

@@ -6,9 +6,15 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val appVersionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
-val appVersionName = (project.findProperty("versionName") as String?) ?: "1.0-dev"
+// Wersja z pliku VERSION; CI podaje własny numer (-PversionCode, -PversionName). Bez parametrów
+// (np. budowanie w F-Droid) kod wersji wynika z VERSION: 1.4.0 → 10400 – ten sam kod z tego samego źródła.
+val versionFromFile = rootProject.file("VERSION").readText().trim()
+val versionCodeFromFile = versionFromFile.split('.').map { it.toIntOrNull() ?: 0 }.plus(listOf(0, 0, 0))
+    .let { (major, minor, patch) -> major * 10000 + minor * 100 + patch }
+val appVersionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: versionCodeFromFile
+val appVersionName = (project.findProperty("versionName") as String?) ?: versionFromFile
 val keystorePath: String? = System.getenv("SIGNING_KEYSTORE_PATH")
+val hasKeystore = keystorePath != null && file(keystorePath).exists()
 
 android {
     namespace = "com.blacksingularities.openexplorer"
@@ -26,8 +32,8 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePath != null && file(keystorePath).exists()) {
-                storeFile = file(keystorePath)
+            if (hasKeystore) {
+                storeFile = file(keystorePath!!)
                 storeType = "pkcs12"
                 storePassword = System.getenv("SIGNING_STORE_PASSWORD")
                 keyAlias = System.getenv("SIGNING_KEY_ALIAS")
@@ -41,14 +47,29 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (keystorePath != null && file(keystorePath).exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // Podpis wydania ustawiają warianty dystrybucji niżej.
         }
         debug {
             applicationIdSuffix = ".debug"
+        }
+    }
+
+    // Dystrybucja: „github” – wydania z GitHub z wbudowanym aktualizatorem; „fdroid” – bez
+    // samoaktualizacji (F-Droid nie dopuszcza instalowania aktualizacji spoza swojego repozytorium).
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("github") {
+            dimension = "distribution"
+            isDefault = true
+            buildConfigField("boolean", "UPDATER", "true")
+            // Bez sekretów (fork, lokalne budowanie) wydanie podpisuje klucz debug, żeby dało się je zainstalować.
+            signingConfig = signingConfigs.getByName(if (hasKeystore) "release" else "debug")
+        }
+        create("fdroid") {
+            dimension = "distribution"
+            buildConfigField("boolean", "UPDATER", "false")
+            // F-Droid podpisuje APK sam – bez klucza wydania powstaje niepodpisany plik.
+            if (hasKeystore) signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -103,4 +124,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
     testImplementation("junit:junit:4.13.2")
+    // Prawdziwe org.json w testach jednostkowych (w android.jar są tylko zaślepki).
+    testImplementation("org.json:json:20240303")
 }

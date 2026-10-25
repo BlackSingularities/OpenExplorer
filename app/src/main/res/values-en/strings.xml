@@ -229,6 +229,9 @@
         <item quantity="other">%d tabs will be closed.</item>
     </plurals>
     <string name="tabs_close_tab">Close tab</string>
+    <string name="tabs_all">All</string>
+    <string name="tabs_no_container">No container</string>
+    <string name="tabs_new_in_container">New: %s</string>
 
     <!-- Page dialogs: permissions, downloads -->
     <string name="dialog_permission_title">Access request</string>
@@ -244,6 +247,7 @@
     <string name="link_open_background">Open in background</string>
     <string name="link_opened_background">Opened in background</string>
     <string name="link_open_incognito">Open in incognito</string>
+    <string name="link_open_container">Open in container</string>
     <string name="link_copy">Copy link address</string>
     <string name="link_share">Share link</string>
     <string name="link_qr">Link QR code</string>
@@ -278,6 +282,17 @@
     <string name="site_desktop">Always desktop site</string>
     <string name="site_dark">Dark appearance</string>
     <string name="site_dark_hint">When the dark theme is on</string>
+    <string name="site_custom_code">Custom style and script</string>
+    <string name="site_custom_css">Custom CSS</string>
+    <string name="site_custom_css_hint">Styles added after the page loads, e.g. to hide elements</string>
+    <string name="site_custom_js">Custom JavaScript</string>
+    <string name="site_custom_js_hint">Script run after the page loads</string>
+    <string name="site_code_none">none</string>
+    <string name="site_code_on">on</string>
+    <string name="site_code_incognito">Custom CSS and scripts don\'t run in incognito tabs.</string>
+    <string name="site_js_warning_title">Warning: the script has full access to the page</string>
+    <string name="site_js_warning">The code sees everything on %s – including passwords and sign-in details you type – and can send them elsewhere or act on your behalf. Only paste code you understand, never at the request of strangers or “tech support”.</string>
+    <string name="site_code_applies">Applies to %s and its subdomains. The page reloads after saving.</string>
     <string name="site_saved_logins">Saved logins for this site: %d (menu → Passwords)</string>
     <string name="site_clear">Clear cookies and site data</string>
     <string name="site_clear_hint">Signs you out of %s</string>
@@ -378,11 +393,26 @@
     <string name="settings_rule_desktop">desktop site</string>
     <string name="settings_rule_no_dark">no dark appearance</string>
     <string name="settings_rule_text_zoom">text %d%%</string>
+    <string name="settings_rule_css">custom CSS</string>
+    <string name="settings_rule_js">custom script</string>
     <string name="settings_rule_reset">Restore defaults for this site</string>
     <string name="settings_user_agent">Browser identifier (User-Agent)</string>
     <string name="settings_user_agent_hint">How the browser identifies itself to sites</string>
     <string name="settings_user_agent_custom">Custom</string>
     <string name="settings_tabs_swipe_hint">You can also close a tab by swiping it sideways in the tab list.</string>
+    <string name="containers_title">Tab containers</string>
+    <string name="containers_hint">Each container has its own cookies and site data – e.g. two accounts on the same site at once. Pick a container in the tab list or in a link\'s menu.</string>
+    <string name="containers_add">Add container</string>
+    <string name="containers_edit">Edit container</string>
+    <string name="containers_name">Name (e.g. Work)</string>
+    <string name="containers_delete">Delete container</string>
+    <string name="containers_delete_title">Delete container “%s”?</string>
+    <string name="containers_delete_text">Tabs in this container will be closed and its cookies and site data deleted. You will be signed out of sites opened in this container.</string>
+    <string name="containers_deleted">Deleted container “%s”</string>
+    <plurals name="containers_tabs">
+        <item quantity="one">%d open tab</item>
+        <item quantity="other">%d open tabs</item>
+    </plurals>
     <string name="settings_backup_export">Save backup to file</string>
     <string name="settings_backup_export_hint">Settings, tiles and bookmarks (no passwords)</string>
     <string name="settings_backup_import">Restore from backup file</string>

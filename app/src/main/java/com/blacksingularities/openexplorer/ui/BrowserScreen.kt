@@ -190,7 +190,7 @@ fun BrowserScreen(
                         editMode = editTiles,
                         onEditMode = onEditTiles,
                         onOpen = { state.load(tab, it) },
-                        onOpenNewTab = { url, inc -> state.newTab(url, inc, background = settings.linksInBackground && !inc) },
+                        onOpenNewTab = { url, inc -> state.newTab(url, inc, background = settings.linksInBackground && !inc, container = tab.containerId) },
                         onSearchClick = { editing = true },
                         modifier = Modifier.padding(top = topPad, bottom = bottomPad),
                     )
@@ -460,6 +460,10 @@ private fun AddressField(
                     ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Karta w kontenerze: kropka w kolorze kontenera przed adresem.
+                state.store.container(tab.containerId)?.let { c ->
+                    Box(Modifier.padding(start = 2.dp, end = 4.dp).size(8.dp).clip(CircleShape).background(Color(c.color)))
+                }
                 Text(
                     if (tab.showHome) stringResource(R.string.home_search_hint) else tab.host.ifEmpty { tab.url },
                     color = if (tab.showHome) colors.onSurfaceVariant else colors.onSurface,
