@@ -1,5 +1,15 @@
 # Zmiany
 
+## 1.4.0
+
+Kontenery kart, własne style i skrypty dla stron, przygotowanie do F-Droid.
+
+- Kontenery kart (np. „Praca”, „Prywatne”): każdy to osobny profil WebView z własnymi ciasteczkami i danymi stron – np. dwa konta w tym samym serwisie naraz. Kontener widać na liście kart (etykieta i filtr) i w pasku adresu (kolorowa kropka); „Otwórz w kontenerze” w menu linku. Kontenery dodaje się, zmienia i usuwa (razem z danymi) w Ustawieniach → Karty i pobieranie. Na WebView bez obsługi wielu profili funkcja jest ukryta.
+- Własny CSS i JavaScript dla domeny w ustawieniach strony, wstrzykiwane po wczytaniu strony; przy skrypcie wyraźne ostrzeżenie. W kartach incognito własny kod nie działa.
+- Kopia zapasowa obejmuje także ustawienia stron (z własnym kodem) i kontenery.
+- Pobieranie plików, podgląd kodu i „Wyczyść dane strony” używają ciasteczek profilu karty – także w incognito.
+- Wariant „fdroid” bez wbudowanego aktualizatora i uprawnień do instalowania pakietów; opisy w formacie fastlane. Build nie wymaga sekretów, a bez parametrów wersja pochodzi z pliku VERSION.
+
 ## 1.3.2
 
 Bezpieczniejsze aktualizacje i HTTPS, zgodność z Androidem 16.
