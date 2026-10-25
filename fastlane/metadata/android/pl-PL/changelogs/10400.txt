@@ -1,0 +1,5 @@
+• Kontenery kart: osobne ciasteczka i dane stron, np. „Praca” i „Prywatne”. Wybór na liście kart i w menu linku, zarządzanie w ustawieniach kart.
+• Własny CSS i JavaScript dla domeny w ustawieniach strony (nie działa w incognito).
+• Kopia zapasowa obejmuje ustawienia stron i kontenery.
+• Pobieranie i podgląd kodu używają ciasteczek karty (także w incognito).
+• Pierwsza wersja dla F-Droid – bez wbudowanego aktualizatora.

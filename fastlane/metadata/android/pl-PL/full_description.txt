@@ -1,0 +1,27 @@
+<p>OpenExplorer to szybka, minimalistyczna przeglądarka na silniku systemowego WebView (Chromium), bez usług Google i bez telemetrii.</p>
+
+<p><b>Prywatność</b></p>
+<ul>
+<li>Blokowanie reklam i śledzenia (lista wbudowana i pełna lista StevenBlack do pobrania), ukrywanie banerów cookies.</li>
+<li>Karty incognito w osobnym profilu WebView.</li>
+<li>Kontenery kart (np. „Praca”, „Prywatne”) – każdy z własnymi ciasteczkami i danymi stron, np. dwa konta w tym samym serwisie naraz.</li>
+<li>Tylko HTTPS, DNT/GPC, blokada wyskakujących okien i ciasteczek stron trzecich, czyszczenie danych po wyjściu.</li>
+</ul>
+
+<p><b>Hasła</b></p>
+<ul>
+<li>Wbudowany menedżer haseł: zapis po zalogowaniu, uzupełnianie jednym dotknięciem, generator silnych haseł.</li>
+<li>Szyfrowanie AES-256 kluczem z Android Keystore, odblokowanie odciskiem palca lub PIN-em.</li>
+<li>Import i eksport CSV (Edge, Chrome, Firefox, Bitwarden).</li>
+</ul>
+
+<p><b>Przeglądanie</b></p>
+<ul>
+<li>Strona startowa z logami stron w siatce dowolnej wielkości, tapety, gotowe układy.</li>
+<li>Pasek adresu na górze lub na dole, chowany przy przewijaniu, z podpowiedziami i skrótami wyszukiwania (!yt, !w, !gh…).</li>
+<li>Tryb czytania, czytanie na głos, tłumaczenie, strony offline, zrzuty ekranu, kody QR, drukowanie do PDF.</li>
+<li>Podgląd kodu strony z kolorowaniem składni i listą zasobów.</li>
+<li>Ustawienia dla domeny: wyjątki blokowania, JavaScript, wersja komputerowa, rozmiar tekstu, własny CSS i skrypt.</li>
+</ul>
+
+<p>Interfejs po polsku i po angielsku. Kod źródłowy na licencji MIT.</p>

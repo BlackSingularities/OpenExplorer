@@ -6,11 +6,13 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Language
@@ -67,6 +69,8 @@ import androidx.compose.ui.unit.dp
 import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.BuildConfig
 import com.blacksingularities.openexplorer.browser.BrowserState
+import com.blacksingularities.openexplorer.data.CONTAINER_COLORS
+import com.blacksingularities.openexplorer.data.Container
 import com.blacksingularities.openexplorer.data.SEARCH_ENGINES
 import com.blacksingularities.openexplorer.data.SearchEngine
 import com.blacksingularities.openexplorer.data.Settings
@@ -119,6 +123,9 @@ fun SettingsScreen(
     var textInput by remember { mutableStateOf<Triple<String, String, (String) -> Unit>?>(null) }
     var resetConfirm by remember { mutableStateOf(false) }
     var filtersBusy by remember { mutableStateOf(false) }
+    /** Kontener w oknie edycji (nowy, gdy nie ma go jeszcze w Store) i kontener do usunięcia. */
+    var containerEdit by remember { mutableStateOf<Container?>(null) }
+    var containerDelete by remember { mutableStateOf<Container?>(null) }
 
     fun ask(label: String, initial: String, onSave: (String) -> Unit) {
         textInput = Triple(label, initial, onSave)
@@ -158,7 +165,7 @@ fun SettingsScreen(
     }
     fun pickWallpaper() = wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
 
-    val pages = listOf(
+    val pages = listOfNotNull(
         SettingsPage("home", stringResource(R.string.settings_page_home), stringResource(R.string.settings_page_home_hint), Icons.Rounded.Dashboard),
         SettingsPage("look", stringResource(R.string.settings_page_look), stringResource(R.string.settings_page_look_hint), Icons.Rounded.Palette),
         SettingsPage("search", stringResource(R.string.settings_page_search), stringResource(R.string.settings_page_search_hint, engineName(s.engine)), Icons.Rounded.Search),
@@ -167,7 +174,10 @@ fun SettingsScreen(
         SettingsPage("content", stringResource(R.string.settings_page_content), stringResource(R.string.settings_page_content_hint), Icons.Rounded.Language),
         SettingsPage("tabs", stringResource(R.string.settings_page_tabs), stringResource(R.string.settings_page_tabs_hint), Icons.Rounded.Tab),
         SettingsPage("backup", stringResource(R.string.settings_page_backup), stringResource(R.string.settings_page_backup_hint), Icons.Rounded.Backup),
-        SettingsPage("updates", stringResource(R.string.settings_page_updates), stringResource(R.string.settings_page_updates_hint, BuildConfig.VERSION_NAME), Icons.Rounded.SystemUpdate),
+        // Wersja F-Droid: aktualizacje dostarcza F-Droid, więc strony aktualizacji nie ma.
+        if (BuildConfig.UPDATER) {
+            SettingsPage("updates", stringResource(R.string.settings_page_updates), stringResource(R.string.settings_page_updates_hint, BuildConfig.VERSION_NAME), Icons.Rounded.SystemUpdate)
+        } else null,
         SettingsPage("about", stringResource(R.string.settings_page_about), "OpenExplorer " + BuildConfig.VERSION_NAME, Icons.Rounded.Info),
     )
     var page by rememberSaveable { mutableStateOf<String?>(null) }
@@ -396,6 +406,8 @@ fun SettingsScreen(
                                         if (r.desktop) add(stringResource(R.string.settings_rule_desktop))
                                         if (!r.darkMode) add(stringResource(R.string.settings_rule_no_dark))
                                         if (r.textZoom > 0) add(stringResource(R.string.settings_rule_text_zoom, r.textZoom))
+                                        if (r.css.isNotBlank()) add(stringResource(R.string.settings_rule_css))
+                                        if (r.js.isNotBlank()) add(stringResource(R.string.settings_rule_js))
                                     }.joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -438,6 +450,35 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
+                // Kontenery wymagają profili WebView – na starszych WebView sekcji nie ma.
+                if (state.multiProfile) {
+                    SectionTitle(stringResource(R.string.containers_title))
+                    Text(
+                        stringResource(R.string.containers_hint),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                    )
+                    state.store.containers.forEach { c ->
+                        val count = state.tabs.count { it.containerId == c.id }
+                        Row(
+                            Modifier.fillMaxWidth().clickable { containerEdit = c }.padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(Modifier.size(14.dp).clip(CircleShape).background(Color(c.color)))
+                            Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                                Text(c.name, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    pluralStringResource(R.plurals.containers_tabs, count, count),
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            RoundIcon(Icons.Rounded.Delete, stringResource(R.string.containers_delete)) { containerDelete = c }
+                        }
+                    }
+                    ClickRow(stringResource(R.string.containers_add)) {
+                        containerEdit = Container(name = "", color = CONTAINER_COLORS[state.store.containers.size % CONTAINER_COLORS.size])
+                    }
+                }
 
 
             }
@@ -539,6 +580,55 @@ fun SettingsScreen(
             text = { OutlinedTextField(v, { v = it }, singleLine = true) },
             confirmButton = { TextButton(onClick = { onSave(v); textInput = null }) { Text(stringResource(R.string.common_save)) } },
             dismissButton = { TextButton(onClick = { textInput = null }) { Text(stringResource(R.string.common_cancel)) } },
+        )
+    }
+
+    containerEdit?.let { c ->
+        var name by remember(c.id) { mutableStateOf(c.name) }
+        var color by remember(c.id) { mutableStateOf(c.color) }
+        val isNew = state.store.container(c.id) == null
+        AlertDialog(
+            onDismissRequest = { containerEdit = null },
+            title = { Text(stringResource(if (isNew) R.string.containers_add else R.string.containers_edit)) },
+            text = {
+                Column {
+                    OutlinedTextField(name, { name = it.take(30) }, label = { Text(stringResource(R.string.containers_name)) }, singleLine = true)
+                    Row(
+                        Modifier.padding(top = 14.dp).horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CONTAINER_COLORS.forEach { k ->
+                            Box(
+                                Modifier.size(30.dp).clip(CircleShape).background(Color(k)).clickable { color = k },
+                                contentAlignment = Alignment.Center,
+                            ) { if (k == color) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp), tint = Color.White) }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = name.isNotBlank(), onClick = {
+                    state.store.saveContainer(c.copy(name = name.trim(), color = color))
+                    containerEdit = null
+                }) { Text(stringResource(R.string.common_save)) }
+            },
+            dismissButton = { TextButton(onClick = { containerEdit = null }) { Text(stringResource(R.string.common_cancel)) } },
+        )
+    }
+
+    containerDelete?.let { c ->
+        AlertDialog(
+            onDismissRequest = { containerDelete = null },
+            title = { Text(stringResource(R.string.containers_delete_title, c.name)) },
+            text = { Text(stringResource(R.string.containers_delete_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.deleteContainer(c.id)
+                    containerDelete = null
+                    state.snack(ctx.getString(R.string.containers_deleted, c.name))
+                }) { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { containerDelete = null }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 

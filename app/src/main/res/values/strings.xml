@@ -248,6 +248,9 @@
         <item quantity="other">Zostanie zamkniętych %d karty.</item>
     </plurals>
     <string name="tabs_close_tab">Zamknij kartę</string>
+    <string name="tabs_all">Wszystkie</string>
+    <string name="tabs_no_container">Bez kontenera</string>
+    <string name="tabs_new_in_container">Nowa: %s</string>
 
     <!-- Okna stron: uprawnienia, pobieranie -->
     <string name="dialog_permission_title">Prośba o dostęp</string>
@@ -264,6 +267,7 @@
     <string name="link_open_background">Otwórz w tle</string>
     <string name="link_opened_background">Otwarto w tle</string>
     <string name="link_open_incognito">Otwórz w incognito</string>
+    <string name="link_open_container">Otwórz w kontenerze</string>
     <string name="link_copy">Kopiuj adres linku</string>
     <string name="link_share">Udostępnij link</string>
     <string name="link_qr">Kod QR linku</string>
@@ -300,6 +304,17 @@
     <string name="site_desktop">Zawsze wersja komputerowa</string>
     <string name="site_dark">Ciemny wygląd</string>
     <string name="site_dark_hint">Gdy włączony jest ciemny motyw</string>
+    <string name="site_custom_code">Własny wygląd i skrypt</string>
+    <string name="site_custom_css">Własny CSS</string>
+    <string name="site_custom_css_hint">Style dodawane po wczytaniu strony, np. ukrycie elementów</string>
+    <string name="site_custom_js">Własny JavaScript</string>
+    <string name="site_custom_js_hint">Skrypt uruchamiany po wczytaniu strony</string>
+    <string name="site_code_none">brak</string>
+    <string name="site_code_on">włączony</string>
+    <string name="site_code_incognito">Własny CSS i skrypt nie działają w kartach incognito.</string>
+    <string name="site_js_warning_title">Uwaga: skrypt ma pełny dostęp do strony</string>
+    <string name="site_js_warning">Kod widzi wszystko na %s – także wpisywane hasła i dane logowania – i może je wysłać dalej albo działać w Twoim imieniu. Wklejaj tylko kod, który rozumiesz, nigdy na prośbę nieznajomych czy „wsparcia technicznego”.</string>
+    <string name="site_code_applies">Dotyczy %s i jej subdomen. Po zapisaniu strona wczyta się ponownie.</string>
     <string name="site_saved_logins">Zapisane loginy dla tej strony: %d (menu → Hasła)</string>
     <string name="site_clear">Wyczyść ciasteczka i dane strony</string>
     <string name="site_clear_hint">Wylogowuje z %s</string>
@@ -389,11 +404,28 @@
     <string name="settings_rule_desktop">wersja komputerowa</string>
     <string name="settings_rule_no_dark">bez ciemnego wyglądu</string>
     <string name="settings_rule_text_zoom">tekst %d%%</string>
+    <string name="settings_rule_css">własny CSS</string>
+    <string name="settings_rule_js">własny skrypt</string>
     <string name="settings_rule_reset">Przywróć domyślne dla tej strony</string>
     <string name="settings_user_agent">Identyfikator przeglądarki (User-Agent)</string>
     <string name="settings_user_agent_hint">Jak przeglądarka przedstawia się stronom</string>
     <string name="settings_user_agent_custom">Własny</string>
     <string name="settings_tabs_swipe_hint">Kartę zamkniesz też, przesuwając ją w bok na liście kart.</string>
+    <string name="containers_title">Kontenery kart</string>
+    <string name="containers_hint">Każdy kontener ma osobne ciasteczka i dane stron – np. dwa konta w tym samym serwisie naraz. Kontener wybierzesz na liście kart albo w menu linku.</string>
+    <string name="containers_add">Dodaj kontener</string>
+    <string name="containers_edit">Edytuj kontener</string>
+    <string name="containers_name">Nazwa (np. Praca)</string>
+    <string name="containers_delete">Usuń kontener</string>
+    <string name="containers_delete_title">Usunąć kontener „%s”?</string>
+    <string name="containers_delete_text">Karty z tego kontenera zostaną zamknięte, a jego ciasteczka i dane stron usunięte. Wylogujesz się ze stron otwieranych w tym kontenerze.</string>
+    <string name="containers_deleted">Usunięto kontener „%s”</string>
+    <plurals name="containers_tabs">
+        <item quantity="one">%d otwarta karta</item>
+        <item quantity="few">%d otwarte karty</item>
+        <item quantity="many">%d otwartych kart</item>
+        <item quantity="other">%d otwartej karty</item>
+    </plurals>
     <string name="settings_backup_export">Zapisz kopię do pliku</string>
     <string name="settings_backup_export_hint">Ustawienia, kafelki i zakładki (bez haseł)</string>
     <string name="settings_backup_import">Przywróć z pliku kopii</string>
