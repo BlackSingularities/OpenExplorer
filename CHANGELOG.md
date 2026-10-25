@@ -1,9 +1,26 @@
-## 1.3.1 — Transparent application icon
-
-- Use the transparent application mark in launcher, splash and existing branding surfaces.
-- Preserve alpha in legacy and adaptive Android icons; refresh themed icon resources.
-
 # Zmiany
+
+## 1.3.2
+
+Bezpieczniejsze aktualizacje i HTTPS, zgodność z Androidem 16.
+
+- Pobrana aktualizacja jest sprawdzana skrótem SHA-256 z GitHub i musi być podpisana tym samym kluczem co zainstalowana aplikacja.
+- Gdy strona nie działa przez https://, zamiast błędu pojawia się pytanie, czy otworzyć ją bez szyfrowania (zgoda obowiązuje do zamknięcia aplikacji).
+- Pobrana pełna lista blokowanych domen odświeża się sama raz w tygodniu przez Wi-Fi.
+- Aplikacja jest celowana w Androida 16 (API 36).
+- Usunięty martwy wpis z wbudowanej listy blokowania reklam.
+- Nowe testy jednostkowe i raport lint przy każdym budowaniu w CI.
+- Angielska wersja językowa – włącza się sama na telefonach z językiem angielskim.
+- Skrót „!w” szuka w Wikipedii, a „!t” tłumaczy na język telefonu; poza polskim „!a” i „!am” prowadzą do amazon.com.
+- Domyślne kafelki dopasowane do języka (Amazon i X zamiast Allegro i Onetu poza polskim), etykieta przycisku z okiem na stronach w języku telefonu.
+- Napisy interfejsu przeniesione do zasobów, z poprawną odmianą liczebników („1 hasło”, „2 hasła”, „5 haseł”).
+
+## 1.3.1
+
+Przezroczysta ikona aplikacji.
+
+- Przezroczysty znak aplikacji w ikonie, na ekranie startowym i w pozostałych miejscach z logo.
+- Zachowana przezroczystość w klasycznych i adaptacyjnych ikonach Androida; odświeżona ikona tematyczna.
 
 ## 1.3.0
 

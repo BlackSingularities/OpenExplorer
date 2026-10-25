@@ -61,10 +61,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.BuildConfig
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.data.SEARCH_ENGINES
+import com.blacksingularities.openexplorer.data.SearchEngine
 import com.blacksingularities.openexplorer.data.Settings
 import com.blacksingularities.openexplorer.data.SiteRule
 import com.blacksingularities.openexplorer.update.UpdateState
@@ -132,19 +136,19 @@ fun SettingsScreen(
             val json = JSONObject().put("app", "OpenExplorer").put("version", 1)
                 .put("settings", s.export()).put("data", state.store.export())
             ctx.contentResolver.openOutputStream(uri)?.use { it.write(json.toString(2).toByteArray()) }
-            state.snack("Zapisano kopię zapasową")
-        }.onFailure { state.toast("Błąd zapisu: ${it.message}") }
+            state.snack(ctx.getString(R.string.settings_backup_saved))
+        }.onFailure { state.toast(ctx.getString(R.string.settings_backup_save_error, it.message.orEmpty())) }
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         runCatching {
-            val text = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } ?: error("Pusty plik")
+            val text = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } ?: error(ctx.getString(R.string.settings_backup_empty_file))
             val o = JSONObject(text)
             o.optJSONObject("settings")?.let { s.import(it) }
             o.optJSONObject("data")?.let { state.store.import(it) }
             state.applySettingsToAll()
-            state.snack("Przywrócono kopię zapasową")
-        }.onFailure { state.toast("Nieprawidłowy plik kopii: ${it.message}") }
+            state.snack(ctx.getString(R.string.settings_backup_restored))
+        }.onFailure { state.toast(ctx.getString(R.string.settings_backup_invalid, it.message.orEmpty())) }
     }
     val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null && copyImage(ctx, uri, wallpaperFile(ctx))) {
@@ -155,23 +159,23 @@ fun SettingsScreen(
     fun pickWallpaper() = wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
 
     val pages = listOf(
-        SettingsPage("home", "Strona startowa", "Kafelki, loga, siatka, tło", Icons.Rounded.Dashboard),
-        SettingsPage("look", "Wygląd", "Motyw, kolory, paski, gesty", Icons.Rounded.Palette),
-        SettingsPage("search", "Wyszukiwanie i pasek adresu", s.engine.name + " · podpowiedzi, uzupełnianie adresów", Icons.Rounded.Search),
-        SettingsPage("passwords", "Hasła i autouzupełnianie", "${state.passwords.items.size} zapisanych · oko przy hasłach", Icons.Rounded.Key),
-        SettingsPage("privacy", "Prywatność i bezpieczeństwo", "Reklamy, HTTPS, ciasteczka, wyjątki stron", Icons.Rounded.Shield),
-        SettingsPage("content", "Wyświetlanie stron", "JavaScript, wielkość tekstu, czytanie na głos", Icons.Rounded.Language),
-        SettingsPage("tabs", "Karty i pobieranie", "Przywracanie kart, nowe karty, pobieranie", Icons.Rounded.Tab),
-        SettingsPage("backup", "Kopia zapasowa", "Eksport i import ustawień, kafelków i zakładek", Icons.Rounded.Backup),
-        SettingsPage("updates", "Aktualizacje", "Automatycznie z GitHub · wersja " + BuildConfig.VERSION_NAME, Icons.Rounded.SystemUpdate),
-        SettingsPage("about", "O aplikacji", "OpenExplorer " + BuildConfig.VERSION_NAME, Icons.Rounded.Info),
+        SettingsPage("home", stringResource(R.string.settings_page_home), stringResource(R.string.settings_page_home_hint), Icons.Rounded.Dashboard),
+        SettingsPage("look", stringResource(R.string.settings_page_look), stringResource(R.string.settings_page_look_hint), Icons.Rounded.Palette),
+        SettingsPage("search", stringResource(R.string.settings_page_search), stringResource(R.string.settings_page_search_hint, engineName(s.engine)), Icons.Rounded.Search),
+        SettingsPage("passwords", stringResource(R.string.settings_page_passwords), pluralStringResource(R.plurals.settings_page_passwords_hint, state.passwords.items.size, state.passwords.items.size), Icons.Rounded.Key),
+        SettingsPage("privacy", stringResource(R.string.settings_page_privacy), stringResource(R.string.settings_page_privacy_hint), Icons.Rounded.Shield),
+        SettingsPage("content", stringResource(R.string.settings_page_content), stringResource(R.string.settings_page_content_hint), Icons.Rounded.Language),
+        SettingsPage("tabs", stringResource(R.string.settings_page_tabs), stringResource(R.string.settings_page_tabs_hint), Icons.Rounded.Tab),
+        SettingsPage("backup", stringResource(R.string.settings_page_backup), stringResource(R.string.settings_page_backup_hint), Icons.Rounded.Backup),
+        SettingsPage("updates", stringResource(R.string.settings_page_updates), stringResource(R.string.settings_page_updates_hint, BuildConfig.VERSION_NAME), Icons.Rounded.SystemUpdate),
+        SettingsPage("about", stringResource(R.string.settings_page_about), "OpenExplorer " + BuildConfig.VERSION_NAME, Icons.Rounded.Info),
     )
     var page by rememberSaveable { mutableStateOf<String?>(null) }
     BackHandler(enabled = page != null) { page = null }
     val current = pages.firstOrNull { it.id == page }
 
     Panel(
-        title = current?.title ?: "Ustawienia",
+        title = current?.title ?: stringResource(R.string.menu_settings),
         onClose = onBack,
         onBack = if (page != null) ({ page = null }) else null,
         scrollable = page != "home",
@@ -183,8 +187,8 @@ fun SettingsScreen(
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh).clickable { setDefaultBrowser(ctx) }.padding(16.dp),
                 ) {
                     Column {
-                        Text("Ustaw jako domyślną przeglądarkę", style = MaterialTheme.typography.titleMedium)
-                        Text("Linki z innych aplikacji otworzą się w OpenExplorer", style = MaterialTheme.typography.bodySmall,
+                        Text(stringResource(R.string.settings_default_browser), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.settings_default_browser_hint), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -205,82 +209,92 @@ fun SettingsScreen(
                 }
                 Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
                     ChipsRow(
-                        "Gotowe układy",
-                        listOf("logos" to "Same loga", "classic" to "Kafelki", "dense" to "Gęsta siatka", "zen" to "Zen"),
+                        stringResource(R.string.settings_presets),
+                        listOf(
+                            "logos" to stringResource(R.string.settings_preset_logos), "classic" to stringResource(R.string.settings_preset_classic),
+                            "dense" to stringResource(R.string.settings_preset_dense), "zen" to stringResource(R.string.settings_preset_zen),
+                        ),
                         "",
                     ) { applyPreset(s, it) }
-                    ClickRow("Uporządkuj kafelki", "Przeciąganie, edycja i usuwanie na stronie startowej") { onEditTiles() }
+                    ClickRow(stringResource(R.string.settings_arrange_tiles), stringResource(R.string.settings_arrange_tiles_hint)) { onEditTiles() }
 
-                    SliderRow("Kolumny", s.homeColumns, 1..10) { s.homeColumns = it }
-                    if (!s.homeAllTiles) SliderRow("Wiersze", s.homeRows, 1..12) { s.homeRows = it }
-                    ToggleRow("Pokazuj wszystkie kafelki", "Bez limitu wierszy – strona przewija się w dół", s.homeAllTiles) { s.homeAllTiles = it }
-                    SliderRow("Wielkość logo w kafelku", s.tileIconScale, 25..100, "%") { s.tileIconScale = it }
-                    SliderRow("Zaokrąglenie rogów", s.tileCorner, 0..50, "%") { s.tileCorner = it }
-                    SliderRow("Odstępy między kafelkami", s.tileSpacing, 0..40, " dp") { s.tileSpacing = it }
-                    SliderRow("Maksymalna szerokość siatki", s.homeWidth, 240..1000, " dp", step = 20) { s.homeWidth = it }
-                    ChipsRow("Skąd brać logo", listOf("hd" to "Duże logo strony", "small" to "Mała ikona", "letter" to "Pierwsza litera"), s.logoSource) { s.logoSource = it }
-                    ToggleRow("Tło pod logo", "Wyłączone – widać same loga", s.tileBackground) { s.tileBackground = it }
-                    ToggleRow("Przycinaj logo do kształtu kafelka", "Wyłączone – logo w oryginalnym kształcie", s.tileClip) { s.tileClip = it }
-                    ToggleRow("Nazwy pod kafelkami", null, s.tileLabels) { s.tileLabels = it }
-                    if (s.tileLabels) SliderRow("Wielkość nazw", s.tileLabelSize, 8..18, " sp") { s.tileLabelSize = it }
-                    ToggleRow("Czarno-białe loga", null, s.tileGrayscale) { s.tileGrayscale = it }
-                    ToggleRow("Kafelek „+” do dodawania stron", null, s.tileAddButton) { s.tileAddButton = it }
-                    ChipsRow("Położenie kafelków", listOf("center" to "Na środku ekranu", "top" to "U góry"), s.homeAlign) { s.homeAlign = it }
-                    ChipsRow("Pole wyszukiwania", listOf("pill" to "Zaokrąglone", "line" to "Sama linia", "none" to "Ukryte"), s.homeSearchStyle) { s.homeSearchStyle = it }
-                    ToggleRow("Zegar i data", null, s.homeClock) { s.homeClock = it }
-                    if (s.homeClock) SliderRow("Wielkość zegara", s.homeClockSize, 28..96, " sp", step = 4) { s.homeClockSize = it }
-                    ToggleRow("Napis „OpenExplorer”", "Nad polem wyszukiwania", s.homeLogo) { s.homeLogo = it }
-                    ToggleRow("Ostatnio odwiedzone strony", "Lista pod kafelkami", s.homeRecent) { s.homeRecent = it }
-                    if (s.homeRecent) SliderRow("Ile ostatnich stron", s.homeRecentCount, 1..10) { s.homeRecentCount = it }
+                    SliderRow(stringResource(R.string.settings_home_columns), s.homeColumns, 1..10) { s.homeColumns = it }
+                    if (!s.homeAllTiles) SliderRow(stringResource(R.string.settings_home_rows), s.homeRows, 1..12) { s.homeRows = it }
+                    ToggleRow(stringResource(R.string.settings_home_all_tiles), stringResource(R.string.settings_home_all_tiles_hint), s.homeAllTiles) { s.homeAllTiles = it }
+                    SliderRow(stringResource(R.string.settings_tile_icon_scale), s.tileIconScale, 25..100, "%") { s.tileIconScale = it }
+                    SliderRow(stringResource(R.string.settings_tile_corner), s.tileCorner, 0..50, "%") { s.tileCorner = it }
+                    SliderRow(stringResource(R.string.settings_tile_spacing), s.tileSpacing, 0..40, " dp") { s.tileSpacing = it }
+                    SliderRow(stringResource(R.string.settings_home_width), s.homeWidth, 240..1000, " dp", step = 20) { s.homeWidth = it }
+                    ChipsRow(stringResource(R.string.settings_logo_source), listOf("hd" to stringResource(R.string.settings_logo_source_hd), "small" to stringResource(R.string.settings_logo_source_small), "letter" to stringResource(R.string.settings_logo_source_letter)), s.logoSource) { s.logoSource = it }
+                    ToggleRow(stringResource(R.string.settings_tile_background), stringResource(R.string.settings_tile_background_hint), s.tileBackground) { s.tileBackground = it }
+                    ToggleRow(stringResource(R.string.settings_tile_clip), stringResource(R.string.settings_tile_clip_hint), s.tileClip) { s.tileClip = it }
+                    ToggleRow(stringResource(R.string.settings_tile_labels), null, s.tileLabels) { s.tileLabels = it }
+                    if (s.tileLabels) SliderRow(stringResource(R.string.settings_tile_label_size), s.tileLabelSize, 8..18, " sp") { s.tileLabelSize = it }
+                    ToggleRow(stringResource(R.string.settings_tile_grayscale), null, s.tileGrayscale) { s.tileGrayscale = it }
+                    ToggleRow(stringResource(R.string.settings_tile_add_button), null, s.tileAddButton) { s.tileAddButton = it }
+                    ChipsRow(stringResource(R.string.settings_home_align), listOf("center" to stringResource(R.string.settings_home_align_center), "top" to stringResource(R.string.settings_home_align_top)), s.homeAlign) { s.homeAlign = it }
+                    ChipsRow(stringResource(R.string.settings_home_search_style), listOf("pill" to stringResource(R.string.settings_home_search_style_pill), "line" to stringResource(R.string.settings_home_search_style_line), "none" to stringResource(R.string.settings_home_search_style_none)), s.homeSearchStyle) { s.homeSearchStyle = it }
+                    ToggleRow(stringResource(R.string.settings_home_clock), null, s.homeClock) { s.homeClock = it }
+                    if (s.homeClock) SliderRow(stringResource(R.string.settings_home_clock_size), s.homeClockSize, 28..96, " sp", step = 4) { s.homeClockSize = it }
+                    ToggleRow(stringResource(R.string.settings_home_logo), stringResource(R.string.settings_home_logo_hint), s.homeLogo) { s.homeLogo = it }
+                    ToggleRow(stringResource(R.string.settings_home_recent), stringResource(R.string.settings_home_recent_hint), s.homeRecent) { s.homeRecent = it }
+                    if (s.homeRecent) SliderRow(stringResource(R.string.settings_home_recent_count), s.homeRecentCount, 1..10) { s.homeRecentCount = it }
                     ChipsRow(
-                        "Tło strony startowej",
-                        listOf("none" to "Brak", "aurora" to "Zorza", "gradient" to "Gradient", "solid" to "Kolor", "image" to "Obraz"),
+                        stringResource(R.string.settings_home_wallpaper),
+                        listOf(
+                            "none" to stringResource(R.string.settings_home_wallpaper_none), "aurora" to stringResource(R.string.settings_home_wallpaper_aurora), "gradient" to stringResource(R.string.settings_home_wallpaper_gradient),
+                            "solid" to stringResource(R.string.settings_home_wallpaper_solid), "image" to stringResource(R.string.settings_home_wallpaper_image),
+                        ),
                         s.homeWallpaper,
                     ) {
                         if (it == "image" && !wallpaperFile(ctx).exists()) pickWallpaper() else s.homeWallpaper = it
                     }
                     if (s.homeWallpaper == "solid") ColorDots(TILE_COLORS.filter { it != 0L }, s.homeWallpaperColor) { s.homeWallpaperColor = it }
                     if (s.homeWallpaper == "image") {
-                        ClickRow("Wybierz obraz z galerii") { pickWallpaper() }
-                        SliderRow("Przyciemnienie", s.homeWallpaperDim, 0..80, "%") { s.homeWallpaperDim = it }
-                        if (Build.VERSION.SDK_INT >= 31) SliderRow("Rozmycie", s.homeWallpaperBlur, 0..30, " dp") { s.homeWallpaperBlur = it }
+                        ClickRow(stringResource(R.string.settings_pick_wallpaper)) { pickWallpaper() }
+                        SliderRow(stringResource(R.string.settings_home_wallpaper_dim), s.homeWallpaperDim, 0..80, "%") { s.homeWallpaperDim = it }
+                        if (Build.VERSION.SDK_INT >= 31) SliderRow(stringResource(R.string.settings_home_wallpaper_blur), s.homeWallpaperBlur, 0..30, " dp") { s.homeWallpaperBlur = it }
                     }
-                    ClickRow("Przycisk „Start” otwiera", "Kafelki albo wybraną stronę", value = s.homepageUrl.ifBlank { "Kafelki" }) {
-                        ask("Adres strony (puste = kafelki)", s.homepageUrl) { s.homepageUrl = it.trim() }
+                    ClickRow(stringResource(R.string.settings_homepage), stringResource(R.string.settings_homepage_hint), value = s.homepageUrl.ifBlank { stringResource(R.string.settings_homepage_tiles) }) {
+                        ask(ctx.getString(R.string.settings_homepage_ask), s.homepageUrl) { s.homepageUrl = it.trim() }
                     }
-                    ClickRow("Przywróć domyślne kafelki") { resetConfirm = true }
+                    ClickRow(stringResource(R.string.settings_reset_tiles)) { resetConfirm = true }
 
 
                     Box(Modifier.height(32.dp))
                 }
             }
             "look" -> {
-                ChipsRow("Motyw", listOf("system" to "Systemowy", "light" to "Jasny", "dark" to "Ciemny"), s.theme) { s.theme = it }
+                ChipsRow(stringResource(R.string.settings_theme), listOf("system" to stringResource(R.string.settings_theme_system), "light" to stringResource(R.string.settings_theme_light), "dark" to stringResource(R.string.settings_theme_dark)), s.theme) { s.theme = it }
                 ChipsRow(
-                    "Kolory",
+                    stringResource(R.string.settings_palette),
                     buildList {
-                        add("mono" to "Czarno-białe")
-                        add("accent" to "Akcent")
-                        if (Build.VERSION.SDK_INT >= 31) add("dynamic" to "Material You")
+                        add("mono" to stringResource(R.string.settings_palette_mono))
+                        add("accent" to stringResource(R.string.settings_palette_accent))
+                        if (Build.VERSION.SDK_INT >= 31) add("dynamic" to stringResource(R.string.settings_palette_dynamic))
                     },
                     s.palette,
                 ) { s.palette = it }
                 if (s.palette == "accent") ColorDots(ACCENTS, s.accent) { s.accent = it }
-                ToggleRow("Głęboka czerń w ciemnym motywie", "Czarne tło zamiast szarego – oszczędza baterię na ekranach OLED", s.amoled) { s.amoled = it }
-                ChipsRow("Wielkość przycisków i pasków", listOf("compact" to "Mniejsze", "normal" to "Większe"), s.density) { s.density = it }
-                ToggleRow("Pasek adresu na dole ekranu", "Wygodniejszy przy obsłudze jedną ręką", s.addressBarBottom) { s.addressBarBottom = it }
-                ToggleRow("Dolny pasek przycisków", "Wstecz, dalej, start, karty i menu zawsze pod ręką", s.navBar) { s.navBar = it }
-                ToggleRow("Przycisk „Start” w pasku adresu", null, s.showHomeButton) { s.showHomeButton = it }
-                ToggleRow("Przycisk odświeżania w pasku adresu", null, s.showReloadButton) { s.showReloadButton = it }
-                ToggleRow("Przycisk z liczbą kart", null, s.showTabCounter) { s.showTabCounter = it }
-                ToggleRow("Linia postępu wczytywania", null, s.showProgress) { s.showProgress = it }
-                ToggleRow("Chowaj paski podczas przewijania", "Paski płynnie odjeżdżają razem ze stroną – więcej miejsca na treść", s.hideBarsOnScroll) { s.hideBarsOnScroll = it }
-                ToggleRow("Przycisk „do góry”", "Pojawia się po przewinięciu długiej strony", s.scrollTopButton) { s.scrollTopButton = it }
-                ToggleRow("Zmiana karty przesunięciem paska adresu", "Przeciągnij pasek w lewo lub w prawo", s.swipeTabs) { s.swipeTabs = it }
-                ToggleRow("Wibracje przy dotyku przycisków", null, s.haptics) { s.haptics = it }
+                ToggleRow(stringResource(R.string.settings_amoled), stringResource(R.string.settings_amoled_hint), s.amoled) { s.amoled = it }
+                ChipsRow(stringResource(R.string.settings_density), listOf("compact" to stringResource(R.string.settings_density_compact), "normal" to stringResource(R.string.settings_density_normal)), s.density) { s.density = it }
+                ToggleRow(stringResource(R.string.settings_address_bar_bottom), stringResource(R.string.settings_address_bar_bottom_hint), s.addressBarBottom) { s.addressBarBottom = it }
+                ToggleRow(stringResource(R.string.settings_nav_bar), stringResource(R.string.settings_nav_bar_hint), s.navBar) { s.navBar = it }
+                ToggleRow(stringResource(R.string.settings_show_home_button), null, s.showHomeButton) { s.showHomeButton = it }
+                ToggleRow(stringResource(R.string.settings_show_reload_button), null, s.showReloadButton) { s.showReloadButton = it }
+                ToggleRow(stringResource(R.string.settings_show_tab_counter), null, s.showTabCounter) { s.showTabCounter = it }
+                ToggleRow(stringResource(R.string.settings_show_progress), null, s.showProgress) { s.showProgress = it }
+                ToggleRow(stringResource(R.string.settings_hide_bars_on_scroll), stringResource(R.string.settings_hide_bars_on_scroll_hint), s.hideBarsOnScroll) { s.hideBarsOnScroll = it }
+                ToggleRow(stringResource(R.string.settings_scroll_top_button), stringResource(R.string.settings_scroll_top_button_hint), s.scrollTopButton) { s.scrollTopButton = it }
+                ToggleRow(stringResource(R.string.settings_swipe_tabs), stringResource(R.string.settings_swipe_tabs_hint), s.swipeTabs) { s.swipeTabs = it }
+                ToggleRow(stringResource(R.string.settings_haptics), null, s.haptics) { s.haptics = it }
                 ChipsRow(
-                    "Ciemny wygląd stron",
-                    listOf("auto" to "Gdy motyw jest ciemny", "force" to "Zawsze (odwraca kolory)", "off" to "Nigdy"),
+                    stringResource(R.string.settings_web_dark_mode),
+                    listOf(
+                        "auto" to stringResource(R.string.settings_web_dark_mode_auto),
+                        "force" to stringResource(R.string.settings_web_dark_mode_force),
+                        "off" to stringResource(R.string.settings_web_dark_mode_off),
+                    ),
                     s.webDarkMode,
                 ) {
                     web { s.webDarkMode = it }
@@ -289,15 +303,15 @@ fun SettingsScreen(
 
             }
             "search" -> {
-                ChipsRow("Wyszukiwarka", SEARCH_ENGINES.map { it.id to it.name }, s.searchEngine) {
+                ChipsRow(stringResource(R.string.settings_search_engine), SEARCH_ENGINES.map { it.id to engineName(it) }, s.searchEngine) {
                     s.searchEngine = it
-                    if (it == "custom") ask("Adres wyszukiwania z %s w miejscu zapytania", s.customSearchUrl) { v -> s.customSearchUrl = v.trim() }
+                    if (it == "custom") ask(ctx.getString(R.string.settings_custom_search_ask), s.customSearchUrl) { v -> s.customSearchUrl = v.trim() }
                 }
-                ToggleRow("Podpowiedzi wyszukiwarki", "Wpisywany tekst trafia do ${s.engine.name}, by zaproponować zapytania", s.searchSuggestions) { s.searchSuggestions = it }
-                ToggleRow("Dopisuj adresy podczas pisania", "„you” → „youtube.com” na podstawie historii i zakładek", s.inlineAutocomplete) { s.inlineAutocomplete = it }
-                ToggleRow("Proponuj skopiowany link", "Po otwarciu paska adresu – jednym dotknięciem", s.clipboardSuggestion) { s.clipboardSuggestion = it }
+                ToggleRow(stringResource(R.string.settings_search_suggestions), stringResource(R.string.settings_search_suggestions_hint, engineName(s.engine)), s.searchSuggestions) { s.searchSuggestions = it }
+                ToggleRow(stringResource(R.string.settings_inline_autocomplete), stringResource(R.string.settings_inline_autocomplete_hint), s.inlineAutocomplete) { s.inlineAutocomplete = it }
+                ToggleRow(stringResource(R.string.settings_clipboard_suggestion), stringResource(R.string.settings_clipboard_suggestion_hint), s.clipboardSuggestion) { s.clipboardSuggestion = it }
                 Text(
-                    "Skróty wyszukiwania – wpisz np. „!yt koty” albo „!w Kraków”: " + BrowserState.BANGS.keys.joinToString("  ") { "!$it" },
+                    stringResource(R.string.settings_bangs_hint, BrowserState.BANGS.keys.joinToString("  ") { "!$it" }),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
                 )
@@ -306,65 +320,68 @@ fun SettingsScreen(
             }
             "passwords" -> {
                 ClickRow(
-                    "Zapisane hasła",
-                    "${state.passwords.items.size} loginów · zaszyfrowane, tylko na tym telefonie · wymaga odcisku palca lub PIN-u",
+                    stringResource(R.string.settings_saved_passwords),
+                    pluralStringResource(R.plurals.settings_saved_passwords_hint, state.passwords.items.size, state.passwords.items.size),
                 ) { onOpenPasswords() }
-                ToggleRow("Wbudowany menedżer haseł", "Zapisuje i uzupełnia loginy na stronach – bez Google, Edge i innych usług", s.passwordManager) {
+                ToggleRow(stringResource(R.string.settings_password_manager), stringResource(R.string.settings_password_manager_hint), s.passwordManager) {
                     s.passwordManager = it
                 }
                 if (s.passwordManager) {
-                    ToggleRow("Pytaj o zapisanie hasła", "Po zalogowaniu się na stronie (nigdy w incognito)", s.offerSavePasswords) { s.offerSavePasswords = it }
-                    ToggleRow("Uzupełniaj bez pytania", "Gdy dla strony jest zapisane tylko jedno konto", s.passwordAutofill) { s.passwordAutofill = it }
+                    ToggleRow(stringResource(R.string.settings_offer_save_passwords), stringResource(R.string.settings_offer_save_passwords_hint), s.offerSavePasswords) { s.offerSavePasswords = it }
+                    ToggleRow(stringResource(R.string.settings_password_autofill), stringResource(R.string.settings_password_autofill_hint), s.passwordAutofill) { s.passwordAutofill = it }
                     ToggleRow(
-                        "Potwierdzaj odciskiem palca lub PIN-em",
-                        "Przed każdym uzupełnieniem hasła na stronie",
+                        stringResource(R.string.settings_password_auth_fill),
+                        stringResource(R.string.settings_password_auth_fill_hint),
                         s.passwordAuthFill,
                     ) { s.passwordAuthFill = it }
                 }
-                ToggleRow("Przycisk „pokaż hasło” na stronach", "Oko przy polach haseł (gdy strona nie ma własnego)", s.revealPasswordButton) {
+                ToggleRow(stringResource(R.string.settings_reveal_password_button), stringResource(R.string.settings_reveal_password_button_hint), s.revealPasswordButton) {
                     s.revealPasswordButton = it
                 }
                 ToggleRow(
-                    "Systemowe autouzupełnianie",
-                    "Okienka Google, Edge, Bitwardena itp. w polach stron. Wyłączone – nie wyskakują",
+                    stringResource(R.string.settings_system_autofill),
+                    stringResource(R.string.settings_system_autofill_hint),
                     s.systemAutofill,
                 ) { v -> web { s.systemAutofill = v } }
                 Text(
-                    "Hasła z Edge, Chrome lub innego menedżera przeniesiesz przez plik CSV: wyeksportuj je tam, a potem w „Zapisane hasła” wybierz ⋮ → Importuj z pliku CSV.",
+                    stringResource(R.string.settings_passwords_import_hint),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
             }
             "privacy" -> {
-                ToggleRow("Blokuj reklamy i śledzenie", "Domen na liście: ${state.adBlocker.size}", s.adBlock) { s.adBlock = it }
-                ToggleRow("Ukrywaj puste ramki po reklamach", "Strony nie mają dziur w miejscach zablokowanych reklam", s.cosmeticFilter) { s.cosmeticFilter = it }
-                ToggleRow("Ukrywaj okienka zgody na cookies", "Popularne banery RODO znikają same", s.hideCookieBanners) { s.hideCookieBanners = it }
-                val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else "nigdy"
-                ClickRow(if (filtersBusy) "Pobieranie listy blokowanych domen…" else "Pobierz pełną listę blokowanych domen", "StevenBlack · ostatnio: $date") {
+                ToggleRow(stringResource(R.string.settings_ad_block), stringResource(R.string.settings_ad_block_hint, state.adBlocker.size), s.adBlock) { s.adBlock = it }
+                ToggleRow(stringResource(R.string.settings_cosmetic_filter), stringResource(R.string.settings_cosmetic_filter_hint), s.cosmeticFilter) { s.cosmeticFilter = it }
+                ToggleRow(stringResource(R.string.settings_hide_cookie_banners), stringResource(R.string.settings_hide_cookie_banners_hint), s.hideCookieBanners) { s.hideCookieBanners = it }
+                val date = if (s.filtersUpdated > 0) DateFormat.getDateInstance().format(Date(s.filtersUpdated)) else stringResource(R.string.settings_filters_never)
+                ClickRow(
+                    stringResource(if (filtersBusy) R.string.settings_filters_busy else R.string.settings_filters_download),
+                    stringResource(R.string.settings_filters_hint, date),
+                ) {
                     if (!filtersBusy) {
                         filtersBusy = true
                         scope.launch {
                             runCatching { state.adBlocker.update() }
-                                .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.snack("Lista filtrów: $it domen") }
-                                .onFailure { state.toast("Nie udało się pobrać: ${it.message}") }
+                                .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.snack(ctx.resources.getQuantityString(R.plurals.settings_filters_updated, it, it)) }
+                                .onFailure { state.toast(ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
                             filtersBusy = false
                         }
                     }
                 }
-                ToggleRow("Zawsze łącz przez HTTPS", "Adresy http:// są zamieniane na szyfrowane https://", s.httpsOnly) { s.httpsOnly = it }
-                ToggleRow("Ostrzegaj przed niebezpiecznymi stronami", "Wyłudzanie danych i złośliwe oprogramowanie (Google Safe Browsing)", s.safeBrowsing) { v -> web { s.safeBrowsing = v } }
-                ToggleRow("Zezwalaj na ciasteczka innych firm", "Potrzebne przy niektórych logowaniach i osadzonych treściach, ale służą też do śledzenia", s.thirdPartyCookies) { v -> web { s.thirdPartyCookies = v } }
-                ToggleRow("Proś strony o nieśledzenie", "Wysyła sygnały „Do Not Track” i „Global Privacy Control”", s.doNotTrack) { s.doNotTrack = it }
-                ToggleRow("Blokuj wyskakujące okna", "Okna otwierane przez stronę bez Twojego dotknięcia", s.blockPopups) { v -> web { s.blockPopups = v } }
-                ToggleRow("Zapisuj historię odwiedzin", null, s.saveHistory) { s.saveHistory = it }
+                ToggleRow(stringResource(R.string.settings_https_only), stringResource(R.string.settings_https_only_hint), s.httpsOnly) { s.httpsOnly = it }
+                ToggleRow(stringResource(R.string.settings_safe_browsing), stringResource(R.string.settings_safe_browsing_hint), s.safeBrowsing) { v -> web { s.safeBrowsing = v } }
+                ToggleRow(stringResource(R.string.settings_third_party_cookies), stringResource(R.string.settings_third_party_cookies_hint), s.thirdPartyCookies) { v -> web { s.thirdPartyCookies = v } }
+                ToggleRow(stringResource(R.string.settings_do_not_track), stringResource(R.string.settings_do_not_track_hint), s.doNotTrack) { s.doNotTrack = it }
+                ToggleRow(stringResource(R.string.settings_block_popups), stringResource(R.string.settings_block_popups_hint), s.blockPopups) { v -> web { s.blockPopups = v } }
+                ToggleRow(stringResource(R.string.settings_save_history), null, s.saveHistory) { s.saveHistory = it }
                 ToggleRow(
-                    "Usuwaj dane po wyjściu",
-                    "Historia, ciasteczka i dane stron znikają po „Wyjdź” w menu i przy każdym uruchomieniu – zaczynasz od czystej karty",
+                    stringResource(R.string.settings_clear_on_exit),
+                    stringResource(R.string.settings_clear_on_exit_hint),
                     s.clearOnExit,
                 ) { s.clearOnExit = it }
-                ClickRow("Wyczyść dane przeglądania teraz", "Pamięć podręczna, ciasteczka, historia, dane stron") { clearDialog = true }
+                ClickRow(stringResource(R.string.settings_clear_now), stringResource(R.string.settings_clear_now_hint)) { clearDialog = true }
                 if (state.store.sites.isNotEmpty()) {
-                    SectionTitle("Własne ustawienia stron")
+                    SectionTitle(stringResource(R.string.settings_site_rules))
                     state.store.sites.values.sortedBy { it.host }.forEach { r ->
                         Row(
                             Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
@@ -374,16 +391,16 @@ fun SettingsScreen(
                                 Text(r.host, style = MaterialTheme.typography.bodyLarge)
                                 Text(
                                     buildList {
-                                        if (!r.adBlock) add("reklamy dozwolone")
-                                        if (!r.javascript) add("bez JavaScript")
-                                        if (r.desktop) add("wersja komputerowa")
-                                        if (!r.darkMode) add("bez ciemnego wyglądu")
-                                        if (r.textZoom > 0) add("tekst ${r.textZoom}%")
+                                        if (!r.adBlock) add(stringResource(R.string.settings_rule_ads_allowed))
+                                        if (!r.javascript) add(stringResource(R.string.settings_rule_no_js))
+                                        if (r.desktop) add(stringResource(R.string.settings_rule_desktop))
+                                        if (!r.darkMode) add(stringResource(R.string.settings_rule_no_dark))
+                                        if (r.textZoom > 0) add(stringResource(R.string.settings_rule_text_zoom, r.textZoom))
                                     }.joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            RoundIcon(Icons.Rounded.Close, "Przywróć domyślne dla tej strony") {
+                            RoundIcon(Icons.Rounded.Close, stringResource(R.string.settings_rule_reset)) {
                                 state.store.saveRule(SiteRule(r.host))
                                 state.applySettingsToAll()
                             }
@@ -394,30 +411,30 @@ fun SettingsScreen(
 
             }
             "content" -> {
-                ToggleRow("JavaScript", "Wyłączenie przyspiesza strony, ale wiele z nich przestaje działać", s.javascript) { v -> web { s.javascript = v } }
-                ToggleRow("Pokazuj obrazy", "Wyłączone – oszczędza dane komórkowe", s.loadImages) { v -> web { s.loadImages = v } }
-                ToggleRow("Nie odtwarzaj filmów i dźwięków samoczynnie", "Ruszają dopiero po dotknięciu", s.blockAutoplay) { v -> web { s.blockAutoplay = v } }
-                ToggleRow("Zawsze otwieraj wersję komputerową", "Strony jak na komputerze zamiast mobilnych", s.desktopDefault) { s.desktopDefault = it }
-                ToggleRow("Pozwalaj powiększać każdą stronę", "Także te, które blokują przybliżanie palcami", s.forceZoom) { s.forceZoom = it }
-                ToggleRow("Odświeżanie pociągnięciem w dół", "Na samej górze strony", s.pullToRefresh) { s.pullToRefresh = it }
-                SliderRow("Wielkość tekstu na stronach", s.textZoom, 50..200, "%", step = 10) { v -> web { s.textZoom = v } }
-                SliderRow("Szybkość czytania na głos", s.ttsRate, 50..200, "%", step = 10) { s.ttsRate = it }
+                ToggleRow(stringResource(R.string.settings_javascript), stringResource(R.string.settings_javascript_hint), s.javascript) { v -> web { s.javascript = v } }
+                ToggleRow(stringResource(R.string.settings_load_images), stringResource(R.string.settings_load_images_hint), s.loadImages) { v -> web { s.loadImages = v } }
+                ToggleRow(stringResource(R.string.settings_block_autoplay), stringResource(R.string.settings_block_autoplay_hint), s.blockAutoplay) { v -> web { s.blockAutoplay = v } }
+                ToggleRow(stringResource(R.string.settings_desktop_default), stringResource(R.string.settings_desktop_default_hint), s.desktopDefault) { s.desktopDefault = it }
+                ToggleRow(stringResource(R.string.settings_force_zoom), stringResource(R.string.settings_force_zoom_hint), s.forceZoom) { s.forceZoom = it }
+                ToggleRow(stringResource(R.string.settings_pull_to_refresh), stringResource(R.string.settings_pull_to_refresh_hint), s.pullToRefresh) { s.pullToRefresh = it }
+                SliderRow(stringResource(R.string.settings_text_zoom), s.textZoom, 50..200, "%", step = 10) { v -> web { s.textZoom = v } }
+                SliderRow(stringResource(R.string.settings_tts_rate), s.ttsRate, 50..200, "%", step = 10) { s.ttsRate = it }
                 ClickRow(
-                    "Identyfikator przeglądarki (User-Agent)", "Jak przeglądarka przedstawia się stronom",
-                    value = if (s.customUserAgent.isBlank()) "Domyślny" else "Własny",
+                    stringResource(R.string.settings_user_agent), stringResource(R.string.settings_user_agent_hint),
+                    value = stringResource(if (s.customUserAgent.isBlank()) R.string.zoom_default else R.string.settings_user_agent_custom),
                 ) {
-                    ask("Własny User-Agent (puste = domyślny)", s.customUserAgent) { v -> web { s.customUserAgent = v.trim() } }
+                    ask(ctx.getString(R.string.settings_user_agent_ask), s.customUserAgent) { v -> web { s.customUserAgent = v.trim() } }
                 }
 
 
             }
             "tabs" -> {
-                ToggleRow("Przywracaj karty po ponownym uruchomieniu", null, s.restoreTabs) { s.restoreTabs = it }
-                ToggleRow("Nowe karty otwieraj w tle", "Przy otwieraniu kafelka w nowej karcie zostajesz na bieżącej stronie", s.linksInBackground) { s.linksInBackground = it }
-                ToggleRow("Pytaj przed zamknięciem wszystkich kart", null, s.confirmCloseAll) { s.confirmCloseAll = it }
-                ToggleRow("Pytaj o nazwę pliku przed pobraniem", "Wyłączone – pobieranie startuje od razu", s.askDownload) { s.askDownload = it }
+                ToggleRow(stringResource(R.string.settings_restore_tabs), null, s.restoreTabs) { s.restoreTabs = it }
+                ToggleRow(stringResource(R.string.settings_links_in_background), stringResource(R.string.settings_links_in_background_hint), s.linksInBackground) { s.linksInBackground = it }
+                ToggleRow(stringResource(R.string.settings_confirm_close_all), null, s.confirmCloseAll) { s.confirmCloseAll = it }
+                ToggleRow(stringResource(R.string.settings_ask_download), stringResource(R.string.settings_ask_download_hint), s.askDownload) { s.askDownload = it }
                 Text(
-                    "Kartę zamkniesz też, przesuwając ją w bok na liście kart.",
+                    stringResource(R.string.settings_tabs_swipe_hint),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
@@ -425,10 +442,10 @@ fun SettingsScreen(
 
             }
             "backup" -> {
-                ClickRow("Zapisz kopię do pliku", "Ustawienia, kafelki i zakładki (bez haseł)") { exportLauncher.launch("OpenExplorer-kopia.json") }
-                ClickRow("Przywróć z pliku kopii") { importLauncher.launch(arrayOf("application/json", "*/*")) }
+                ClickRow(stringResource(R.string.settings_backup_export), stringResource(R.string.settings_backup_export_hint)) { exportLauncher.launch("OpenExplorer-kopia.json") }
+                ClickRow(stringResource(R.string.settings_backup_import)) { importLauncher.launch(arrayOf("application/json", "*/*")) }
                 Text(
-                    "Hasła kopiujesz osobno: Hasła i autouzupełnianie → Zapisane hasła → ⋮ → Eksportuj do pliku CSV.",
+                    stringResource(R.string.settings_backup_passwords_hint),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
@@ -436,50 +453,55 @@ fun SettingsScreen(
 
             }
             "updates" -> {
-                ToggleRow("Aktualizuj automatycznie z GitHub", "Sprawdza przy otwarciu aplikacji i co kilka godzin w tle", s.autoUpdate) {
+                ToggleRow(stringResource(R.string.settings_auto_update), stringResource(R.string.settings_auto_update_hint), s.autoUpdate) {
                     s.autoUpdate = it
                     com.blacksingularities.openexplorer.update.UpdateWorker.schedule(ctx, replace = true)
                 }
                 if (s.autoUpdate) {
-                    ToggleRow("Pobieraj nowe wersje od razu", "Aktualizacja czeka gotowa do instalacji", s.updateAutoDownload) { s.updateAutoDownload = it }
-                    ToggleRow("Pobieraj tylko przez Wi-Fi", "Nie zużywa danych komórkowych", s.updateWifiOnly) {
+                    ToggleRow(stringResource(R.string.settings_update_auto_download), stringResource(R.string.settings_update_auto_download_hint), s.updateAutoDownload) { s.updateAutoDownload = it }
+                    ToggleRow(stringResource(R.string.settings_update_wifi_only), stringResource(R.string.settings_update_wifi_only_hint), s.updateWifiOnly) {
                         s.updateWifiOnly = it
                         com.blacksingularities.openexplorer.update.UpdateWorker.schedule(ctx, replace = true)
                     }
                     ToggleRow(
-                        "Instaluj w tle bez pytania",
-                        if (updater.canInstallSilently()) "Dostępne na tym urządzeniu" else "Wymaga Androida 12+ i jednej aktualizacji z poziomu aplikacji",
+                        stringResource(R.string.settings_update_auto_install),
+                        stringResource(if (updater.canInstallSilently()) R.string.settings_update_auto_install_ok else R.string.settings_update_auto_install_no),
                         s.updateAutoInstall,
                     ) { s.updateAutoInstall = it }
                 }
                 if (!updater.canInstall()) {
-                    ClickRow("Zezwól na instalowanie aktualizacji", "Wymagane jednorazowo w ustawieniach systemu") { updater.openInstallPermission() }
+                    ClickRow(stringResource(R.string.settings_update_permission), stringResource(R.string.settings_update_permission_hint)) { updater.openInstallPermission() }
                 }
-                val sub = when (val st = updater.state) {
-                    UpdateState.Checking -> "Sprawdzanie…"
-                    UpdateState.UpToDate -> "Masz najnowszą wersję"
-                    is UpdateState.Available -> "Dostępna wersja ${st.info.version}"
-                    is UpdateState.Downloading -> "Pobieranie ${(st.progress * 100).toInt()}%"
-                    is UpdateState.Ready -> "Gotowa do instalacji"
-                    is UpdateState.Installing -> "Instalowanie…"
-                    is UpdateState.Failed -> "Błąd: ${st.message}"
-                    UpdateState.Idle -> "Wersja ${BuildConfig.VERSION_NAME}"
-                } + if (updater.lastCheck > 0) " · sprawdzono " +
-                    android.text.format.DateUtils.getRelativeTimeSpanString(updater.lastCheck).toString().lowercase() else ""
+                val status = when (val st = updater.state) {
+                    UpdateState.Checking -> stringResource(R.string.settings_update_checking)
+                    UpdateState.UpToDate -> stringResource(R.string.settings_update_up_to_date)
+                    is UpdateState.Available -> stringResource(R.string.settings_update_available, st.info.version)
+                    is UpdateState.Downloading -> stringResource(R.string.settings_update_downloading, (st.progress * 100).toInt())
+                    is UpdateState.Ready -> stringResource(R.string.settings_update_ready)
+                    is UpdateState.Installing -> stringResource(R.string.settings_update_installing)
+                    is UpdateState.Failed -> stringResource(R.string.settings_update_failed, st.message)
+                    UpdateState.Idle -> stringResource(R.string.settings_update_idle, BuildConfig.VERSION_NAME)
+                }
+                val sub = if (updater.lastCheck > 0) {
+                    stringResource(
+                        R.string.settings_update_checked, status,
+                        android.text.format.DateUtils.getRelativeTimeSpanString(updater.lastCheck).toString().lowercase(),
+                    )
+                } else status
                 (updater.state as? UpdateState.Available)?.let { av ->
-                    ClickRow("Pobierz i zainstaluj ${av.info.version}", if (av.info.size > 0) formatSize(av.info.size) else null) {
+                    ClickRow(stringResource(R.string.settings_update_download, av.info.version), if (av.info.size > 0) formatSize(av.info.size) else null) {
                         scope.launch {
                             updater.download(av.info)
-                            (updater.state as? UpdateState.Ready)?.let { if (!updater.install(it)) state.toast("Zezwól na instalację i wróć do aplikacji") }
+                            (updater.state as? UpdateState.Ready)?.let { if (!updater.install(it)) state.toast(ctx.getString(R.string.settings_update_allow_install)) }
                         }
                     }
                 }
                 (updater.state as? UpdateState.Ready)?.let { r ->
-                    ClickRow("Zainstaluj wersję ${r.info.version}", "Pobrana i sprawdzona") {
-                        if (!updater.install(r)) state.toast("Zezwól na instalację i wróć do aplikacji")
+                    ClickRow(stringResource(R.string.settings_update_install, r.info.version), stringResource(R.string.settings_update_install_hint)) {
+                        if (!updater.install(r)) state.toast(ctx.getString(R.string.settings_update_allow_install))
                     }
                 }
-                ClickRow("Sprawdź teraz", sub) {
+                ClickRow(stringResource(R.string.settings_update_check_now), sub) {
                     scope.launch {
                         updater.bannerHiddenFor = ""
                         updater.check()
@@ -490,19 +512,19 @@ fun SettingsScreen(
             }
             "about" -> {
                 androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.blacksingularities.openexplorer.R.drawable.brand_mark), null, Modifier.size(56.dp))
-                ClickRow("OpenExplorer ${BuildConfig.VERSION_NAME}", "Kod źródłowy i wydania na GitHub") {
+                ClickRow("OpenExplorer ${BuildConfig.VERSION_NAME}", stringResource(R.string.settings_about_source)) {
                     state.newTab("https://github.com/${BuildConfig.UPDATE_REPO}")
                     onBack()
                 }
-                ClickRow("Projekt i wykonanie: redzikowski.com") {
+                ClickRow(stringResource(R.string.settings_about_author)) {
                     state.newTab("https://redzikowski.com")
                     onBack()
                 }
-                ClickRow("☕ Postaw kawę", "Wesprzyj rozwój na buycoffee.to") {
+                ClickRow(stringResource(R.string.settings_about_coffee), stringResource(R.string.settings_about_coffee_hint)) {
                     state.newTab("https://buycoffee.to/adamredzikowski")
                     onBack()
                 }
-                ClickRow("Przywróć ustawienia domyślne") { s.resetAll(); state.applySettingsToAll(); state.snack("Przywrócono ustawienia") }
+                ClickRow(stringResource(R.string.settings_reset_all)) { s.resetAll(); state.applySettingsToAll(); state.snack(ctx.getString(R.string.settings_reset_done)) }
 
             }
         }
@@ -515,18 +537,18 @@ fun SettingsScreen(
             onDismissRequest = { textInput = null },
             title = { Text(label) },
             text = { OutlinedTextField(v, { v = it }, singleLine = true) },
-            confirmButton = { TextButton(onClick = { onSave(v); textInput = null }) { Text("Zapisz") } },
-            dismissButton = { TextButton(onClick = { textInput = null }) { Text("Anuluj") } },
+            confirmButton = { TextButton(onClick = { onSave(v); textInput = null }) { Text(stringResource(R.string.common_save)) } },
+            dismissButton = { TextButton(onClick = { textInput = null }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 
     if (resetConfirm) {
         AlertDialog(
             onDismissRequest = { resetConfirm = false },
-            title = { Text("Przywrócić domyślne kafelki?") },
-            text = { Text("Twoje kafelki zostaną zastąpione zestawem domyślnym.") },
-            confirmButton = { TextButton(onClick = { state.store.resetTiles(); resetConfirm = false }) { Text("Przywróć") } },
-            dismissButton = { TextButton(onClick = { resetConfirm = false }) { Text("Anuluj") } },
+            title = { Text(stringResource(R.string.settings_reset_tiles_title)) },
+            text = { Text(stringResource(R.string.settings_reset_tiles_text)) },
+            confirmButton = { TextButton(onClick = { state.store.resetTiles(); resetConfirm = false }) { Text(stringResource(R.string.settings_restore)) } },
+            dismissButton = { TextButton(onClick = { resetConfirm = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 
@@ -537,26 +559,29 @@ fun SettingsScreen(
         var storage by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { clearDialog = false },
-            title = { Text("Wyczyść dane") },
+            title = { Text(stringResource(R.string.settings_clear_title)) },
             text = {
                 Column {
-                    CheckRow("Pamięć podręczna", cache) { cache = it }
-                    CheckRow("Historia", history) { history = it }
-                    CheckRow("Ciasteczka (wylogowuje ze stron)", cookies) { cookies = it }
-                    CheckRow("Dane zapisane przez strony", storage) { storage = it }
+                    CheckRow(stringResource(R.string.settings_clear_cache), cache) { cache = it }
+                    CheckRow(stringResource(R.string.settings_clear_history), history) { history = it }
+                    CheckRow(stringResource(R.string.settings_clear_cookies), cookies) { cookies = it }
+                    CheckRow(stringResource(R.string.settings_clear_storage), storage) { storage = it }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     state.clearData(cache, cookies, history, storage)
                     clearDialog = false
-                    state.snack("Wyczyszczono dane")
-                }) { Text("Wyczyść") }
+                    state.snack(ctx.getString(R.string.settings_data_cleared))
+                }) { Text(stringResource(R.string.library_clear)) }
             },
-            dismissButton = { TextButton(onClick = { clearDialog = false }) { Text("Anuluj") } },
+            dismissButton = { TextButton(onClick = { clearDialog = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }
+
+@Composable
+private fun engineName(e: SearchEngine): String = e.name.ifEmpty { stringResource(R.string.search_engine_custom) }
 
 private class SettingsPage(val id: String, val title: String, val subtitle: String, val icon: ImageVector)
 

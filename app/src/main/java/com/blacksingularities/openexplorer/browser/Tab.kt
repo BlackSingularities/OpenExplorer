@@ -45,6 +45,9 @@ class Tab(
 
     var webView: WebView? = null
 
+    /** Adres http://, który „Tylko HTTPS” zamienił na https:// – do czasu wczytania strony. */
+    var upgradedFrom: String? = null
+
     /** Połączenie z menedżerem haseł w bieżącym dokumencie (główna ramka) i jego domena. */
     var passReply: androidx.webkit.JavaScriptReplyProxy? = null
     var passHost: String? = null
@@ -60,9 +63,10 @@ class Tab(
     val host: String
         get() = runCatching { android.net.Uri.parse(url).host?.removePrefix("www.") }.getOrNull() ?: url
 
+    /** Tytuł do wyświetlenia; pusty dla nowej karty – interfejs pokazuje wtedy „Nowa karta”. */
     val displayTitle: String
         get() = when {
-            showHome && url.isEmpty() -> "Nowa karta"
+            showHome && url.isEmpty() -> ""
             title.isNotBlank() -> title
             else -> host.ifEmpty { url }
         }

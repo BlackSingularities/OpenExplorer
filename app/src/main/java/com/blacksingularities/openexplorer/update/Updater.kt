@@ -34,7 +34,15 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class ReleaseInfo(val version: String, val notes: String, val apkUrl: String, val size: Long, val page: String)
+/** [sha256] – skrót pliku APK podany przez GitHub (puste, gdy wydanie go nie ma). */
+data class ReleaseInfo(
+    val version: String,
+    val notes: String,
+    val apkUrl: String,
+    val size: Long,
+    val page: String,
+    val sha256: String = "",
+)
 
 sealed interface UpdateState {
     data object Idle : UpdateState
@@ -97,7 +105,7 @@ class Updater(context: Context) {
             }
         } catch (e: Exception) {
             if (quiet) before.takeUnless { it is UpdateState.Checking } ?: UpdateState.Idle
-            else UpdateState.Failed(e.message ?: "Błąd sieci")
+            else UpdateState.Failed(e.message ?: context.getString(R.string.update_network_error))
         }
         set(result)
         result
@@ -109,29 +117,32 @@ class Updater(context: Context) {
         try {
             when (conn.responseCode) {
                 200 -> Unit
-                403, 429 -> error("GitHub chwilowo ogranicza zapytania – spróbuj później")
-                404 -> error("Brak opublikowanych wydań")
-                else -> error("GitHub odpowiedział kodem ${conn.responseCode}")
+                403, 429 -> error(context.getString(R.string.update_rate_limited))
+                404 -> error(context.getString(R.string.update_no_releases))
+                else -> error(context.getString(R.string.update_http_error, conn.responseCode))
             }
             val o = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
             val assets = o.optJSONArray("assets")
             var url = ""
             var size = 0L
+            var sha256 = ""
             if (assets != null) for (i in 0 until assets.length()) {
                 val a = assets.getJSONObject(i)
                 if (a.optString("name").endsWith(".apk")) {
                     url = a.optString("browser_download_url")
                     size = a.optLong("size")
+                    sha256 = parseDigest(a.optString("digest"))
                     break
                 }
             }
-            if (url.isEmpty()) error("Wydanie nie zawiera pliku APK")
+            if (url.isEmpty()) error(context.getString(R.string.update_no_apk))
             return ReleaseInfo(
                 version = o.optString("tag_name").removePrefix("v"),
                 notes = o.optString("body").substringBefore("\n---").trim(),
                 apkUrl = url,
                 size = size,
                 page = o.optString("html_url"),
+                sha256 = sha256,
             )
         } finally {
             conn.disconnect()
@@ -151,14 +162,53 @@ class Updater(context: Context) {
     /** Wcześniej pobrany, poprawny plik tej wersji (np. pobrany w tle). */
     private fun readyFile(info: ReleaseInfo): File? = target(info).takeIf { it.exists() && verify(it, info) }
 
-    /** Plik musi mieć oczekiwany rozmiar i być pakietem tej aplikacji. */
+    /**
+     * Plik musi mieć oczekiwany rozmiar i skrót SHA-256 (gdy GitHub go podaje), być pakietem
+     * tej aplikacji i być podpisany tym samym kluczem co zainstalowana wersja.
+     */
     private fun verify(file: File, info: ReleaseInfo): Boolean {
         if (info.size > 0 && file.length() != info.size) return false
-        val pkg = runCatching {
+        if (info.sha256.isNotEmpty() && !sha256Hex(file).equals(info.sha256, ignoreCase = true)) return false
+        val archive = runCatching {
             @Suppress("DEPRECATION")
-            context.packageManager.getPackageArchiveInfo(file.absolutePath, 0)?.packageName
-        }.getOrNull()
-        return pkg == context.packageName
+            context.packageManager.getPackageArchiveInfo(file.absolutePath, SIGNATURE_FLAGS)
+        }.getOrNull() ?: return false
+        if (archive.packageName != context.packageName) return false
+        val installed = runCatching {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(context.packageName, SIGNATURE_FLAGS)
+        }.getOrNull() ?: return false
+        val remote = signers(archive)
+        // Starsze Androidy nie zawsze odczytują podpis z pliku – wtedy sprawdzi go instalator systemu.
+        if (remote.isEmpty() && Build.VERSION.SDK_INT < 28) return true
+        return sameSigner(remote, signers(installed))
+    }
+
+    /** Skróty SHA-256 certyfikatów podpisu (z historią rotacji klucza od Androida 9). */
+    private fun signers(p: android.content.pm.PackageInfo): Set<String> {
+        val certs: Array<android.content.pm.Signature> = (
+            if (Build.VERSION.SDK_INT >= 28) {
+                val s = p.signingInfo ?: return emptySet()
+                if (s.hasMultipleSigners()) s.apkContentsSigners else s.signingCertificateHistory
+            } else {
+                @Suppress("DEPRECATION")
+                p.signatures
+            }
+            ) ?: return emptySet()
+        return certs.map { sha256Hex(it.toByteArray()) }.toSet()
+    }
+
+    private fun sha256Hex(file: File): String {
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buf = ByteArray(64 * 1024)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                md.update(buf, 0, n)
+            }
+        }
+        return md.digest().joinToString("") { "%02x".format(it) }
     }
 
     private fun cleanup() {
@@ -189,7 +239,7 @@ class Updater(context: Context) {
                     if (done > 0) conn.setRequestProperty("Range", "bytes=$done-")
                 }
                 val code = conn.responseCode
-                if (code !in 200..299) error("Pobieranie nie powiodło się ($code)")
+                if (code !in 200..299) error(context.getString(R.string.update_download_http, code))
                 if (code == 200) done = 0 // serwer zignorował Range – od początku
                 val total = info.size.takeIf { it > 0 } ?: (conn.contentLengthLong.takeIf { it > 0 }?.plus(done) ?: -1)
                 conn.inputStream.use { input ->
@@ -212,16 +262,16 @@ class Updater(context: Context) {
                 conn.disconnect()
                 if (!verify(part, info)) {
                     part.delete()
-                    error("Pobrany plik jest uszkodzony – spróbuj ponownie")
+                    error(context.getString(R.string.update_corrupted))
                 }
                 out.delete()
-                if (!part.renameTo(out)) error("Nie można zapisać pliku aktualizacji")
+                if (!part.renameTo(out)) error(context.getString(R.string.update_cannot_save))
                 out
             }
             set(UpdateState.Ready(info, file))
             file
         } catch (e: Exception) {
-            set(UpdateState.Failed(e.message ?: "Nie udało się pobrać aktualizacji", info))
+            set(UpdateState.Failed(e.message ?: context.getString(R.string.update_download_failed), info))
             null
         }
     }
@@ -271,7 +321,7 @@ class Updater(context: Context) {
                         .setDataAndType(uri, "application/vnd.android.package-archive")
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
                 )
-            }.onFailure { set(UpdateState.Failed("Instalacja nieudana: ${e.message}", ready.info)) }
+            }.onFailure { set(UpdateState.Failed(context.getString(R.string.update_install_failed, e.message.orEmpty()), ready.info)) }
             main.postDelayed({ if (state is UpdateState.Installing) set(ready) }, 4000)
         }
         return true
@@ -316,9 +366,9 @@ class Updater(context: Context) {
                 set(if (info != null && f != null && f.exists()) UpdateState.Ready(info, f) else UpdateState.Idle)
             }
             PackageInstaller.STATUS_FAILURE_CONFLICT, PackageInstaller.STATUS_FAILURE_INCOMPATIBLE ->
-                set(UpdateState.Failed("Podpis lub wersja nie pasują do zainstalowanej aplikacji – zainstaluj ręcznie z GitHub", info))
-            PackageInstaller.STATUS_FAILURE_STORAGE -> set(UpdateState.Failed("Za mało miejsca na urządzeniu", info))
-            else -> set(UpdateState.Failed("Instalacja nieudana: ${message ?: "kod $status"}", info))
+                set(UpdateState.Failed(context.getString(R.string.update_conflict), info))
+            PackageInstaller.STATUS_FAILURE_STORAGE -> set(UpdateState.Failed(context.getString(R.string.update_no_storage), info))
+            else -> set(UpdateState.Failed(context.getString(R.string.update_install_failed, message ?: context.getString(R.string.update_status_code, status)), info))
         }
     }
 
@@ -339,7 +389,7 @@ class Updater(context: Context) {
         context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
     private fun channel(nm: NotificationManager) {
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, "Aktualizacje", NotificationManager.IMPORTANCE_DEFAULT))
+        nm.createNotificationChannel(NotificationChannel(CHANNEL, context.getString(R.string.settings_page_updates), NotificationManager.IMPORTANCE_DEFAULT))
     }
 
     /** Powiadomienie z intencją (otwarcie aplikacji albo okno instalatora). */
@@ -359,8 +409,8 @@ class Updater(context: Context) {
     }
 
     fun notifyReady(info: ReleaseInfo) = notify(
-        "OpenExplorer ${info.version} jest gotowy",
-        "Dotknij, aby zainstalować aktualizację",
+        context.getString(R.string.update_ready_title, info.version),
+        context.getString(R.string.update_ready_text),
         Intent(context, MainActivity::class.java).setAction(ACTION_INSTALL).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
     )
 
@@ -400,8 +450,29 @@ class Updater(context: Context) {
             val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
                 ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP) ?: return
             runCatching { context.startActivity(launch) }
-            get(context).notify("OpenExplorer zaktualizowany do ${BuildConfig.VERSION_NAME}", "Dotknij, aby otworzyć", launch)
+            get(context).notify(
+                context.getString(R.string.update_done_title, BuildConfig.VERSION_NAME),
+                context.getString(R.string.update_done_text),
+                launch,
+            )
         }
+
+        @Suppress("DEPRECATION")
+        private val SIGNATURE_FLAGS =
+            if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES
+
+        /** „sha256:ABC…” z API GitHub → „abc…”; inne algorytmy i błędny format → pusty tekst. */
+        fun parseDigest(digest: String?): String {
+            val hex = digest?.trim()?.takeIf { it.startsWith("sha256:", ignoreCase = true) }?.substring(7) ?: return ""
+            return hex.lowercase().takeIf { it.length == 64 && it.all { c -> c in '0'..'9' || c in 'a'..'f' } } ?: ""
+        }
+
+        fun sha256Hex(bytes: ByteArray): String =
+            java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
+        /** Wspólny certyfikat podpisu – pusty zbiór po którejkolwiek stronie oznacza brak zgodności. */
+        fun sameSigner(remote: Set<String>, local: Set<String>): Boolean =
+            remote.isNotEmpty() && local.isNotEmpty() && remote.any { it in local }
 
         /** Porównanie numeryczne: „1.0.12” > „1.0.9”; przyrostki typu „-dev” są pomijane. */
         fun isNewer(remote: String, local: String): Boolean {
@@ -434,7 +505,7 @@ class UpdateReceiver : BroadcastReceiver() {
             if (confirm != null) {
                 confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 val started = Updater.foreground && runCatching { context.startActivity(confirm) }.isSuccess
-                if (!started) updater.notify("Aktualizacja OpenExplorer", "Dotknij, aby potwierdzić instalację", confirm)
+                if (!started) updater.notify(context.getString(R.string.update_confirm_title), context.getString(R.string.update_confirm_text), confirm)
             }
         }
         updater.onInstallResult(status, intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE))

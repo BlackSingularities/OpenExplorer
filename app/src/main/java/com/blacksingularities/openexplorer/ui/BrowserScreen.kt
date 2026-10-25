@@ -101,9 +101,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.browser.BrowserDialog
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.browser.Omnibox
@@ -206,7 +208,7 @@ fun BrowserScreen(
                             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                             .clickable { state.scrollToTop() },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Rounded.VerticalAlignTop, "Przewiń na górę", Modifier.size(22.dp)) }
+                    ) { Icon(Icons.Rounded.VerticalAlignTop, stringResource(R.string.browser_scroll_top), Modifier.size(22.dp)) }
                 }
 
                 // Propozycje menedżera haseł.
@@ -295,7 +297,7 @@ private fun Toolbar(
         Modifier.fillMaxWidth().height(dims.bar).background(MaterialTheme.colorScheme.background).padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (!editing && s.showHomeButton && !s.navBar) RoundIcon(Icons.Rounded.Home, "Strona startowa") { state.goHome(tab) }
+        if (!editing && s.showHomeButton && !s.navBar) RoundIcon(Icons.Rounded.Home, stringResource(R.string.browser_home)) { state.goHome(tab) }
         AddressField(state, tab, editing, setEditing, Modifier.weight(1f).padding(horizontal = 4.dp))
         if (!editing && !s.navBar) {
             if (s.showTabCounter) {
@@ -304,7 +306,7 @@ private fun Toolbar(
                     contentAlignment = Alignment.Center,
                 ) { TabCounter(state.tabs.count { it.incognito == tab.incognito }, tab.incognito) }
             }
-            RoundIcon(Icons.Rounded.MoreVert, "Menu", onClick = onOpenMenu)
+            RoundIcon(Icons.Rounded.MoreVert, stringResource(R.string.browser_menu), onClick = onOpenMenu)
         }
     }
 }
@@ -317,13 +319,13 @@ private fun NavBar(state: BrowserState, tab: Tab, onOpenTabs: () -> Unit, onOpen
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", enabled = !tab.showHome || tab.parentId != null) { state.back() }
-        RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, "Dalej", enabled = tab.canGoForward && !tab.showHome) { state.forward() }
-        RoundIcon(Icons.Rounded.Home, "Strona startowa", active = tab.showHome) { state.goHome(tab) }
+        RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back), enabled = !tab.showHome || tab.parentId != null) { state.back() }
+        RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, stringResource(R.string.menu_forward), enabled = tab.canGoForward && !tab.showHome) { state.forward() }
+        RoundIcon(Icons.Rounded.Home, stringResource(R.string.browser_home), active = tab.showHome) { state.goHome(tab) }
         Box(Modifier.size(dims.button).clip(CircleShape).clickable(onClick = onOpenTabs), contentAlignment = Alignment.Center) {
             TabCounter(state.tabs.count { it.incognito == tab.incognito }, tab.incognito)
         }
-        RoundIcon(Icons.Rounded.MoreVert, "Menu", onClick = onOpenMenu)
+        RoundIcon(Icons.Rounded.MoreVert, stringResource(R.string.browser_menu), onClick = onOpenMenu)
     }
 }
 
@@ -335,7 +337,7 @@ fun TabCounter(count: Int, incognito: Boolean) {
         Modifier.size(22.dp).border(1.8.dp, c, RoundedCornerShape(7.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        if (incognito && count == 0) Icon(Icons.Rounded.VisibilityOff, "Karty incognito", Modifier.size(12.dp), tint = c)
+        if (incognito && count == 0) Icon(Icons.Rounded.VisibilityOff, stringResource(R.string.browser_incognito_tabs), Modifier.size(12.dp), tint = c)
         else Text(
             if (count > 99) "∞" else "$count", color = c, fontSize = if (count > 9) 10.sp else 11.sp, fontWeight = FontWeight.Bold,
             lineHeight = 11.sp, maxLines = 1,
@@ -397,7 +399,7 @@ private fun AddressField(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (editing) {
-            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Anuluj", size = dims.field - 6.dp, iconSize = 18.dp) { setEditing(false) }
+            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_cancel), size = dims.field - 6.dp, iconSize = 18.dp) { setEditing(false) }
             Box(Modifier.weight(1f).padding(start = 4.dp)) {
                 BasicTextField(
                     value = value,
@@ -410,12 +412,12 @@ private fun AddressField(
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 )
                 if (value.text.isEmpty()) {
-                    Text("Szukaj lub wpisz adres  ·  !yt, !w, !gh…", color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge,
+                    Text(stringResource(R.string.browser_address_hint), color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (value.text.isNotEmpty()) {
-                RoundIcon(Icons.Rounded.Close, "Wyczyść", size = dims.field - 6.dp, iconSize = 18.dp) {
+                RoundIcon(Icons.Rounded.Close, stringResource(R.string.library_clear), size = dims.field - 6.dp, iconSize = 18.dp) {
                     typed = ""
                     value = TextFieldValue("")
                     state.suggestQuery = ""
@@ -430,7 +432,7 @@ private fun AddressField(
                 else -> Icons.Rounded.Public
             }
             RoundIcon(
-                statusIcon, "Informacje o stronie", size = dims.field - 6.dp, iconSize = 16.dp,
+                statusIcon, stringResource(R.string.browser_site_info), size = dims.field - 6.dp, iconSize = 16.dp,
                 tint = if (tab.url.startsWith("http://") && !tab.showHome) colors.error else colors.onSurfaceVariant,
             ) {
                 if (tab.showHome) setEditing(true) else state.dialog = BrowserDialog.SiteInfo(tab)
@@ -459,7 +461,7 @@ private fun AddressField(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    if (tab.showHome) "Szukaj lub wpisz adres" else tab.host.ifEmpty { tab.url },
+                    if (tab.showHome) stringResource(R.string.home_search_hint) else tab.host.ifEmpty { tab.url },
                     color = if (tab.showHome) colors.onSurfaceVariant else colors.onSurface,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyLarge,
@@ -467,7 +469,7 @@ private fun AddressField(
                 )
                 if (!tab.showHome && tab.blocked > 0 && state.settings.adBlock) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
-                        Icon(Icons.Rounded.Shield, "Zablokowane", Modifier.size(13.dp), tint = colors.onSurfaceVariant)
+                        Icon(Icons.Rounded.Shield, stringResource(R.string.browser_blocked), Modifier.size(13.dp), tint = colors.onSurfaceVariant)
                         Text("${tab.blocked}", fontSize = 10.sp, color = colors.onSurfaceVariant, modifier = Modifier.padding(start = 2.dp))
                     }
                 }
@@ -475,7 +477,7 @@ private fun AddressField(
             if (!tab.showHome && state.settings.showReloadButton) {
                 RoundIcon(
                     if (tab.loading) Icons.Rounded.Close else Icons.Rounded.Refresh,
-                    if (tab.loading) "Zatrzymaj" else "Odśwież", size = dims.field - 6.dp, iconSize = 18.dp,
+                    stringResource(if (tab.loading) R.string.browser_stop else R.string.menu_reload), size = dims.field - 6.dp, iconSize = 18.dp,
                 ) { state.reload() }
             }
         }
@@ -535,7 +537,7 @@ private fun SuggestionsPanel(state: BrowserState, tab: Tab, bottom: Boolean, onP
         .filter { it.title.lowercase().contains(q) || it.url.lowercase().contains(q) }
         .take(3).map { Suggestion(it.displayTitle, it.url, 3, it.id) }.toList()
     val items = buildList {
-        if (q.isEmpty() && clip != null) add(Suggestion("Otwórz skopiowany link", clip.text, 4))
+        if (q.isEmpty() && clip != null) add(Suggestion(stringResource(R.string.browser_paste_link), clip.text, 4))
         if (q.isNotEmpty()) add(Suggestion(query.trim(), null, 0))
         addAll(remote.filter { it.lowercase() != q }.take(6).map { Suggestion(it, null, 0) })
         addAll(openTabs)
@@ -560,14 +562,14 @@ private fun SuggestionsPanel(state: BrowserState, tab: Tab, bottom: Boolean, onP
                     Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
                         Text(s.text, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
                         val sub = when (s.kind) {
-                            3 -> "Przełącz na otwartą kartę"
+                            3 -> stringResource(R.string.browser_switch_to_tab)
                             else -> s.url
                         }
                         if (sub != null) Text(sub, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     when (s.kind) {
-                        0 -> RoundIcon(Icons.Rounded.NorthWest, "Wstaw do paska", size = 34.dp, iconSize = 18.dp,
+                        0 -> RoundIcon(Icons.Rounded.NorthWest, stringResource(R.string.browser_insert_query), size = 34.dp, iconSize = 18.dp,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant) { state.suggestQuery = s.text + " " }
                         1 -> Icon(Icons.Rounded.History, null, Modifier.padding(end = 8.dp).size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         2 -> Icon(Icons.Rounded.Star, null, Modifier.padding(end = 8.dp).size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -617,9 +619,9 @@ private fun FindBar(state: BrowserState, tab: Tab, modifier: Modifier) {
         )
         Text(if (text.isEmpty()) "" else "${tab.findIndex}/${tab.findCount}", style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        RoundIcon(Icons.Rounded.KeyboardArrowUp, "Poprzedni", size = 38.dp) { state.findNext(false) }
-        RoundIcon(Icons.Rounded.KeyboardArrowDown, "Następny", size = 38.dp) { state.findNext(true) }
-        RoundIcon(Icons.Rounded.Close, "Zamknij", size = 38.dp) { state.closeFind() }
+        RoundIcon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.browser_find_prev), size = 38.dp) { state.findNext(false) }
+        RoundIcon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.browser_find_next), size = 38.dp) { state.findNext(true) }
+        RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_close), size = 38.dp) { state.closeFind() }
     }
 }
 

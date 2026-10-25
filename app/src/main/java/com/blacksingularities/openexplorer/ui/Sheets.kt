@@ -107,6 +107,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.pm.ShortcutInfoCompat
@@ -143,14 +145,14 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
         Column(Modifier.padding(horizontal = 12.dp).navigationBarsPadding()) {
             // Szybkie akcje strony w jednym rzędzie.
             Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", enabled = page && tab.canGoBack, onClick = run { state.back() })
-                RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, "Dalej", enabled = page && tab.canGoForward, onClick = run { state.forward() })
-                RoundIcon(Icons.Rounded.Refresh, "Odśwież", enabled = page, onClick = run { state.reload() })
-                RoundIcon(if (bookmarked) Icons.Rounded.Star else Icons.Rounded.StarBorder, "Zakładka", active = bookmarked, enabled = page) {
+                RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back), enabled = page && tab.canGoBack, onClick = run { state.back() })
+                RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, stringResource(R.string.menu_forward), enabled = page && tab.canGoForward, onClick = run { state.forward() })
+                RoundIcon(Icons.Rounded.Refresh, stringResource(R.string.menu_reload), enabled = page, onClick = run { state.reload() })
+                RoundIcon(if (bookmarked) Icons.Rounded.Star else Icons.Rounded.StarBorder, stringResource(R.string.menu_bookmark), active = bookmarked, enabled = page) {
                     val added = state.store.toggleBookmark(tab.url, tab.title)
-                    state.snack(if (added) "Dodano zakładkę" else "Usunięto zakładkę")
+                    state.snack(ctx.getString(if (added) R.string.menu_bookmark_added else R.string.menu_bookmark_removed))
                 }
-                RoundIcon(Icons.Rounded.Share, "Udostępnij", enabled = page, onClick = run { share(ctx, tab.url, tab.title) })
+                RoundIcon(Icons.Rounded.Share, stringResource(R.string.common_share), enabled = page, onClick = run { share(ctx, tab.url, tab.title) })
             }
             if (page) {
                 Text(tab.displayTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium,
@@ -159,41 +161,41 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
             }
             val actions = buildList {
-                add(MenuAction(Icons.Rounded.Add, "Nowa karta", onClick = run { state.newTab() }))
-                add(MenuAction(Icons.Rounded.VisibilityOff, "Incognito", onClick = run { state.newTab(incognito = true) }))
-                add(MenuAction(Icons.Rounded.Bookmarks, "Zakładki", onClick = run { onNavigate("bookmarks") }))
-                add(MenuAction(Icons.Rounded.History, "Historia", onClick = run { onNavigate("history") }))
-                add(MenuAction(Icons.Rounded.Download, "Pobrane pliki", onClick = run { onNavigate("downloads") }))
-                add(MenuAction(Icons.Rounded.DownloadForOffline, "Zapisane strony", onClick = run { onNavigate("offline") }))
-                add(MenuAction(Icons.Rounded.Key, "Hasła", onClick = run { onNavigate("passwords") }))
-                if (state.closed.isNotEmpty()) add(MenuAction(Icons.Rounded.RestorePage, "Przywróć kartę", onClick = run { state.reopenClosed() }))
+                add(MenuAction(Icons.Rounded.Add, stringResource(R.string.menu_new_tab), onClick = run { state.newTab() }))
+                add(MenuAction(Icons.Rounded.VisibilityOff, stringResource(R.string.menu_incognito), onClick = run { state.newTab(incognito = true) }))
+                add(MenuAction(Icons.Rounded.Bookmarks, stringResource(R.string.library_bookmarks), onClick = run { onNavigate("bookmarks") }))
+                add(MenuAction(Icons.Rounded.History, stringResource(R.string.library_history), onClick = run { onNavigate("history") }))
+                add(MenuAction(Icons.Rounded.Download, stringResource(R.string.menu_downloads), onClick = run { onNavigate("downloads") }))
+                add(MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_offline), onClick = run { onNavigate("offline") }))
+                add(MenuAction(Icons.Rounded.Key, stringResource(R.string.passwords_title), onClick = run { onNavigate("passwords") }))
+                if (state.closed.isNotEmpty()) add(MenuAction(Icons.Rounded.RestorePage, stringResource(R.string.menu_restore_tab), onClick = run { state.reopenClosed() }))
                 if (page) {
-                    add(MenuAction(Icons.Rounded.FindInPage, "Znajdź na stronie", onClick = run { state.findMode = true }))
-                    add(MenuAction(Icons.Rounded.DesktopWindows, "Wersja komputerowa", tab.desktop, onClick = run { state.toggleDesktop() }))
-                    add(MenuAction(Icons.AutoMirrored.Rounded.MenuBook, "Tryb czytania", tab.readerMode, onClick = run { state.readerMode() }))
-                    add(MenuAction(if (state.speaking) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp, if (state.speaking) "Przestań czytać" else "Czytaj na głos",
-                        state.speaking, onClick = run { state.readAloud() }))
-                    add(MenuAction(Icons.Rounded.FormatSize, "Wielkość tekstu", onClick = run { state.dialog = BrowserDialog.PageZoom(tab) }))
-                    add(MenuAction(Icons.Rounded.Translate, "Przetłumacz", onClick = run {
+                    add(MenuAction(Icons.Rounded.FindInPage, stringResource(R.string.menu_find), onClick = run { state.findMode = true }))
+                    add(MenuAction(Icons.Rounded.DesktopWindows, stringResource(R.string.menu_desktop), tab.desktop, onClick = run { state.toggleDesktop() }))
+                    add(MenuAction(Icons.AutoMirrored.Rounded.MenuBook, stringResource(R.string.menu_reader), tab.readerMode, onClick = run { state.readerMode() }))
+                    add(MenuAction(if (state.tools.speaking) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp, stringResource(if (state.tools.speaking) R.string.menu_stop_reading else R.string.menu_read_aloud),
+                        state.tools.speaking, onClick = run { state.tools.readAloud() }))
+                    add(MenuAction(Icons.Rounded.FormatSize, stringResource(R.string.menu_text_size), onClick = run { state.dialog = BrowserDialog.PageZoom(tab) }))
+                    add(MenuAction(Icons.Rounded.Translate, stringResource(R.string.menu_translate), onClick = run {
                         val lang = Locale.getDefault().language
                         state.load(tab, "https://translate.google.com/translate?sl=auto&tl=$lang&u=" + java.net.URLEncoder.encode(tab.url, "UTF-8"))
                     }))
-                    add(MenuAction(Icons.Rounded.DownloadForOffline, "Zapisz bez sieci", onClick = run { state.saveOffline() }))
-                    add(MenuAction(Icons.Rounded.Screenshot, "Zrzut ekranu", onClick = run { state.screenshot() }))
-                    add(MenuAction(Icons.Rounded.QrCode2, "Kod QR", onClick = run { state.dialog = BrowserDialog.Qr(tab.url, tab.title) }))
-                    add(MenuAction(Icons.Rounded.DashboardCustomize, "Dodaj kafelek", onClick = run {
+                    add(MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_save_offline), onClick = run { state.tools.saveOffline() }))
+                    add(MenuAction(Icons.Rounded.Screenshot, stringResource(R.string.menu_screenshot), onClick = run { state.tools.screenshot() }))
+                    add(MenuAction(Icons.Rounded.QrCode2, stringResource(R.string.menu_qr), onClick = run { state.dialog = BrowserDialog.Qr(tab.url, tab.title) }))
+                    add(MenuAction(Icons.Rounded.DashboardCustomize, stringResource(R.string.menu_add_tile), onClick = run {
                         state.store.saveTile(Tile(title = tab.title.take(24).ifBlank { tab.host }, url = tab.url))
-                        state.snack("Dodano do strony startowej")
+                        state.snack(ctx.getString(R.string.menu_tile_added))
                     }))
-                    add(MenuAction(Icons.Rounded.AddToHomeScreen, "Skrót na pulpicie", onClick = run { addShortcut(ctx, tab) }))
-                    add(MenuAction(Icons.Rounded.Print, "Drukuj / PDF", onClick = run { print(ctx, tab) }))
-                    add(MenuAction(Icons.Rounded.Code, "Kod strony", onClick = run { state.viewSource() }))
-                    add(MenuAction(Icons.Rounded.ContentCopy, "Kopiuj adres", onClick = run { copy(ctx, tab.url); state.snack("Skopiowano adres") }))
+                    add(MenuAction(Icons.Rounded.AddToHomeScreen, stringResource(R.string.menu_shortcut), onClick = run { addShortcut(ctx, tab) }))
+                    add(MenuAction(Icons.Rounded.Print, stringResource(R.string.menu_print), onClick = run { print(ctx, tab) }))
+                    add(MenuAction(Icons.Rounded.Code, stringResource(R.string.source_title_default), onClick = run { state.source.viewPage() }))
+                    add(MenuAction(Icons.Rounded.ContentCopy, stringResource(R.string.common_copy_address), onClick = run { copy(ctx, tab.url); state.snack(ctx.getString(R.string.common_address_copied)) }))
                 } else {
-                    add(MenuAction(Icons.Rounded.Wallpaper, "Edytuj kafelki", onClick = run { onEditTiles() }))
+                    add(MenuAction(Icons.Rounded.Wallpaper, stringResource(R.string.menu_edit_tiles), onClick = run { onEditTiles() }))
                 }
-                add(MenuAction(Icons.Rounded.Settings, "Ustawienia", onClick = run { onNavigate("settings") }))
-                add(MenuAction(Icons.AutoMirrored.Rounded.ExitToApp, "Wyjdź", onClick = run { onNavigate("exit") }))
+                add(MenuAction(Icons.Rounded.Settings, stringResource(R.string.menu_settings), onClick = run { onNavigate("settings") }))
+                add(MenuAction(Icons.AutoMirrored.Rounded.ExitToApp, stringResource(R.string.menu_exit), onClick = run { onNavigate("exit") }))
             }
             LazyVerticalGrid(GridCells.Adaptive(76.dp), Modifier.heightIn(max = 480.dp).padding(top = 6.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
                 items(actions) { a ->
@@ -220,7 +222,7 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
 
 fun share(ctx: Context, url: String, title: String) {
     val i = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, url).putExtra(Intent.EXTRA_SUBJECT, title)
-    ctx.startActivity(Intent.createChooser(i, "Udostępnij"))
+    ctx.startActivity(Intent.createChooser(i, ctx.getString(R.string.common_share)))
 }
 
 fun copy(ctx: Context, text: String) {
@@ -230,7 +232,7 @@ fun copy(ctx: Context, text: String) {
 private fun print(ctx: Context, tab: Tab) {
     val wv = tab.webView ?: return
     val pm = ctx.getSystemService(Context.PRINT_SERVICE) as PrintManager
-    val name = tab.title.ifBlank { "Strona" }
+    val name = tab.title.ifBlank { ctx.getString(R.string.menu_print_default_name) }
     pm.print(name, wv.createPrintDocumentAdapter(name), PrintAttributes.Builder().build())
 }
 
@@ -262,12 +264,15 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                RoundIcon(Icons.Rounded.Close, "Zamknij", onClick = onClose)
+                RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_close), onClick = onClose)
                 Row(
                     Modifier.weight(1f).padding(horizontal = 8.dp).clip(RoundedCornerShape(50))
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(3.dp),
                 ) {
-                    listOf(false to "Karty · ${state.tabs.count { !it.incognito }}", true to "Incognito · ${state.tabs.count { it.incognito }}").forEach { (k, l) ->
+                    listOf(
+                        false to stringResource(R.string.tabs_normal, state.tabs.count { !it.incognito }),
+                        true to stringResource(R.string.tabs_incognito, state.tabs.count { it.incognito }),
+                    ).forEach { (k, l) ->
                         val on = k == incognito
                         Text(
                             l, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge,
@@ -279,16 +284,16 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
                     }
                 }
                 if (state.closed.isNotEmpty() && !incognito) {
-                    RoundIcon(Icons.Rounded.RestorePage, "Przywróć zamkniętą kartę") { state.reopenClosed() }
+                    RoundIcon(Icons.Rounded.RestorePage, stringResource(R.string.tabs_restore_closed)) { state.reopenClosed() }
                 }
                 TextButton(
                     onClick = { if (state.settings.confirmCloseAll && list.size > 1) confirm = true else { state.closeAll(incognito); onClose() } },
                     enabled = list.isNotEmpty(),
-                ) { Text("Zamknij\nwszystkie", fontSize = 11.sp, textAlign = TextAlign.Center, lineHeight = 13.sp) }
+                ) { Text(stringResource(R.string.tabs_close_all_short), fontSize = 11.sp, textAlign = TextAlign.Center, lineHeight = 13.sp) }
             }
             Box(Modifier.weight(1f)) {
                 if (list.isEmpty()) {
-                    Text(if (incognito) "Brak kart incognito" else "Brak kart", Modifier.align(Alignment.Center),
+                    Text(stringResource(if (incognito) R.string.tabs_empty_incognito else R.string.tabs_empty), Modifier.align(Alignment.Center),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 LazyVerticalGrid(
@@ -304,7 +309,7 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
         ExtendedFloatingActionButton(
             onClick = { state.newTab(incognito = incognito); onClose() },
             icon = { Icon(if (incognito) Icons.Rounded.VisibilityOff else Icons.Rounded.Add, null) },
-            text = { Text(if (incognito) "Nowa incognito" else "Nowa karta") },
+            text = { Text(stringResource(if (incognito) R.string.tabs_new_incognito else R.string.menu_new_tab)) },
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp),
@@ -313,10 +318,10 @@ fun TabsScreen(state: BrowserState, onClose: () -> Unit) {
     if (confirm) {
         AlertDialog(
             onDismissRequest = { confirm = false },
-            title = { Text("Zamknąć wszystkie karty?") },
-            text = { Text("Zostanie zamkniętych ${list.size} kart.") },
-            confirmButton = { TextButton(onClick = { confirm = false; state.closeAll(incognito); onClose() }) { Text("Zamknij") } },
-            dismissButton = { TextButton(onClick = { confirm = false }) { Text("Anuluj") } },
+            title = { Text(stringResource(R.string.tabs_close_all_title)) },
+            text = { Text(pluralStringResource(R.plurals.tabs_close_all_text, list.size, list.size)) },
+            confirmButton = { TextButton(onClick = { confirm = false; state.closeAll(incognito); onClose() }) { Text(stringResource(R.string.common_close)) } },
+            dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }
@@ -356,9 +361,9 @@ private fun TabCard(tab: Tab, selected: Boolean, onClick: () -> Unit, onClose: (
     ) {
         Row(Modifier.padding(start = 10.dp).height(36.dp), verticalAlignment = Alignment.CenterVertically) {
             Favicon(tab, 15)
-            Text(tab.displayTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge,
+            Text(tab.displayTitle.ifEmpty { stringResource(R.string.menu_new_tab) }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.weight(1f).padding(start = 8.dp))
-            RoundIcon(Icons.Rounded.Close, "Zamknij kartę", size = 32.dp, iconSize = 16.dp, onClick = onClose)
+            RoundIcon(Icons.Rounded.Close, stringResource(R.string.tabs_close_tab), size = 32.dp, iconSize = 16.dp, onClick = onClose)
         }
         Box(Modifier.fillMaxSize().padding(start = 4.dp, end = 4.dp, bottom = 4.dp).clip(RoundedCornerShape(14.dp)).background(colors.surface)) {
             val thumb = tab.thumbnail
@@ -395,27 +400,27 @@ fun BrowserDialogs(state: BrowserState) {
         null -> Unit
         is BrowserDialog.Permission -> AlertDialog(
             onDismissRequest = { state.dialog = null; d.onResult(false) },
-            title = { Text("Prośba o dostęp") },
-            text = { Text("${d.origin} chce uzyskać dostęp: ${d.what.joinToString()}.") },
-            confirmButton = { TextButton(onClick = { state.dialog = null; d.onResult(true) }) { Text("Zezwól") } },
-            dismissButton = { TextButton(onClick = { state.dialog = null; d.onResult(false) }) { Text("Odmów") } },
+            title = { Text(stringResource(R.string.dialog_permission_title)) },
+            text = { Text(stringResource(R.string.dialog_permission_text, d.origin, d.what.joinToString())) },
+            confirmButton = { TextButton(onClick = { state.dialog = null; d.onResult(true) }) { Text(stringResource(R.string.dialog_allow)) } },
+            dismissButton = { TextButton(onClick = { state.dialog = null; d.onResult(false) }) { Text(stringResource(R.string.dialog_deny)) } },
         )
         is BrowserDialog.Download -> {
             var name by remember(d) { mutableStateOf(d.fileName) }
             AlertDialog(
                 onDismissRequest = { state.dialog = null },
                 icon = { Icon(Icons.Rounded.Download, null) },
-                title = { Text("Pobrać plik?") },
+                title = { Text(stringResource(R.string.dialog_download_title)) },
                 text = {
                     Column {
-                        OutlinedTextField(name, { name = it }, label = { Text("Nazwa pliku") }, singleLine = true)
-                        val size = if (d.size > 0) formatSize(d.size) else "nieznany rozmiar"
+                        OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.dialog_file_name)) }, singleLine = true)
+                        val size = if (d.size > 0) formatSize(d.size) else stringResource(R.string.dialog_unknown_size)
                         Text("${android.net.Uri.parse(d.url).host} · $size", style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                confirmButton = { TextButton(onClick = { state.dialog = null; state.startDownload(d, name.ifBlank { d.fileName }) }) { Text("Pobierz") } },
-                dismissButton = { TextButton(onClick = { state.dialog = null }) { Text("Anuluj") } },
+                confirmButton = { TextButton(onClick = { state.dialog = null; state.downloads.start(d, name.ifBlank { d.fileName }) }) { Text(stringResource(R.string.dialog_download)) } },
+                dismissButton = { TextButton(onClick = { state.dialog = null }) { Text(stringResource(R.string.common_cancel)) } },
             )
         }
         is BrowserDialog.LinkMenu -> {
@@ -428,21 +433,21 @@ fun BrowserDialogs(state: BrowserState) {
                     Column {
                         fun act(block: () -> Unit): () -> Unit = { state.dialog = null; block() }
                         if (d.link != null) {
-                            MenuItemRow(Icons.AutoMirrored.Rounded.OpenInNew, "Otwórz w nowej karcie", act { state.newTab(d.link, d.incognito, parent = parent) })
-                            MenuItemRow(Icons.Rounded.Add, "Otwórz w tle", act {
+                            MenuItemRow(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.common_open_new_tab), act { state.newTab(d.link, d.incognito, parent = parent) })
+                            MenuItemRow(Icons.Rounded.Add, stringResource(R.string.link_open_background), act {
                                 state.newTab(d.link, d.incognito, background = true, parent = parent)
-                                state.snack("Otwarto w tle", "Przejdź") { state.tabs.lastOrNull { it.url == d.link }?.let { state.select(it.id) } }
+                                state.snack(ctx.getString(R.string.link_opened_background), ctx.getString(R.string.source_go)) { state.tabs.lastOrNull { it.url == d.link }?.let { state.select(it.id) } }
                             })
-                            if (!d.incognito) MenuItemRow(Icons.Rounded.VisibilityOff, "Otwórz w incognito", act { state.newTab(d.link, incognito = true) })
-                            MenuItemRow(Icons.Rounded.ContentCopy, "Kopiuj adres linku", act { copy(ctx, d.link); state.snack("Skopiowano") })
-                            MenuItemRow(Icons.Rounded.Share, "Udostępnij link", act { share(ctx, d.link, "") })
-                            MenuItemRow(Icons.Rounded.QrCode2, "Kod QR linku", act { state.dialog = BrowserDialog.Qr(d.link, "") })
-                            MenuItemRow(Icons.Rounded.Download, "Pobierz link", act { state.download(d.link, d.incognito) })
+                            if (!d.incognito) MenuItemRow(Icons.Rounded.VisibilityOff, stringResource(R.string.link_open_incognito), act { state.newTab(d.link, incognito = true) })
+                            MenuItemRow(Icons.Rounded.ContentCopy, stringResource(R.string.link_copy), act { copy(ctx, d.link); state.snack(ctx.getString(R.string.common_copied)) })
+                            MenuItemRow(Icons.Rounded.Share, stringResource(R.string.link_share), act { share(ctx, d.link, "") })
+                            MenuItemRow(Icons.Rounded.QrCode2, stringResource(R.string.link_qr), act { state.dialog = BrowserDialog.Qr(d.link, "") })
+                            MenuItemRow(Icons.Rounded.Download, stringResource(R.string.link_download), act { state.downloads.download(d.link, d.incognito) })
                         }
                         if (d.image != null) {
-                            MenuItemRow(Icons.Rounded.Image, "Otwórz obraz", act { state.newTab(d.image, d.incognito, parent = parent) })
-                            MenuItemRow(Icons.Rounded.Download, "Pobierz obraz", act { state.download(d.image, d.incognito) })
-                            MenuItemRow(Icons.Rounded.ContentCopy, "Kopiuj adres obrazu", act { copy(ctx, d.image); state.snack("Skopiowano") })
+                            MenuItemRow(Icons.Rounded.Image, stringResource(R.string.image_open), act { state.newTab(d.image, d.incognito, parent = parent) })
+                            MenuItemRow(Icons.Rounded.Download, stringResource(R.string.image_download), act { state.downloads.download(d.image, d.incognito) })
+                            MenuItemRow(Icons.Rounded.ContentCopy, stringResource(R.string.image_copy), act { copy(ctx, d.image); state.snack(ctx.getString(R.string.common_copied)) })
                         }
                     }
                 },
@@ -451,28 +456,41 @@ fun BrowserDialogs(state: BrowserState) {
         }
         is BrowserDialog.Ssl -> AlertDialog(
             onDismissRequest = { state.dialog = null; d.handler.cancel() },
-            title = { Text("Połączenie nie jest prywatne") },
-            text = { Text("${d.error}\n\nOsoby trzecie mogą próbować przechwycić dane z ${android.net.Uri.parse(d.url).host}.") },
-            confirmButton = { TextButton(onClick = { state.dialog = null; d.handler.cancel() }) { Text("Wróć do bezpieczeństwa") } },
-            dismissButton = { TextButton(onClick = { state.dialog = null; d.handler.proceed() }) { Text("Kontynuuj", color = MaterialTheme.colorScheme.error) } },
+            title = { Text(stringResource(R.string.ssl_title)) },
+            text = { Text(stringResource(R.string.ssl_text, d.error, android.net.Uri.parse(d.url).host.orEmpty())) },
+            confirmButton = { TextButton(onClick = { state.dialog = null; d.handler.cancel() }) { Text(stringResource(R.string.ssl_back)) } },
+            dismissButton = { TextButton(onClick = { state.dialog = null; d.handler.proceed() }) { Text(stringResource(R.string.ssl_continue), color = MaterialTheme.colorScheme.error) } },
+        )
+        is BrowserDialog.HttpsFallback -> AlertDialog(
+            onDismissRequest = { state.dialog = null },
+            title = { Text(stringResource(R.string.https_fallback_title)) },
+            text = {
+                Text(stringResource(R.string.https_fallback_text, d.reason, android.net.Uri.parse(d.httpUrl).host.orEmpty()))
+            },
+            confirmButton = { TextButton(onClick = { state.dialog = null }) { Text(stringResource(R.string.https_fallback_cancel)) } },
+            dismissButton = {
+                TextButton(onClick = { state.dialog = null; state.openInsecure(d.tab, d.httpUrl) }) {
+                    Text(stringResource(R.string.https_fallback_open), color = MaterialTheme.colorScheme.error)
+                }
+            },
         )
         is BrowserDialog.Qr -> {
             val bmp = remember(d.url) { runCatching { qrBitmap(d.url) }.getOrNull() }
             AlertDialog(
                 onDismissRequest = { state.dialog = null },
-                title = { Text("Kod QR") },
+                title = { Text(stringResource(R.string.menu_qr)) },
                 text = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         if (bmp != null) {
-                            Image(bmp.asImageBitmap(), "Kod QR", Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)),
+                            Image(bmp.asImageBitmap(), stringResource(R.string.menu_qr), Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)),
                                 filterQuality = FilterQuality.None)
                         }
                         Text(d.url, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 10.dp))
                     }
                 },
-                confirmButton = { TextButton(onClick = { state.dialog = null }) { Text("Zamknij") } },
-                dismissButton = { TextButton(onClick = { copy(ctx, d.url); state.snack("Skopiowano adres") }) { Text("Kopiuj adres") } },
+                confirmButton = { TextButton(onClick = { state.dialog = null }) { Text(stringResource(R.string.common_close)) } },
+                dismissButton = { TextButton(onClick = { copy(ctx, d.url); state.snack(ctx.getString(R.string.common_address_copied)) }) { Text(stringResource(R.string.common_copy_address)) } },
             )
         }
         is BrowserDialog.PageZoom -> {
@@ -481,16 +499,16 @@ fun BrowserDialogs(state: BrowserState) {
             var zoom by remember(tab.id) { mutableFloatStateOf(initial.toFloat()) }
             AlertDialog(
                 onDismissRequest = { state.dialog = null },
-                title = { Text("Rozmiar tekstu · ${zoom.toInt()}%") },
+                title = { Text(stringResource(R.string.zoom_title, zoom.toInt())) },
                 text = {
                     Column {
                         Slider(zoom, { zoom = it; tab.webView?.settings?.textZoom = it.toInt() }, valueRange = 50f..250f, steps = 19)
-                        Text("Zapamiętywany dla ${tab.host}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.zoom_remembered, tab.host), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                confirmButton = { TextButton(onClick = { state.setPageZoom(tab, zoom.toInt()); state.dialog = null }) { Text("Zapisz") } },
+                confirmButton = { TextButton(onClick = { state.setPageZoom(tab, zoom.toInt()); state.dialog = null }) { Text(stringResource(R.string.common_save)) } },
                 dismissButton = {
-                    TextButton(onClick = { state.setPageZoom(tab, state.settings.textZoom); state.dialog = null }) { Text("Domyślny") }
+                    TextButton(onClick = { state.setPageZoom(tab, state.settings.textZoom); state.dialog = null }) { Text(stringResource(R.string.zoom_default)) }
                 },
             )
         }
@@ -515,9 +533,9 @@ private fun SiteInfoSheet(state: BrowserState, tab: Tab) {
                     Text(host, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         when {
-                            tab.secure -> "Połączenie szyfrowane (HTTPS)"
-                            tab.url.startsWith("http://") -> "Połączenie nieszyfrowane"
-                            else -> "Strona lokalna"
+                            tab.secure -> stringResource(R.string.site_secure)
+                            tab.url.startsWith("http://") -> stringResource(R.string.site_insecure)
+                            else -> stringResource(R.string.site_local)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (tab.url.startsWith("http://")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -525,20 +543,20 @@ private fun SiteInfoSheet(state: BrowserState, tab: Tab) {
                 }
             }
             if (state.settings.adBlock) {
-                Text("Zablokowano elementów: ${tab.blocked}", style = MaterialTheme.typography.bodySmall,
+                Text(stringResource(R.string.site_blocked, tab.blocked), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, top = 10.dp))
             }
-            SectionTitle("Ustawienia tej strony")
-            ToggleRow("Blokuj reklamy", null, rule.adBlock) { v -> state.updateRule(tab) { it.copy(adBlock = v) } }
-            ToggleRow("JavaScript", null, rule.javascript) { v -> state.updateRule(tab) { it.copy(javascript = v) } }
-            ToggleRow("Zawsze wersja komputerowa", null, rule.desktop) { v -> state.updateRule(tab) { it.copy(desktop = v) } }
-            ToggleRow("Ciemny wygląd", "Gdy włączony jest ciemny motyw", rule.darkMode) { v -> state.updateRule(tab) { it.copy(darkMode = v) } }
+            SectionTitle(stringResource(R.string.site_settings))
+            ToggleRow(stringResource(R.string.site_ad_block), null, rule.adBlock) { v -> state.updateRule(tab) { it.copy(adBlock = v) } }
+            ToggleRow(stringResource(R.string.site_javascript), null, rule.javascript) { v -> state.updateRule(tab) { it.copy(javascript = v) } }
+            ToggleRow(stringResource(R.string.site_desktop), null, rule.desktop) { v -> state.updateRule(tab) { it.copy(desktop = v) } }
+            ToggleRow(stringResource(R.string.site_dark), stringResource(R.string.site_dark_hint), rule.darkMode) { v -> state.updateRule(tab) { it.copy(darkMode = v) } }
             val saved = state.passwords.forHost(host).count { it.host == host }
             if (saved > 0) {
-                Text("Zapisane loginy dla tej strony: $saved (menu → Hasła)", style = MaterialTheme.typography.bodySmall,
+                Text(stringResource(R.string.site_saved_logins, saved), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
             }
-            ClickRow("Wyczyść ciasteczka i dane strony", "Wylogowuje z $host") { state.clearSiteData(tab); state.dialog = null }
+            ClickRow(stringResource(R.string.site_clear), stringResource(R.string.site_clear_hint, host)) { state.clearSiteData(tab); state.dialog = null }
         }
     }
 }

@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +54,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.data.Bookmark
 import kotlinx.coroutines.delay
@@ -73,10 +75,10 @@ private fun LibraryScaffold(
             .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing),
     ) {
         Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            RoundIcon(Icons.AutoMirrored.Filled.ArrowBack, "Wstecz", onClick = onBack)
+            RoundIcon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_back), onClick = onBack)
             if (searching) {
                 TextField(
-                    query, onQuery, placeholder = { Text("Szukaj") }, singleLine = true,
+                    query, onQuery, placeholder = { Text(stringResource(R.string.common_search)) }, singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
@@ -86,7 +88,7 @@ private fun LibraryScaffold(
             } else {
                 Text(title, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(start = 8.dp))
             }
-            RoundIcon(if (searching) Icons.Filled.Close else Icons.Filled.Search, "Szukaj") {
+            RoundIcon(if (searching) Icons.Filled.Close else Icons.Filled.Search, stringResource(R.string.common_search)) {
                 searching = !searching
                 if (!searching) onQuery("")
             }
@@ -123,15 +125,15 @@ private fun SiteRow(url: String, title: String, subtitle: String, onClick: () ->
 fun BookmarksScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> Unit) {
     var query by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf<Bookmark?>(null) }
-    LibraryScaffold("Zakładki", onBack, query, { query = it }) { m ->
+    LibraryScaffold(stringResource(R.string.library_bookmarks), onBack, query, { query = it }) { m ->
         val q = query.lowercase()
         val list = state.store.bookmarks.filter { q.isEmpty() || it.title.lowercase().contains(q) || it.url.lowercase().contains(q) }
-        if (list.isEmpty()) Empty(if (q.isEmpty()) "Brak zakładek – dodaj je gwiazdką w menu" else "Nic nie znaleziono", m)
+        if (list.isEmpty()) Empty(stringResource(if (q.isEmpty()) R.string.library_bookmarks_empty else R.string.common_nothing_found), m)
         else LazyColumn(m) {
             items(list, key = { it.id }) { b ->
                 SiteRow(b.url, b.title, hostOf(b.url), { onOpen(b.url) }) {
-                    IconButton(onClick = { editing = b }) { Icon(Icons.Filled.Edit, "Edytuj") }
-                    IconButton(onClick = { state.store.removeBookmark(b.id) }) { Icon(Icons.Filled.Close, "Usuń") }
+                    IconButton(onClick = { editing = b }) { Icon(Icons.Filled.Edit, stringResource(R.string.common_edit)) }
+                    IconButton(onClick = { state.store.removeBookmark(b.id) }) { Icon(Icons.Filled.Close, stringResource(R.string.common_delete)) }
                 }
             }
         }
@@ -141,15 +143,15 @@ fun BookmarksScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) ->
         var url by remember(b) { mutableStateOf(b.url) }
         AlertDialog(
             onDismissRequest = { editing = null },
-            title = { Text("Edytuj zakładkę") },
+            title = { Text(stringResource(R.string.library_edit_bookmark)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(title, { title = it }, label = { Text("Nazwa") }, singleLine = true)
-                    OutlinedTextField(url, { url = it }, label = { Text("Adres") }, singleLine = true)
+                    OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.library_name)) }, singleLine = true)
+                    OutlinedTextField(url, { url = it }, label = { Text(stringResource(R.string.library_address)) }, singleLine = true)
                 }
             },
-            confirmButton = { TextButton(onClick = { state.store.saveBookmark(b.copy(title = title, url = normalizeUrl(url))); editing = null }) { Text("Zapisz") } },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text("Anuluj") } },
+            confirmButton = { TextButton(onClick = { state.store.saveBookmark(b.copy(title = title, url = normalizeUrl(url))); editing = null }) { Text(stringResource(R.string.common_save)) } },
+            dismissButton = { TextButton(onClick = { editing = null }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }
@@ -159,12 +161,12 @@ fun HistoryScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> U
     val ctx = LocalContext.current
     var query by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf(false) }
-    LibraryScaffold("Historia", onBack, query, { query = it }, actions = {
-        RoundIcon(Icons.Filled.DeleteSweep, "Wyczyść historię") { confirm = true }
+    LibraryScaffold(stringResource(R.string.library_history), onBack, query, { query = it }, actions = {
+        RoundIcon(Icons.Filled.DeleteSweep, stringResource(R.string.library_clear_history)) { confirm = true }
     }) { m ->
         val q = query.lowercase()
         val list = state.store.history.filter { q.isEmpty() || it.title.lowercase().contains(q) || it.url.lowercase().contains(q) }.take(1000)
-        if (list.isEmpty()) Empty(if (q.isEmpty()) "Historia jest pusta" else "Nic nie znaleziono", m)
+        if (list.isEmpty()) Empty(stringResource(if (q.isEmpty()) R.string.library_history_empty else R.string.common_nothing_found), m)
         else LazyColumn(m) {
             var lastDay = ""
             list.forEach { h ->
@@ -177,7 +179,7 @@ fun HistoryScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> U
                 item {
                     val time = DateUtils.formatDateTime(ctx, h.time, DateUtils.FORMAT_SHOW_TIME)
                     SiteRow(h.url, h.title, "$time · ${hostOf(h.url)}", { onOpen(h.url) }) {
-                        IconButton(onClick = { state.store.removeHistory(h) }) { Icon(Icons.Filled.Close, "Usuń") }
+                        IconButton(onClick = { state.store.removeHistory(h) }) { Icon(Icons.Filled.Close, stringResource(R.string.common_delete)) }
                     }
                 }
             }
@@ -186,9 +188,9 @@ fun HistoryScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> U
     if (confirm) {
         AlertDialog(
             onDismissRequest = { confirm = false },
-            title = { Text("Wyczyścić całą historię?") },
-            confirmButton = { TextButton(onClick = { state.clearData(cache = false, cookies = false, history = true, storage = false); confirm = false }) { Text("Wyczyść") } },
-            dismissButton = { TextButton(onClick = { confirm = false }) { Text("Anuluj") } },
+            title = { Text(stringResource(R.string.library_clear_history_title)) },
+            confirmButton = { TextButton(onClick = { state.clearData(cache = false, cookies = false, history = true, storage = false); confirm = false }) { Text(stringResource(R.string.library_clear)) } },
+            dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }
@@ -227,13 +229,13 @@ fun DownloadsScreen(state: BrowserState, onBack: () -> Unit) {
             delay(if (items.any { it.status == DownloadManager.STATUS_RUNNING || it.status == DownloadManager.STATUS_PENDING }) 700 else 3000)
         }
     }
-    LibraryScaffold("Pobrane", onBack, query, { query = it }, actions = {
+    LibraryScaffold(stringResource(R.string.library_downloads), onBack, query, { query = it }, actions = {
         IconButton(onClick = {
             ctx.startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }) { Icon(Icons.Filled.FolderOpen, "Folder pobranych") }
+        }) { Icon(Icons.Filled.FolderOpen, stringResource(R.string.library_downloads_folder)) }
     }) { m ->
         val list = items.filter { query.isEmpty() || it.title.contains(query, true) }
-        if (list.isEmpty()) Empty("Brak pobranych plików", m)
+        if (list.isEmpty()) Empty(stringResource(R.string.library_downloads_empty), m)
         else LazyColumn(m) {
             items(list, key = { it.id }) { d ->
                 Row(
@@ -246,10 +248,10 @@ fun DownloadsScreen(state: BrowserState, onBack: () -> Unit) {
                         Text(d.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         val status = when (d.status) {
                             DownloadManager.STATUS_SUCCESSFUL -> formatSize(d.total.coerceAtLeast(d.done))
-                            DownloadManager.STATUS_FAILED -> "Nie udało się"
-                            DownloadManager.STATUS_PAUSED -> "Wstrzymano"
-                            DownloadManager.STATUS_PENDING -> "Oczekuje…"
-                            else -> if (d.total > 0) "${formatSize(d.done)} z ${formatSize(d.total)}" else formatSize(d.done)
+                            DownloadManager.STATUS_FAILED -> stringResource(R.string.library_download_failed)
+                            DownloadManager.STATUS_PAUSED -> stringResource(R.string.library_download_paused)
+                            DownloadManager.STATUS_PENDING -> stringResource(R.string.library_download_pending)
+                            else -> if (d.total > 0) stringResource(R.string.library_download_progress, formatSize(d.done), formatSize(d.total)) else formatSize(d.done)
                         }
                         Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         if (d.status == DownloadManager.STATUS_RUNNING && d.total > 0) {
@@ -261,7 +263,7 @@ fun DownloadsScreen(state: BrowserState, onBack: () -> Unit) {
                             (ctx.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).remove(d.id)
                         }
                         state.store.removeDownload(d.id)
-                    }) { Icon(Icons.Filled.Close, "Usuń z listy") }
+                    }) { Icon(Icons.Filled.Close, stringResource(R.string.library_remove_from_list)) }
                 }
             }
         }
@@ -277,7 +279,7 @@ private fun openDownload(ctx: Context, d: DownloadItem) {
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
         )
     } catch (_: Exception) {
-        android.widget.Toast.makeText(ctx, "Brak aplikacji do otwarcia pliku", android.widget.Toast.LENGTH_SHORT).show()
+        android.widget.Toast.makeText(ctx, ctx.getString(R.string.library_no_app_for_file), android.widget.Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -286,11 +288,11 @@ fun OfflineScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> U
     var query by remember { mutableStateOf("") }
     var version by remember { mutableStateOf(0) }
     val files = remember(version) {
-        state.offlineDir.listFiles { f -> f.extension == "mht" }?.sortedByDescending { it.lastModified() } ?: emptyList()
+        state.tools.offlineDir.listFiles { f -> f.extension == "mht" }?.sortedByDescending { it.lastModified() } ?: emptyList()
     }
-    LibraryScaffold("Strony offline", onBack, query, { query = it }) { m ->
+    LibraryScaffold(stringResource(R.string.library_offline), onBack, query, { query = it }) { m ->
         val list = files.filter { query.isEmpty() || it.name.contains(query, true) }
-        if (list.isEmpty()) Empty("Brak zapisanych stron – zapisz stronę z menu", m)
+        if (list.isEmpty()) Empty(stringResource(R.string.library_offline_empty), m)
         else LazyColumn(m) {
             items(list, key = { it.absolutePath }) { f ->
                 Row(
@@ -306,7 +308,7 @@ fun OfflineScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> U
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    RoundIcon(Icons.Filled.Close, "Usuń") { f.delete(); version++ }
+                    RoundIcon(Icons.Filled.Close, stringResource(R.string.common_delete)) { f.delete(); version++ }
                 }
             }
         }

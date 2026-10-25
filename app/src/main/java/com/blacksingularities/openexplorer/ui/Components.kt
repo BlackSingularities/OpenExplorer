@@ -59,8 +59,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.update.UpdateState
 import com.blacksingularities.openexplorer.update.Updater
@@ -148,13 +150,13 @@ fun Panel(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (onBack != null) {
-                    RoundIcon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", onClick = onBack)
+                    RoundIcon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back), onClick = onBack)
                     Spacer(Modifier.width(6.dp))
                 }
                 Text(title, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
                 actions()
-                RoundIcon(Icons.Rounded.Close, "Zamknij", onClick = onClose)
+                RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_close), onClick = onClose)
             }
             Column(
                 Modifier.fillMaxWidth().weight(1f)
@@ -314,11 +316,11 @@ fun UpdateBanner(
         (u is UpdateState.Failed && u.info != null)) && (version.isEmpty() || version != updater.bannerHiddenFor)
     AnimatedVisibility(visible, modifier, enter = slideInVertically { -it } + fadeIn(), exit = slideOutVertically { -it } + fadeOut()) {
         val (title, action) = when (u) {
-            is UpdateState.Available -> "Nowa wersja ${u.info.version}" to "Aktualizuj"
-            is UpdateState.Downloading -> "Pobieranie ${u.info.version} · ${(u.progress * 100).roundToInt()}%" to null
-            is UpdateState.Ready -> "Wersja ${u.info.version} pobrana" to "Zainstaluj"
-            is UpdateState.Installing -> "Instalowanie ${u.info.version}…" to null
-            is UpdateState.Failed -> "Aktualizacja nie powiodła się" to "Ponów"
+            is UpdateState.Available -> stringResource(R.string.update_banner_available, u.info.version) to stringResource(R.string.passwords_update)
+            is UpdateState.Downloading -> stringResource(R.string.update_banner_downloading, u.info.version, (u.progress * 100).roundToInt()) to null
+            is UpdateState.Ready -> stringResource(R.string.update_banner_ready, u.info.version) to stringResource(R.string.update_banner_install)
+            is UpdateState.Installing -> stringResource(R.string.update_banner_installing, u.info.version) to null
+            is UpdateState.Failed -> stringResource(R.string.update_banner_failed) to stringResource(R.string.update_banner_retry)
             else -> "" to null
         }
         val notes = (u as? UpdateState.Available)?.info?.notes
@@ -333,10 +335,10 @@ fun UpdateBanner(
                     Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     Text(
                         when (u) {
-                            is UpdateState.Available -> "Pobierze się i zainstaluje automatycznie"
-                            is UpdateState.Ready -> "Aplikacja uruchomi się ponownie, karty zostaną przywrócone"
+                            is UpdateState.Available -> stringResource(R.string.update_banner_available_hint)
+                            is UpdateState.Ready -> stringResource(R.string.update_banner_ready_hint)
                             is UpdateState.Failed -> u.message
-                            else -> "Nie zamykaj aplikacji"
+                            else -> stringResource(R.string.update_banner_wait)
                         },
                         fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -355,7 +357,7 @@ fun UpdateBanner(
                             .padding(horizontal = 14.dp, vertical = 8.dp),
                     )
                 }
-                if (u !is UpdateState.Downloading && u !is UpdateState.Installing) RoundIcon(Icons.Rounded.Close, "Ukryj", size = 34.dp, iconSize = 18.dp, onClick = onHide)
+                if (u !is UpdateState.Downloading && u !is UpdateState.Installing) RoundIcon(Icons.Rounded.Close, stringResource(R.string.update_banner_hide), size = 34.dp, iconSize = 18.dp, onClick = onHide)
             }
             if (u is UpdateState.Downloading) {
                 LinearProgressIndicator(progress = { u.progress }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp))

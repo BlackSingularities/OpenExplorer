@@ -1,0 +1,642 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Angielska wersja napisów (telefony z językiem angielskim). Klucze i parametry (%s, %d, %1$s…)
+  muszą zgadzać się z values/strings.xml – brakujący napis spada do wersji polskiej.
+  Apostrofy w tekście trzeba poprzedzić ukośnikiem (\').
+-->
+<resources>
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="common_search">Search</string>
+    <string name="common_more">More</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_close">Close</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_save">Save</string>
+    <string name="common_saved">Saved</string>
+    <string name="common_undo">Undo</string>
+    <string name="common_not_now">Not now</string>
+
+    <!-- Passwords screen -->
+    <string name="passwords_title">Passwords</string>
+    <string name="passwords_unlock_title">Unlock passwords</string>
+    <string name="passwords_unlock">Unlock</string>
+    <string name="passwords_locked">Passwords are locked</string>
+    <string name="passwords_locked_hint">Confirm it\'s you – with your fingerprint, face or screen lock.</string>
+    <string name="passwords_search_hint">Search sites or usernames</string>
+    <string name="passwords_add">Add password</string>
+    <string name="passwords_import_csv">Import from CSV file</string>
+    <string name="passwords_export_csv">Export to CSV file</string>
+    <string name="passwords_never_menu">Never-save sites (%d)</string>
+    <string name="passwords_no_screen_lock">This phone has no screen lock – anyone who picks it up can see your passwords. Set a PIN, pattern or fingerprint in system settings.</string>
+    <string name="passwords_empty">Passwords saved in the browser will appear here. You can also import them from Edge, Chrome or another manager (menu ⋮ → Import from CSV file).</string>
+    <plurals name="passwords_summary">
+        <item quantity="one">%d saved login · encrypted, stored only on this phone</item>
+        <item quantity="other">%d saved logins · encrypted, stored only on this phone</item>
+    </plurals>
+    <string name="passwords_filter_all">All · %d</string>
+    <string name="passwords_filter_weak">Weak · %d</string>
+    <string name="passwords_filter_reused">Reused · %d</string>
+    <string name="passwords_no_username">(no username)</string>
+    <string name="passwords_weak_or_reused">Weak or reused password</string>
+    <string name="passwords_copy">Copy password</string>
+    <string name="passwords_copied">Password copied – the clipboard clears in a minute</string>
+
+    <!-- CSV import and export -->
+    <plurals name="passwords_exported">
+        <item quantity="one">Exported %d password – delete the file when you no longer need it</item>
+        <item quantity="other">Exported %d passwords – delete the file when you no longer need it</item>
+    </plurals>
+    <plurals name="passwords_imported">
+        <item quantity="one">Imported %d password – delete the CSV file from your phone</item>
+        <item quantity="other">Imported %d passwords – delete the CSV file from your phone</item>
+    </plurals>
+    <string name="passwords_import_empty">No passwords found in the file (expected columns: url, username, password)</string>
+    <string name="passwords_import_error">Couldn\'t read the file: %s</string>
+    <string name="passwords_file_empty">empty file</string>
+    <string name="passwords_export_error">Couldn\'t save: %s</string>
+    <string name="passwords_export_title">Export passwords?</string>
+    <string name="passwords_export_warning">The CSV file is not encrypted – anyone who opens it will see all your passwords. Move it to another manager right away and delete it.</string>
+    <string name="passwords_export_auth">Export passwords</string>
+    <string name="passwords_export">Export</string>
+
+    <!-- Never-save sites -->
+    <string name="passwords_never_title">Sites that never save passwords</string>
+    <string name="passwords_never_empty">None – when asked to save, you can choose “Never for this site”.</string>
+    <string name="passwords_never_remove">Remove from list</string>
+    <string name="passwords_never_for_site">Never for this site</string>
+
+    <!-- Login dialog -->
+    <string name="passwords_new_login">New login</string>
+    <string name="passwords_site_label">Site (e.g. example.com)</string>
+    <string name="passwords_username_label">Username or email</string>
+    <string name="passwords_copy_username">Copy username</string>
+    <string name="passwords_username_copied">Username copied</string>
+    <string name="passwords_password_label">Password</string>
+    <string name="passwords_generate">Generate a strong password</string>
+    <plurals name="passwords_reused_warning">
+        <item quantity="one">The same password is used on %d other site – better use a different one.</item>
+        <item quantity="other">The same password is used on %d other sites – better use a different one.</item>
+    </plurals>
+    <string name="passwords_note_label">Note (optional)</string>
+    <string name="passwords_saved_at">Saved %1$s</string>
+    <string name="passwords_saved_and_used">Saved %1$s · last used %2$s</string>
+    <string name="passwords_open_site">Open site</string>
+    <string name="passwords_delete_title">Delete login?</string>
+    <string name="passwords_delete_text">%1$s on %2$s will be removed from this phone.</string>
+    <string name="passwords_login">Login</string>
+    <string name="passwords_deleted">Login deleted</string>
+
+    <!-- Password field and strength -->
+    <string name="passwords_show">Show password</string>
+    <string name="passwords_hide">Hide password</string>
+    <string name="passwords_strength">Password strength: %s</string>
+
+    <!-- On pages: sign-in, new password, saving -->
+    <string name="passwords_saved_logins">Saved logins · %s</string>
+    <string name="passwords_fill">Fill in</string>
+    <string name="passwords_use_strong">Use a strong password?</string>
+    <string name="passwords_use">Use</string>
+    <string name="passwords_saved_after_submit">It will be saved in the password manager when you submit the form.</string>
+    <string name="passwords_save_title">Save password?</string>
+    <string name="passwords_update_title">Update password?</string>
+    <string name="passwords_local_only">Passwords are encrypted and stay only on this phone.</string>
+    <string name="passwords_update">Update</string>
+
+    <!-- Common (addresses, tabs) -->
+    <string name="common_copy_address">Copy address</string>
+    <string name="common_address_copied">Address copied</string>
+    <string name="common_open_new_tab">Open in new tab</string>
+
+    <!-- Page source -->
+    <string name="source_title_default">Page source</string>
+    <string name="source_search_hint">Search in code</string>
+    <string name="source_prev">Previous</string>
+    <string name="source_next">Next</string>
+    <string name="source_close_search">Close search</string>
+    <plurals name="source_lines">
+        <item quantity="one">%d line</item>
+        <item quantity="other">%d lines</item>
+    </plurals>
+    <string name="source_format">Format indentation</string>
+    <string name="source_wrap">Wrap long lines</string>
+    <string name="source_colorize">Syntax highlighting</string>
+    <string name="source_line_numbers">Line numbers</string>
+    <string name="source_text_bigger">Larger text</string>
+    <string name="source_text_smaller">Smaller text</string>
+    <string name="source_to_top">Go to top</string>
+    <string name="source_to_bottom">Go to bottom</string>
+    <string name="source_go_to_line_menu">Go to line…</string>
+    <string name="source_copy_all">Copy all code</string>
+    <string name="source_too_big">The code is too large for the clipboard – use “Share”</string>
+    <string name="source_copied">Code copied</string>
+    <string name="source_share">Share code</string>
+    <string name="source_tab_server">From server</string>
+    <string name="source_tab_dom">After loading</string>
+    <string name="source_tab_resources">Resources</string>
+    <string name="source_tab_resources_count">Resources (%d)</string>
+    <string name="source_tab_headers">Headers</string>
+    <string name="source_see_dom">See “After loading”</string>
+    <string name="source_empty">The page returned no code</string>
+    <string name="source_truncated">Showing the first %s of code</string>
+    <string name="source_go_to_line">Go to line</string>
+    <string name="source_line_number">Line number (1–%d)</string>
+    <string name="source_go">Go</string>
+    <string name="source_no_resources">No resources found on this page</string>
+    <string name="source_res_script">Scripts</string>
+    <string name="source_res_style">Stylesheets</string>
+    <string name="source_res_frame">Frames</string>
+    <string name="source_res_image">Images</string>
+    <string name="source_res_fetch">Network requests</string>
+    <string name="source_res_other">Other</string>
+    <string name="source_res_hint">Tap to view a resource\'s code. Long-press to copy its address.</string>
+    <string name="source_response">Server response</string>
+    <string name="source_response_summary">Status %1$d · %2$s · %3$s</string>
+    <string name="source_unknown_type">unknown type</string>
+
+    <!-- Common (lists) -->
+    <string name="common_edit">Edit</string>
+    <string name="common_nothing_found">Nothing found</string>
+
+    <!-- Bookmarks, history, downloads, offline pages -->
+    <string name="library_bookmarks">Bookmarks</string>
+    <string name="library_bookmarks_empty">No bookmarks – add them with the star in the menu</string>
+    <string name="library_edit_bookmark">Edit bookmark</string>
+    <string name="library_name">Name</string>
+    <string name="library_address">Address</string>
+    <string name="library_history">History</string>
+    <string name="library_history_empty">History is empty</string>
+    <string name="library_clear_history">Clear history</string>
+    <string name="library_clear_history_title">Clear all history?</string>
+    <string name="library_clear">Clear</string>
+    <string name="library_downloads">Downloads</string>
+    <string name="library_downloads_folder">Downloads folder</string>
+    <string name="library_downloads_empty">No downloaded files</string>
+    <string name="library_download_failed">Failed</string>
+    <string name="library_download_paused">Paused</string>
+    <string name="library_download_pending">Waiting…</string>
+    <string name="library_download_progress">%1$s of %2$s</string>
+    <string name="library_remove_from_list">Remove from list</string>
+    <string name="library_no_app_for_file">No app can open this file</string>
+    <string name="library_offline">Offline pages</string>
+    <string name="library_offline_empty">No saved pages – save a page from the menu</string>
+
+    <!-- Common (sharing) -->
+    <string name="common_share">Share</string>
+    <string name="common_copied">Copied</string>
+
+    <!-- Browser menu -->
+    <string name="menu_forward">Forward</string>
+    <string name="menu_reload">Reload</string>
+    <string name="menu_bookmark">Bookmark</string>
+    <string name="menu_bookmark_added">Bookmark added</string>
+    <string name="menu_bookmark_removed">Bookmark removed</string>
+    <string name="menu_new_tab">New tab</string>
+    <string name="menu_incognito">Incognito</string>
+    <string name="menu_downloads">Downloads</string>
+    <string name="menu_offline">Saved pages</string>
+    <string name="menu_restore_tab">Restore tab</string>
+    <string name="menu_find">Find in page</string>
+    <string name="menu_desktop">Desktop site</string>
+    <string name="menu_reader">Reader mode</string>
+    <string name="menu_read_aloud">Read aloud</string>
+    <string name="menu_stop_reading">Stop reading</string>
+    <string name="menu_text_size">Text size</string>
+    <string name="menu_translate">Translate</string>
+    <string name="menu_save_offline">Save for offline</string>
+    <string name="menu_screenshot">Screenshot</string>
+    <string name="menu_qr">QR code</string>
+    <string name="menu_add_tile">Add tile</string>
+    <string name="menu_tile_added">Added to the start page</string>
+    <string name="menu_shortcut">Home screen shortcut</string>
+    <string name="menu_print">Print / PDF</string>
+    <string name="menu_print_default_name">Page</string>
+    <string name="menu_edit_tiles">Edit tiles</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_exit">Exit</string>
+
+    <!-- Tab list -->
+    <string name="tabs_normal">Tabs · %d</string>
+    <string name="tabs_incognito">Incognito · %d</string>
+    <string name="tabs_restore_closed">Restore closed tab</string>
+    <string name="tabs_close_all_short">Close\nall</string>
+    <string name="tabs_empty">No tabs</string>
+    <string name="tabs_empty_incognito">No incognito tabs</string>
+    <string name="tabs_new_incognito">New incognito</string>
+    <string name="tabs_close_all_title">Close all tabs?</string>
+    <plurals name="tabs_close_all_text">
+        <item quantity="one">%d tab will be closed.</item>
+        <item quantity="other">%d tabs will be closed.</item>
+    </plurals>
+    <string name="tabs_close_tab">Close tab</string>
+
+    <!-- Page dialogs: permissions, downloads -->
+    <string name="dialog_permission_title">Access request</string>
+    <string name="dialog_permission_text">%1$s wants access to: %2$s.</string>
+    <string name="dialog_allow">Allow</string>
+    <string name="dialog_deny">Deny</string>
+    <string name="dialog_download_title">Download file?</string>
+    <string name="dialog_file_name">File name</string>
+    <string name="dialog_unknown_size">unknown size</string>
+    <string name="dialog_download">Download</string>
+
+    <!-- Link and image menu -->
+    <string name="link_open_background">Open in background</string>
+    <string name="link_opened_background">Opened in background</string>
+    <string name="link_open_incognito">Open in incognito</string>
+    <string name="link_copy">Copy link address</string>
+    <string name="link_share">Share link</string>
+    <string name="link_qr">Link QR code</string>
+    <string name="link_download">Download link</string>
+    <string name="image_open">Open image</string>
+    <string name="image_download">Download image</string>
+    <string name="image_copy">Copy image address</string>
+
+    <!-- Certificates and HTTPS -->
+    <string name="ssl_title">Your connection is not private</string>
+    <string name="ssl_text">%1$s\n\nSomeone may be trying to intercept your data on %2$s.</string>
+    <string name="ssl_back">Back to safety</string>
+    <string name="ssl_continue">Continue</string>
+    <string name="https_fallback_title">Unencrypted site</string>
+    <string name="https_fallback_text">%1$s\n\n%2$s only works over http:// – people on the same network can see and change what you send and view.</string>
+    <string name="https_fallback_cancel">Don\'t open</string>
+    <string name="https_fallback_open">Open without encryption</string>
+
+    <!-- Page text size -->
+    <string name="zoom_title">Text size · %d%%</string>
+    <string name="zoom_remembered">Remembered for %s</string>
+    <string name="zoom_default">Default</string>
+
+    <!-- Site panel -->
+    <string name="site_secure">Encrypted connection (HTTPS)</string>
+    <string name="site_insecure">Unencrypted connection</string>
+    <string name="site_local">Local page</string>
+    <string name="site_blocked">Blocked items: %d</string>
+    <string name="site_settings">Settings for this site</string>
+    <string name="site_ad_block">Block ads</string>
+    <string name="site_javascript">JavaScript</string>
+    <string name="site_desktop">Always desktop site</string>
+    <string name="site_dark">Dark appearance</string>
+    <string name="site_dark_hint">When the dark theme is on</string>
+    <string name="site_saved_logins">Saved logins for this site: %d (menu → Passwords)</string>
+    <string name="site_clear">Clear cookies and site data</string>
+    <string name="site_clear_hint">Signs you out of %s</string>
+
+    <!-- Settings -->
+    <string name="settings_backup_saved">Backup saved</string>
+    <string name="settings_backup_save_error">Couldn\'t save: %s</string>
+    <string name="settings_backup_empty_file">Empty file</string>
+    <string name="settings_backup_restored">Backup restored</string>
+    <string name="settings_backup_invalid">Invalid backup file: %s</string>
+    <string name="settings_homepage_ask">Page address (empty = tiles)</string>
+    <string name="settings_custom_search_ask" formatted="false">Search address with %s in place of the query</string>
+    <string name="settings_filters_error">Couldn\'t download: %s</string>
+    <string name="settings_user_agent_ask">Custom User-Agent (empty = default)</string>
+    <string name="settings_update_allow_install">Allow installation and come back to the app</string>
+    <string name="settings_reset_done">Settings restored</string>
+    <string name="settings_data_cleared">Data cleared</string>
+    <string name="settings_page_home">Start page</string>
+    <string name="settings_page_home_hint">Tiles, logos, grid, background</string>
+    <string name="settings_page_look">Appearance</string>
+    <string name="settings_page_look_hint">Theme, colors, bars, gestures</string>
+    <string name="settings_page_privacy">Privacy and security</string>
+    <string name="settings_page_privacy_hint">Ads, HTTPS, cookies, site exceptions</string>
+    <string name="settings_page_content">Page display</string>
+    <string name="settings_page_content_hint">JavaScript, text size, read aloud</string>
+    <string name="settings_page_tabs">Tabs and downloads</string>
+    <string name="settings_page_tabs_hint">Restoring tabs, new tabs, downloads</string>
+    <string name="settings_page_backup">Backup</string>
+    <string name="settings_page_backup_hint">Export and import settings, tiles and bookmarks</string>
+    <string name="settings_page_search">Search and address bar</string>
+    <string name="settings_page_search_hint">%s · suggestions, address completion</string>
+    <string name="settings_page_passwords">Passwords and autofill</string>
+    <string name="settings_page_updates">Updates</string>
+    <string name="settings_page_updates_hint">Automatically from GitHub · version %s</string>
+    <string name="settings_page_about">About</string>
+    <string name="settings_default_browser">Set as default browser</string>
+    <string name="settings_default_browser_hint">Links from other apps will open in OpenExplorer</string>
+    <string name="settings_presets">Presets</string>
+    <string name="settings_preset_logos">Logos only</string>
+    <string name="settings_preset_classic">Tiles</string>
+    <string name="settings_preset_dense">Dense grid</string>
+    <string name="settings_preset_zen">Zen</string>
+    <string name="settings_arrange_tiles">Arrange tiles</string>
+    <string name="settings_arrange_tiles_hint">Drag, edit and remove on the start page</string>
+    <string name="settings_home_wallpaper">Start page background</string>
+    <string name="settings_home_wallpaper_none">None</string>
+    <string name="settings_home_wallpaper_aurora">Aurora</string>
+    <string name="settings_home_wallpaper_gradient">Gradient</string>
+    <string name="settings_home_wallpaper_solid">Color</string>
+    <string name="settings_home_wallpaper_image">Image</string>
+    <string name="settings_pick_wallpaper">Choose an image from the gallery</string>
+    <string name="settings_homepage">The “Home” button opens</string>
+    <string name="settings_homepage_hint">Tiles or a chosen page</string>
+    <string name="settings_homepage_tiles">Tiles</string>
+    <string name="settings_reset_tiles">Restore default tiles</string>
+    <string name="settings_palette">Colors</string>
+    <string name="settings_palette_mono">Black and white</string>
+    <string name="settings_palette_accent">Accent</string>
+    <string name="settings_palette_dynamic">Material You</string>
+    <string name="settings_web_dark_mode">Dark appearance for pages</string>
+    <string name="settings_web_dark_mode_auto">When the theme is dark</string>
+    <string name="settings_web_dark_mode_force">Always (inverts colors)</string>
+    <string name="settings_web_dark_mode_off">Never</string>
+    <string name="settings_search_engine">Search engine</string>
+    <string name="settings_search_suggestions">Search suggestions</string>
+    <string name="settings_search_suggestions_hint">What you type is sent to %s to suggest queries</string>
+    <string name="settings_bangs_hint">Search shortcuts – type e.g. “!yt cats” or “!w London”: %s</string>
+    <string name="settings_saved_passwords">Saved passwords</string>
+    <string name="settings_password_auth_fill">Confirm with fingerprint or PIN</string>
+    <string name="settings_password_auth_fill_hint">Before each password fill on a page</string>
+    <string name="settings_system_autofill">System autofill</string>
+    <string name="settings_system_autofill_hint">Google, Edge, Bitwarden etc. pop-ups in page fields. Off – they don\'t appear</string>
+    <string name="settings_passwords_import_hint">Move passwords from Edge, Chrome or another manager with a CSV file: export them there, then in “Saved passwords” choose ⋮ → Import from CSV file.</string>
+    <string name="settings_ad_block">Block ads and tracking</string>
+    <string name="settings_ad_block_hint">Domains on the list: %d</string>
+    <string name="settings_filters_never">never</string>
+    <string name="settings_filters_hint">StevenBlack · last updated: %s · then refreshed weekly over Wi-Fi</string>
+    <string name="settings_filters_busy">Downloading the blocked domains list…</string>
+    <string name="settings_filters_download">Download the full blocked domains list</string>
+    <string name="settings_clear_on_exit">Clear data on exit</string>
+    <string name="settings_clear_on_exit_hint">History, cookies and site data are removed after “Exit” in the menu and on every launch – you start with a clean tab</string>
+    <string name="settings_clear_now">Clear browsing data now</string>
+    <string name="settings_clear_now_hint">Cache, cookies, history, site data</string>
+    <string name="settings_site_rules">Custom site settings</string>
+    <string name="settings_rule_ads_allowed">ads allowed</string>
+    <string name="settings_rule_no_js">no JavaScript</string>
+    <string name="settings_rule_desktop">desktop site</string>
+    <string name="settings_rule_no_dark">no dark appearance</string>
+    <string name="settings_rule_text_zoom">text %d%%</string>
+    <string name="settings_rule_reset">Restore defaults for this site</string>
+    <string name="settings_user_agent">Browser identifier (User-Agent)</string>
+    <string name="settings_user_agent_hint">How the browser identifies itself to sites</string>
+    <string name="settings_user_agent_custom">Custom</string>
+    <string name="settings_tabs_swipe_hint">You can also close a tab by swiping it sideways in the tab list.</string>
+    <string name="settings_backup_export">Save backup to file</string>
+    <string name="settings_backup_export_hint">Settings, tiles and bookmarks (no passwords)</string>
+    <string name="settings_backup_import">Restore from backup file</string>
+    <string name="settings_backup_passwords_hint">Passwords are backed up separately: Passwords and autofill → Saved passwords → ⋮ → Export to CSV file.</string>
+    <string name="settings_update_auto_install">Install in the background without asking</string>
+    <string name="settings_update_auto_install_ok">Available on this device</string>
+    <string name="settings_update_auto_install_no">Requires Android 12+ and one update installed from within the app</string>
+    <string name="settings_update_permission">Allow installing updates</string>
+    <string name="settings_update_permission_hint">Required once in system settings</string>
+    <string name="settings_update_checking">Checking…</string>
+    <string name="settings_update_up_to_date">You have the latest version</string>
+    <string name="settings_update_available">Version %s available</string>
+    <string name="settings_update_downloading">Downloading %d%%</string>
+    <string name="settings_update_ready">Ready to install</string>
+    <string name="settings_update_installing">Installing…</string>
+    <string name="settings_update_failed">Error: %s</string>
+    <string name="settings_update_idle">Version %s</string>
+    <string name="settings_update_checked">%1$s · checked %2$s</string>
+    <string name="settings_update_download">Download and install %s</string>
+    <string name="settings_update_install">Install version %s</string>
+    <string name="settings_update_install_hint">Downloaded and verified</string>
+    <string name="settings_update_check_now">Check now</string>
+    <string name="settings_about_source">Source code and releases on GitHub</string>
+    <string name="settings_about_author">Design and development: redzikowski.com</string>
+    <string name="settings_about_coffee">☕ Buy me a coffee</string>
+    <string name="settings_about_coffee_hint">Support development on buycoffee.to</string>
+    <string name="settings_reset_all">Restore default settings</string>
+    <string name="settings_reset_tiles_title">Restore default tiles?</string>
+    <string name="settings_reset_tiles_text">Your tiles will be replaced with the default set.</string>
+    <string name="settings_restore">Restore</string>
+    <string name="settings_clear_title">Clear data</string>
+    <string name="settings_home_columns">Columns</string>
+    <string name="settings_home_rows">Rows</string>
+    <string name="settings_home_all_tiles">Show all tiles</string>
+    <string name="settings_home_all_tiles_hint">No row limit – the page scrolls down</string>
+    <string name="settings_tile_icon_scale">Logo size in tile</string>
+    <string name="settings_tile_corner">Corner rounding</string>
+    <string name="settings_tile_spacing">Spacing between tiles</string>
+    <string name="settings_home_width">Maximum grid width</string>
+    <string name="settings_logo_source_hd">Large site logo</string>
+    <string name="settings_logo_source_small">Small icon</string>
+    <string name="settings_logo_source_letter">First letter</string>
+    <string name="settings_logo_source">Logo source</string>
+    <string name="settings_tile_background">Background behind logo</string>
+    <string name="settings_tile_background_hint">Off – logos only</string>
+    <string name="settings_tile_clip">Crop logo to tile shape</string>
+    <string name="settings_tile_clip_hint">Off – logo in its original shape</string>
+    <string name="settings_tile_labels">Names under tiles</string>
+    <string name="settings_tile_label_size">Name size</string>
+    <string name="settings_tile_grayscale">Black and white logos</string>
+    <string name="settings_tile_add_button">“+” tile for adding sites</string>
+    <string name="settings_home_align_center">Center of the screen</string>
+    <string name="settings_home_align_top">Top</string>
+    <string name="settings_home_align">Tile position</string>
+    <string name="settings_home_search_style_pill">Rounded</string>
+    <string name="settings_home_search_style_line">Line only</string>
+    <string name="settings_home_search_style_none">Hidden</string>
+    <string name="settings_home_search_style">Search field</string>
+    <string name="settings_home_clock">Clock and date</string>
+    <string name="settings_home_clock_size">Clock size</string>
+    <string name="settings_home_logo">“OpenExplorer” title</string>
+    <string name="settings_home_logo_hint">Above the search field</string>
+    <string name="settings_home_recent">Recently visited pages</string>
+    <string name="settings_home_recent_hint">List under the tiles</string>
+    <string name="settings_home_recent_count">Number of recent pages</string>
+    <string name="settings_home_wallpaper_dim">Dimming</string>
+    <string name="settings_home_wallpaper_blur">Blur</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_amoled">Pure black in dark theme</string>
+    <string name="settings_amoled_hint">Black background instead of gray – saves battery on OLED screens</string>
+    <string name="settings_density_compact">Smaller</string>
+    <string name="settings_density_normal">Larger</string>
+    <string name="settings_density">Button and bar size</string>
+    <string name="settings_address_bar_bottom">Address bar at the bottom</string>
+    <string name="settings_address_bar_bottom_hint">Easier to use with one hand</string>
+    <string name="settings_nav_bar">Bottom button bar</string>
+    <string name="settings_nav_bar_hint">Back, forward, home, tabs and menu always at hand</string>
+    <string name="settings_show_home_button">“Home” button in the address bar</string>
+    <string name="settings_show_reload_button">Reload button in the address bar</string>
+    <string name="settings_show_tab_counter">Tab count button</string>
+    <string name="settings_show_progress">Loading progress line</string>
+    <string name="settings_hide_bars_on_scroll">Hide bars while scrolling</string>
+    <string name="settings_hide_bars_on_scroll_hint">Bars slide away with the page – more room for content</string>
+    <string name="settings_scroll_top_button">“Back to top” button</string>
+    <string name="settings_scroll_top_button_hint">Appears after scrolling down a long page</string>
+    <string name="settings_swipe_tabs">Switch tabs by swiping the address bar</string>
+    <string name="settings_swipe_tabs_hint">Drag the bar left or right</string>
+    <string name="settings_haptics">Vibrate on button touch</string>
+    <string name="settings_inline_autocomplete">Complete addresses while typing</string>
+    <string name="settings_inline_autocomplete_hint">“you” → “youtube.com” based on history and bookmarks</string>
+    <string name="settings_clipboard_suggestion">Suggest copied link</string>
+    <string name="settings_clipboard_suggestion_hint">When opening the address bar – one tap</string>
+    <string name="settings_password_manager">Built-in password manager</string>
+    <string name="settings_password_manager_hint">Saves and fills logins on sites – without Google, Edge or other services</string>
+    <string name="settings_offer_save_passwords">Offer to save passwords</string>
+    <string name="settings_offer_save_passwords_hint">After signing in on a site (never in incognito)</string>
+    <string name="settings_password_autofill">Fill in without asking</string>
+    <string name="settings_password_autofill_hint">When only one account is saved for the site</string>
+    <string name="settings_reveal_password_button">“Show password” button on sites</string>
+    <string name="settings_reveal_password_button_hint">Eye icon next to password fields (when the site has none)</string>
+    <string name="settings_cosmetic_filter">Hide empty ad frames</string>
+    <string name="settings_cosmetic_filter_hint">Pages have no gaps where ads were blocked</string>
+    <string name="settings_hide_cookie_banners">Hide cookie consent pop-ups</string>
+    <string name="settings_hide_cookie_banners_hint">Common GDPR banners disappear on their own</string>
+    <string name="settings_https_only">Always connect over HTTPS</string>
+    <string name="settings_https_only_hint">http:// addresses are switched to encrypted https://</string>
+    <string name="settings_safe_browsing">Warn about dangerous sites</string>
+    <string name="settings_safe_browsing_hint">Phishing and malware (Google Safe Browsing)</string>
+    <string name="settings_third_party_cookies">Allow third-party cookies</string>
+    <string name="settings_third_party_cookies_hint">Needed for some sign-ins and embedded content, but also used for tracking</string>
+    <string name="settings_do_not_track">Ask sites not to track</string>
+    <string name="settings_do_not_track_hint">Sends “Do Not Track” and “Global Privacy Control” signals</string>
+    <string name="settings_block_popups">Block pop-ups</string>
+    <string name="settings_block_popups_hint">Windows opened by a page without your tap</string>
+    <string name="settings_save_history">Save browsing history</string>
+    <string name="settings_javascript">JavaScript</string>
+    <string name="settings_javascript_hint">Turning it off speeds up pages, but many of them stop working</string>
+    <string name="settings_load_images">Show images</string>
+    <string name="settings_load_images_hint">Off – saves mobile data</string>
+    <string name="settings_block_autoplay">Don\'t autoplay videos and sounds</string>
+    <string name="settings_block_autoplay_hint">They start only after you tap</string>
+    <string name="settings_desktop_default">Always open desktop sites</string>
+    <string name="settings_desktop_default_hint">Pages as on a computer instead of mobile versions</string>
+    <string name="settings_force_zoom">Allow zooming on every page</string>
+    <string name="settings_force_zoom_hint">Even those that block pinch-to-zoom</string>
+    <string name="settings_pull_to_refresh">Pull down to refresh</string>
+    <string name="settings_pull_to_refresh_hint">At the very top of the page</string>
+    <string name="settings_text_zoom">Text size on pages</string>
+    <string name="settings_tts_rate">Read-aloud speed</string>
+    <string name="settings_restore_tabs">Restore tabs after restart</string>
+    <string name="settings_links_in_background">Open new tabs in the background</string>
+    <string name="settings_links_in_background_hint">When opening a tile in a new tab, you stay on the current page</string>
+    <string name="settings_confirm_close_all">Ask before closing all tabs</string>
+    <string name="settings_ask_download">Ask for a file name before downloading</string>
+    <string name="settings_ask_download_hint">Off – downloads start right away</string>
+    <string name="settings_auto_update">Update automatically from GitHub</string>
+    <string name="settings_auto_update_hint">Checks when the app opens and every few hours in the background</string>
+    <string name="settings_update_auto_download">Download new versions right away</string>
+    <string name="settings_update_auto_download_hint">The update waits ready to install</string>
+    <string name="settings_update_wifi_only">Download over Wi-Fi only</string>
+    <string name="settings_update_wifi_only_hint">Doesn\'t use mobile data</string>
+    <string name="settings_clear_cache">Cache</string>
+    <string name="settings_clear_history">History</string>
+    <string name="settings_clear_cookies">Cookies (signs you out of sites)</string>
+    <string name="settings_clear_storage">Data stored by sites</string>
+    <plurals name="settings_filters_updated">
+        <item quantity="one">Filter list: %d domain</item>
+        <item quantity="other">Filter list: %d domains</item>
+    </plurals>
+    <plurals name="settings_page_passwords_hint">
+        <item quantity="one">%d saved · eye icon on passwords</item>
+        <item quantity="other">%d saved · eye icon on passwords</item>
+    </plurals>
+    <plurals name="settings_saved_passwords_hint">
+        <item quantity="one">%d login · encrypted, only on this phone · requires fingerprint or PIN</item>
+        <item quantity="other">%d logins · encrypted, only on this phone · requires fingerprint or PIN</item>
+    </plurals>
+
+    <!-- Start page, address bar, update banner -->
+    <string name="home_incognito_hint">History, cookies and site data from these tabs disappear when you close them.</string>
+    <string name="home_reorder_hint">Press and drag to reorder</string>
+    <string name="home_done">Done</string>
+    <string name="home_search_hint">Search or type an address</string>
+    <string name="home_new_tile">New tile</string>
+    <string name="home_edit_tile">Edit tile</string>
+    <string name="home_tile_name">Name (optional)</string>
+    <string name="home_frequent">Frequently visited</string>
+    <string name="home_icon_auto">Logo</string>
+    <string name="home_icon_letter">Letter</string>
+    <string name="home_icon_custom">Custom</string>
+    <string name="home_icon_url">Image address</string>
+    <string name="home_icon_picked">Image chosen from gallery · change</string>
+    <string name="home_icon_pick">Choose from gallery</string>
+    <string name="browser_scroll_top">Scroll to top</string>
+    <string name="browser_home">Start page</string>
+    <string name="browser_menu">Menu</string>
+    <string name="browser_incognito_tabs">Incognito tabs</string>
+    <string name="browser_address_hint">Search or type an address  ·  !yt, !w, !gh…</string>
+    <string name="browser_site_info">Site information</string>
+    <string name="browser_blocked">Blocked</string>
+    <string name="browser_stop">Stop</string>
+    <string name="browser_paste_link">Open copied link</string>
+    <string name="browser_switch_to_tab">Switch to open tab</string>
+    <string name="browser_insert_query">Insert into bar</string>
+    <string name="browser_find_prev">Previous</string>
+    <string name="browser_find_next">Next</string>
+    <string name="update_banner_available">New version %s</string>
+    <string name="update_banner_downloading">Downloading %1$s · %2$d%%</string>
+    <string name="update_banner_ready">Version %s downloaded</string>
+    <string name="update_banner_install">Install</string>
+    <string name="update_banner_installing">Installing %s…</string>
+    <string name="update_banner_failed">Update failed</string>
+    <string name="update_banner_retry">Retry</string>
+    <string name="update_banner_available_hint">It will download and install automatically</string>
+    <string name="update_banner_ready_hint">The app will restart and your tabs will be restored</string>
+    <string name="update_banner_wait">Don\'t close the app</string>
+    <string name="update_banner_hide">Hide</string>
+
+    <!-- App logic messages: tabs, certificates, permissions, tools, updates -->
+    <string name="browser_tab_closed">Tab closed</string>
+    <string name="https_no_response">The server doesn\'t respond over an encrypted connection.</string>
+    <string name="ssl_expired">The certificate has expired.</string>
+    <string name="ssl_id_mismatch">The certificate was issued for a different domain.</string>
+    <string name="ssl_untrusted">The certificate is not from a trusted source.</string>
+    <string name="ssl_not_yet_valid">The certificate is not valid yet.</string>
+    <string name="ssl_date_invalid">The certificate date is invalid.</string>
+    <string name="ssl_other">The connection is not secure.</string>
+    <string name="https_bad_certificate">The site doesn\'t have a valid HTTPS certificate. %s</string>
+    <string name="browser_renderer_crashed">The page stopped working – it was reloaded</string>
+    <string name="browser_popup_blocked">Pop-up blocked</string>
+    <string name="permission_camera">camera</string>
+    <string name="permission_microphone">microphone</string>
+    <string name="permission_protected_media">protected content playback</string>
+    <string name="permission_location">location</string>
+    <string name="browser_no_app">No app to open: %s</string>
+    <string name="browser_reader_unavailable">Reader mode isn\'t available on this page</string>
+    <string name="browser_site_data_cleared">Cleared site data for %s</string>
+    <string name="passwords_fill_auth">Fill in password for %s</string>
+    <string name="passwords_updated">Password updated</string>
+    <string name="passwords_saved">Password saved</string>
+    <string name="passwords_never_saved">Passwords for %s won\'t be saved</string>
+    <string name="tools_offline_saved">Saved for offline reading</string>
+    <string name="tools_offline_failed">Couldn\'t save the page</string>
+    <string name="tools_no_text">No text to read</string>
+    <string name="tools_tts_unavailable">Text-to-speech is unavailable</string>
+    <string name="tools_no_space">no space</string>
+    <string name="tools_screenshot_saved">Screenshot saved</string>
+    <string name="tools_screenshot_failed">Couldn\'t save the screenshot: %s</string>
+    <string name="download_unsupported">This type of download isn\'t supported</string>
+    <string name="download_started">Downloading: %s</string>
+    <string name="source_home_has_no_code">The start page has no code to show</string>
+    <string name="source_http_only">Server code is available only for http and https pages</string>
+    <string name="source_fetch_failed">Couldn\'t fetch the code: %s</string>
+    <string name="update_allow_source">Allow installs from this source – the update will finish when you come back</string>
+    <string name="main_no_file_picker">No app to choose files</string>
+    <string name="main_auth_failed">Couldn\'t confirm your identity</string>
+    <string name="update_network_error">Network error</string>
+    <string name="update_rate_limited">GitHub is temporarily limiting requests – try again later</string>
+    <string name="update_no_releases">No published releases</string>
+    <string name="update_http_error">GitHub responded with code %d</string>
+    <string name="update_no_apk">The release has no APK file</string>
+    <string name="update_download_http">Download failed (%d)</string>
+    <string name="update_corrupted">The downloaded file is corrupted – try again</string>
+    <string name="update_cannot_save">Couldn\'t save the update file</string>
+    <string name="update_download_failed">Couldn\'t download the update</string>
+    <string name="update_install_failed">Installation failed: %s</string>
+    <string name="update_conflict">The signature or version doesn\'t match the installed app – install it manually from GitHub</string>
+    <string name="update_no_storage">Not enough storage on the device</string>
+    <string name="update_status_code">code %d</string>
+    <string name="update_ready_title">OpenExplorer %s is ready</string>
+    <string name="update_ready_text">Tap to install the update</string>
+    <string name="update_done_title">OpenExplorer updated to %s</string>
+    <string name="update_done_text">Tap to open</string>
+    <string name="update_confirm_title">OpenExplorer update</string>
+    <string name="update_confirm_text">Tap to confirm the installation</string>
+    <string name="update_available_text">Tap to update OpenExplorer</string>
+    <string name="adblock_incomplete">The filter list is incomplete</string>
+    <string name="passwords_load_error">Couldn\'t read saved passwords (the encryption key is unavailable). Import them again from a CSV file.</string>
+    <string name="strength_very_weak">Very weak</string>
+    <string name="strength_weak">Weak</string>
+    <string name="strength_medium">Medium</string>
+    <string name="strength_strong">Strong</string>
+    <string name="strength_very_strong">Very strong</string>
+    <string name="search_engine_custom">Custom</string>
+</resources>

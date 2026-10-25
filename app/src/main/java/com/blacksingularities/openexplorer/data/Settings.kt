@@ -18,7 +18,8 @@ val SEARCH_ENGINES = listOf(
     SearchEngine("startpage", "Startpage", "https://www.startpage.com/do/search?q=%s", "https://www.startpage.com"),
     SearchEngine("ecosia", "Ecosia", "https://www.ecosia.org/search?q=%s", "https://www.ecosia.org"),
     SearchEngine("qwant", "Qwant", "https://www.qwant.com/?q=%s", "https://www.qwant.com"),
-    SearchEngine("custom", "Własny", "", ""),
+    /** Nazwę „Własny” podstawia interfejs (napis search_engine_custom). */
+    SearchEngine("custom", "", "", ""),
 )
 
 /**

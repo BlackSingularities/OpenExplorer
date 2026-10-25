@@ -87,14 +87,6 @@ object PasswordTools {
         return score.coerceIn(0, 4)
     }
 
-    fun strengthLabel(score: Int): String = when (score) {
-        0 -> "Bardzo słabe"
-        1 -> "Słabe"
-        2 -> "Średnie"
-        3 -> "Silne"
-        else -> "Bardzo silne"
-    }
-
     /** Prosty parser CSV (cudzysłowy, przecinki i nowe linie w polach). */
     fun parseCsv(text: String): List<List<String>> {
         val rows = mutableListOf<List<String>>()

@@ -55,6 +55,17 @@ jobs:
       - name: Testy jednostkowe
         run: gradle testDebugUnitTest --stacktrace
 
+      # Lint tylko jako raport – nie blokuje wydania (abortOnError = false w build.gradle.kts).
+      - name: Lint
+        run: gradle :app:lintDebug --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-raport
+          path: app/build/reports/lint-results-debug.*
+          if-no-files-found: ignore
+
       - name: Budowanie APK
         env:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
