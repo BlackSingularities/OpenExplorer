@@ -1,0 +1,5 @@
+• Tab containers: separate cookies and site data, e.g. “Work” and “Personal”. Pick one in the tab list or a link's menu, manage them in tab settings.
+• Custom CSS and JavaScript per site in site settings (not in incognito).
+• Backups now include site settings and containers.
+• Downloads and the source viewer use the tab's cookies (incognito too).
+• First F-Droid build – without the built-in updater.

@@ -271,7 +271,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
      */
     private fun autoCheck(force: Boolean = false) {
         val s = (application as OpenExplorerApp).settings
-        if (!s.autoUpdate && !force) return
+        if (!BuildConfig.UPDATER || !s.autoUpdate && !force) return
         if (!force && System.currentTimeMillis() - updater.lastCheck < 60 * 60_000L) {
             autoDownload()
             return
@@ -304,7 +304,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
 
     private fun handleIntent(intent: Intent?, initial: Boolean) {
         intent ?: return
-        if (intent.action == Updater.ACTION_INSTALL) {
+        if (intent.action == Updater.ACTION_INSTALL && BuildConfig.UPDATER) {
             // Z powiadomienia: instalacja gotowej aktualizacji albo pobranie i instalacja.
             updater.clearNotification()
             when (val st = updater.state) {

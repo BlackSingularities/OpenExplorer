@@ -165,7 +165,7 @@ fun SettingsScreen(
     }
     fun pickWallpaper() = wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
 
-    val pages = listOf(
+    val pages = listOfNotNull(
         SettingsPage("home", stringResource(R.string.settings_page_home), stringResource(R.string.settings_page_home_hint), Icons.Rounded.Dashboard),
         SettingsPage("look", stringResource(R.string.settings_page_look), stringResource(R.string.settings_page_look_hint), Icons.Rounded.Palette),
         SettingsPage("search", stringResource(R.string.settings_page_search), stringResource(R.string.settings_page_search_hint, engineName(s.engine)), Icons.Rounded.Search),
@@ -174,7 +174,10 @@ fun SettingsScreen(
         SettingsPage("content", stringResource(R.string.settings_page_content), stringResource(R.string.settings_page_content_hint), Icons.Rounded.Language),
         SettingsPage("tabs", stringResource(R.string.settings_page_tabs), stringResource(R.string.settings_page_tabs_hint), Icons.Rounded.Tab),
         SettingsPage("backup", stringResource(R.string.settings_page_backup), stringResource(R.string.settings_page_backup_hint), Icons.Rounded.Backup),
-        SettingsPage("updates", stringResource(R.string.settings_page_updates), stringResource(R.string.settings_page_updates_hint, BuildConfig.VERSION_NAME), Icons.Rounded.SystemUpdate),
+        // Wersja F-Droid: aktualizacje dostarcza F-Droid, więc strony aktualizacji nie ma.
+        if (BuildConfig.UPDATER) {
+            SettingsPage("updates", stringResource(R.string.settings_page_updates), stringResource(R.string.settings_page_updates_hint, BuildConfig.VERSION_NAME), Icons.Rounded.SystemUpdate)
+        } else null,
         SettingsPage("about", stringResource(R.string.settings_page_about), "OpenExplorer " + BuildConfig.VERSION_NAME, Icons.Rounded.Info),
     )
     var page by rememberSaveable { mutableStateOf<String?>(null) }
