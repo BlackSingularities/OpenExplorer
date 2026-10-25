@@ -18,6 +18,7 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import com.blacksingularities.openexplorer.R
 
 /** Zapisany login. [origin] – „https://example.com”. */
 data class Credential(
@@ -43,6 +44,7 @@ data class Credential(
  * Plik jest wyłączony z systemowej kopii zapasowej (reguły w res/xml).
  */
 class PasswordStore(context: Context) {
+    private val app = context.applicationContext
     private val file = File(File(context.filesDir, "data").apply { mkdirs() }, "passwords.bin")
     private val writer = Executors.newSingleThreadExecutor()
 
@@ -67,7 +69,7 @@ class PasswordStore(context: Context) {
         } catch (_: Exception) {
             // Bez klucza pliku nie da się odczytać – odkładamy go na bok zamiast nadpisywać.
             file.renameTo(File(file.parentFile, "passwords.unreadable-${System.currentTimeMillis()}.bin"))
-            loadError = "Nie udało się odczytać zapisanych haseł (klucz szyfrowania jest niedostępny). Zaimportuj je ponownie z pliku CSV."
+            loadError = app.getString(R.string.passwords_load_error)
         }
     }
 

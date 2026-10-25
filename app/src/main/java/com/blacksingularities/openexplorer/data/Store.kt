@@ -50,17 +50,30 @@ data class SiteRule(
     val isDefault: Boolean get() = adBlock && javascript && !desktop && darkMode && textZoom == 0
 }
 
-val DEFAULT_TILES = listOf(
-    Tile(title = "Google", url = "https://www.google.com", color = 0xFF4285F4),
-    Tile(title = "YouTube", url = "https://www.youtube.com", color = 0xFFFF0033),
-    Tile(title = "Wikipedia", url = "https://pl.wikipedia.org", color = 0xFF636466),
-    Tile(title = "Facebook", url = "https://www.facebook.com", color = 0xFF1877F2),
-    Tile(title = "Allegro", url = "https://allegro.pl", color = 0xFFFF5A00),
-    Tile(title = "Onet", url = "https://www.onet.pl", color = 0xFFE4002B),
-    Tile(title = "GitHub", url = "https://github.com", color = 0xFF24292F),
-    Tile(title = "Reddit", url = "https://www.reddit.com", color = 0xFFFF4500),
-    Tile(title = "Gmail", url = "https://mail.google.com", color = 0xFFEA4335),
-)
+/** Kod języka telefonu, np. „pl”, „en”, „he” (nowe kody, nie przestarzałe „iw”); nieznany – „en”. */
+fun deviceLanguage(): String = java.util.Locale.getDefault().toLanguageTag().substringBefore('-').lowercase()
+    .takeIf { it.length in 2..3 && it != "und" } ?: "en"
+
+/**
+ * Domyślne kafelki dla języka [lang]: po polsku z Allegro i Onetem, w innych językach
+ * z Amazonem i X oraz Wikipedią w języku telefonu.
+ */
+fun defaultTiles(lang: String): List<Tile> {
+    val pl = lang == "pl"
+    return listOf(
+        Tile(title = "Google", url = "https://www.google.com", color = 0xFF4285F4),
+        Tile(title = "YouTube", url = "https://www.youtube.com", color = 0xFFFF0033),
+        Tile(title = "Wikipedia", url = "https://$lang.wikipedia.org", color = 0xFF636466),
+        Tile(title = "Facebook", url = "https://www.facebook.com", color = 0xFF1877F2),
+        if (pl) Tile(title = "Allegro", url = "https://allegro.pl", color = 0xFFFF5A00)
+        else Tile(title = "Amazon", url = "https://www.amazon.com", color = 0xFFFF9900),
+        if (pl) Tile(title = "Onet", url = "https://www.onet.pl", color = 0xFFE4002B)
+        else Tile(title = "X", url = "https://x.com", color = 0xFF0F1419),
+        Tile(title = "GitHub", url = "https://github.com", color = 0xFF24292F),
+        Tile(title = "Reddit", url = "https://www.reddit.com", color = 0xFFFF4500),
+        Tile(title = "Gmail", url = "https://mail.google.com", color = 0xFFEA4335),
+    )
+}
 
 /** Dane użytkownika (kafelki, zakładki, historia, sesja kart) w plikach JSON. */
 class Store(context: Context) {
@@ -76,7 +89,7 @@ class Store(context: Context) {
 
     init {
         val t = readArray("tiles")
-        if (t == null) tiles.addAll(DEFAULT_TILES) else tiles.addAll(t.objects().map { it.toTile() })
+        if (t == null) tiles.addAll(defaultTiles(deviceLanguage())) else tiles.addAll(t.objects().map { it.toTile() })
         readArray("bookmarks")?.objects()?.forEach { bookmarks += it.toBookmark() }
         readArray("history")?.objects()?.forEach {
             history += HistoryEntry(it.optString("url"), it.optString("title"), it.optLong("time"))
@@ -112,7 +125,7 @@ class Store(context: Context) {
 
     fun resetTiles() {
         tiles.clear()
-        tiles.addAll(DEFAULT_TILES.map { it.copy(id = UUID.randomUUID().toString()) })
+        tiles.addAll(defaultTiles(deviceLanguage()))
         saveTiles()
     }
 

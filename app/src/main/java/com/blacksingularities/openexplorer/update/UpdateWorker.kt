@@ -8,6 +8,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.OpenExplorerApp
 import java.util.concurrent.TimeUnit
 
@@ -30,8 +31,8 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         if (!s.updateAutoDownload || (s.updateWifiOnly && !updater.unmetered())) {
             if (state is UpdateState.Available) {
                 updater.notify(
-                    "Dostępna wersja ${info.version}",
-                    "Dotknij, aby zaktualizować OpenExplorer",
+                    applicationContext.getString(R.string.settings_update_available, info.version),
+                    applicationContext.getString(R.string.update_available_text),
                     android.content.Intent(applicationContext, com.blacksingularities.openexplorer.MainActivity::class.java)
                         .setAction(Updater.ACTION_INSTALL).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
                 )

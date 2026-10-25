@@ -78,10 +78,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.data.Settings
 import com.blacksingularities.openexplorer.data.Store
 import com.blacksingularities.openexplorer.data.Tile
@@ -192,9 +194,9 @@ fun HomePage(
                     if (editMode) EditBanner(onBg) { onEditMode(false) }
                     if (incognito) {
                         Icon(Icons.Rounded.VisibilityOff, null, Modifier.size(40.dp), tint = onBg.copy(alpha = 0.85f))
-                        Text("Incognito", style = MaterialTheme.typography.titleLarge, color = onBg, modifier = Modifier.padding(top = 8.dp))
+                        Text(stringResource(R.string.menu_incognito), style = MaterialTheme.typography.titleLarge, color = onBg, modifier = Modifier.padding(top = 8.dp))
                         Text(
-                            "Historia, ciasteczka i dane stron z tych kart znikną po ich zamknięciu.",
+                            stringResource(R.string.home_incognito_hint),
                             color = onBg.copy(alpha = 0.6f), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(top = 4.dp, bottom = 22.dp).widthIn(max = 340.dp),
                         )
@@ -255,9 +257,9 @@ private fun EditBanner(onBg: Color, onDone: () -> Unit) {
             .background(onBg.copy(alpha = 0.08f)).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Przytrzymaj i przeciągnij, aby zmienić kolejność", color = onBg.copy(alpha = 0.8f),
+        Text(stringResource(R.string.home_reorder_hint), color = onBg.copy(alpha = 0.8f),
             style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-        TextButton(onClick = onDone) { Text("Gotowe", fontWeight = FontWeight.Bold, color = onBg) }
+        TextButton(onClick = onDone) { Text(stringResource(R.string.home_done), fontWeight = FontWeight.Bold, color = onBg) }
     }
 }
 
@@ -272,7 +274,7 @@ private fun SearchPill(settings: Settings, onBg: Color, filled: Boolean, onClick
     ) {
         val c = if (filled) MaterialTheme.colorScheme.onSurfaceVariant else onBg.copy(alpha = 0.6f)
         Icon(Icons.Rounded.Search, null, tint = c, modifier = Modifier.size(20.dp))
-        Text("Szukaj lub wpisz adres", color = c, modifier = Modifier.padding(start = 10.dp), maxLines = 1,
+        Text(stringResource(R.string.home_search_hint), color = c, modifier = Modifier.padding(start = 10.dp), maxLines = 1,
             style = MaterialTheme.typography.bodyLarge)
     }
 }
@@ -371,7 +373,7 @@ private fun AddTile(settings: Settings, onBg: Color, onClick: () -> Unit) {
             Box(
                 Modifier.fillMaxSize(settings.tileIconScale.coerceIn(25, 100) / 100f * 0.7f).clip(CircleShape).background(onBg.copy(alpha = 0.07f)),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Rounded.Add, "Dodaj kafelek", tint = onBg.copy(alpha = 0.55f)) }
+            ) { Icon(Icons.Rounded.Add, stringResource(R.string.menu_add_tile), tint = onBg.copy(alpha = 0.55f)) }
         }
         if (settings.tileLabels) Text(" ", fontSize = settings.tileLabelSize.sp, modifier = Modifier.padding(top = 5.dp))
     }
@@ -413,18 +415,18 @@ private fun TileView(
                 else RoundedCornerShape(0),
             )
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(text = { Text("Otwórz w nowej karcie") }, onClick = { menu = false; onOpenNewTab(tile.url, false) })
-                DropdownMenuItem(text = { Text("Otwórz w incognito") }, onClick = { menu = false; onOpenNewTab(tile.url, true) })
-                DropdownMenuItem(text = { Text("Edytuj") }, onClick = { menu = false; onEdit(tile) })
-                DropdownMenuItem(text = { Text("Uporządkuj kafelki") }, onClick = { menu = false; onEditMode(true) })
-                DropdownMenuItem(text = { Text("Usuń", color = MaterialTheme.colorScheme.error) }, onClick = { menu = false; store.removeTile(tile.id) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.common_open_new_tab)) }, onClick = { menu = false; onOpenNewTab(tile.url, false) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.link_open_incognito)) }, onClick = { menu = false; onOpenNewTab(tile.url, true) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.common_edit)) }, onClick = { menu = false; onEdit(tile) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.settings_arrange_tiles)) }, onClick = { menu = false; onEditMode(true) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) }, onClick = { menu = false; store.removeTile(tile.id) })
             }
             if (editMode) {
                 Box(
                     Modifier.align(Alignment.TopEnd).size(22.dp).shadow(2.dp, CircleShape).clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest).clickable { store.removeTile(tile.id) },
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Rounded.Close, "Usuń", Modifier.size(14.dp)) }
+                ) { Icon(Icons.Rounded.Close, stringResource(R.string.common_delete), Modifier.size(14.dp)) }
             }
         }
         if (settings.tileLabels) {
@@ -508,7 +510,7 @@ fun TileEditor(tile: Tile, store: Store, settings: Settings, isNew: Boolean, onD
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isNew) "Nowy kafelek" else "Edytuj kafelek") },
+        title = { Text(stringResource(if (isNew) R.string.home_new_tile else R.string.home_edit_tile)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -518,15 +520,15 @@ fun TileEditor(tile: Tile, store: Store, settings: Settings, isNew: Boolean, onD
                     }
                 }
                 OutlinedTextField(
-                    url, { url = it }, label = { Text("Adres") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    url, { url = it }, label = { Text(stringResource(R.string.library_address)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 )
-                OutlinedTextField(title, { title = it }, label = { Text("Nazwa (opcjonalnie)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.home_tile_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 if (isNew && url.isBlank()) {
                     val suggestions = (store.topSites(8).map { it.url to it.title } + store.bookmarks.take(6).map { it.url to it.title })
                         .distinctBy { hostOf(it.first) }.filter { s -> store.tiles.none { hostOf(it.url) == hostOf(s.first) } }.take(10)
                     if (suggestions.isNotEmpty()) {
-                        Text("Często odwiedzane", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.home_frequent), style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             suggestions.forEach { (u, t) ->
                                 Text(
@@ -538,14 +540,21 @@ fun TileEditor(tile: Tile, store: Store, settings: Settings, isNew: Boolean, onD
                         }
                     }
                 }
-                ChipsRowCompact(listOf("auto" to "Logo", "letter" to "Litera", "custom" to "Własne"), mode) { mode = it }
+                ChipsRowCompact(
+                    listOf(
+                        "auto" to stringResource(R.string.home_icon_auto),
+                        "letter" to stringResource(R.string.home_icon_letter),
+                        "custom" to stringResource(R.string.home_icon_custom),
+                    ),
+                    mode,
+                ) { mode = it }
                 if (mode == "custom") {
                     OutlinedTextField(
-                        if (icon.startsWith("/")) "" else icon, { icon = it }, label = { Text("Adres obrazka") }, singleLine = true,
+                        if (icon.startsWith("/")) "" else icon, { icon = it }, label = { Text(stringResource(R.string.home_icon_url)) }, singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     TextButton(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
-                        Text(if (icon.startsWith("/")) "Wybrano obraz z galerii · zmień" else "Wybierz z galerii")
+                        Text(stringResource(if (icon.startsWith("/")) R.string.home_icon_picked else R.string.home_icon_pick))
                     }
                 }
                 if (mode == "letter") {
@@ -576,9 +585,9 @@ fun TileEditor(tile: Tile, store: Store, settings: Settings, isNew: Boolean, onD
                         ),
                     )
                 },
-            ) { Text("Zapisz") }
+            ) { Text(stringResource(R.string.common_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Anuluj") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
     )
 }
 

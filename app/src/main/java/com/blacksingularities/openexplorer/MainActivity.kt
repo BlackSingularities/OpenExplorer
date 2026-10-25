@@ -51,6 +51,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.browser.BrowserHost
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.ui.BookmarksScreen
@@ -190,7 +191,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
                         if (menuOpen) {
                             MenuSheet(state, { menuOpen = false }, { if (it == "exit") exitBrowser() else screen = it }) { editTiles = true }
                         }
-                        state.sourceView?.let { com.blacksingularities.openexplorer.ui.SourceScreen(state, it) }
+                        state.source.view?.let { com.blacksingularities.openexplorer.ui.SourceScreen(state, it) }
                         BrowserDialogs(state)
                         UpdateBanner(
                             updater,
@@ -261,7 +262,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
     }
 
     private fun installUpdate(ready: UpdateState.Ready) {
-        if (!updater.install(ready)) toast("Zezwól na instalację z tego źródła – aktualizacja dokończy się po powrocie")
+        if (!updater.install(ready)) toast(getString(R.string.update_allow_source))
     }
 
     /**
@@ -346,7 +347,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
         } catch (_: Exception) {
             fileCallback = null
             callback.onReceiveValue(null)
-            toast("Brak aplikacji do wyboru plików")
+            toast(getString(R.string.main_no_file_picker))
         }
     }
 
@@ -404,7 +405,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
             }
         } catch (_: Exception) {
             onResult(false)
-            toast("Nie udało się potwierdzić tożsamości")
+            toast(getString(R.string.main_auth_failed))
         }
     }
 

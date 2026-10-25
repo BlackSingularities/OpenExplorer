@@ -96,9 +96,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.browser.SourceResource
 import com.blacksingularities.openexplorer.browser.SourceTools
@@ -139,7 +142,7 @@ private fun codeColors(): CodeColors {
 fun SourceScreen(state: BrowserState, view: SourceView) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    BackHandler { state.closeSource() }
+    BackHandler { state.source.close() }
 
     // Wybrana zakładka: "server", "dom", "resources", "headers"
     var tab by rememberSaveable(view) { mutableStateOf("server") }
@@ -195,10 +198,10 @@ fun SourceScreen(state: BrowserState, view: SourceView) {
     ) {
         // Pasek górny
         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            RoundIcon(Icons.AutoMirrored.Filled.ArrowBack, "Wstecz") { state.closeSource() }
+            RoundIcon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_back)) { state.source.close() }
             if (searching) {
                 TextField(
-                    query, { query = it }, placeholder = { Text("Szukaj w kodzie") }, singleLine = true,
+                    query, { query = it }, placeholder = { Text(stringResource(R.string.source_search_hint)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { jumpToMatch(matchIndex + 1) }),
                     colors = TextFieldDefaults.colors(
@@ -213,28 +216,33 @@ fun SourceScreen(state: BrowserState, view: SourceView) {
                         style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                RoundIcon(Icons.Rounded.KeyboardArrowUp, "Poprzednie", enabled = matches.isNotEmpty()) { jumpToMatch(matchIndex - 1) }
-                RoundIcon(Icons.Rounded.KeyboardArrowDown, "Następne", enabled = matches.isNotEmpty()) { jumpToMatch(matchIndex + 1) }
-                RoundIcon(Icons.Rounded.Close, "Zamknij szukanie") { searching = false; query = "" }
+                RoundIcon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.source_prev), enabled = matches.isNotEmpty()) { jumpToMatch(matchIndex - 1) }
+                RoundIcon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.source_next), enabled = matches.isNotEmpty()) { jumpToMatch(matchIndex + 1) }
+                RoundIcon(Icons.Rounded.Close, stringResource(R.string.source_close_search)) { searching = false; query = "" }
             } else {
+                val defaultTitle = stringResource(R.string.source_title_default)
+                val linesLabel = if (p != null) {
+                    val lines = p.rows.line[p.rows.size - 1]
+                    pluralStringResource(R.plurals.source_lines, lines, lines)
+                } else null
                 Column(Modifier.weight(1f).padding(start = 8.dp)) {
                     Text(
-                        view.title.ifBlank { "Kod strony" }, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        view.title.ifBlank { defaultTitle }, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         fontSize = 17.sp, fontWeight = FontWeight.Bold,
                     )
                     Text(
                         listOfNotNull(
                             hostOf(view.url),
-                            p?.let { "${it.rows.line[it.rows.size - 1]} linii" },
+                            linesLabel,
                             view.info?.let { formatSize(it.size) },
                         ).joinToString(" · "),
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (tab == "server" || tab == "dom") RoundIcon(Icons.Rounded.Search, "Szukaj w kodzie") { searching = true }
+                if (tab == "server" || tab == "dom") RoundIcon(Icons.Rounded.Search, stringResource(R.string.source_search_hint)) { searching = true }
                 Box {
-                    RoundIcon(Icons.Rounded.MoreVert, "Więcej") { menu = true }
+                    RoundIcon(Icons.Rounded.MoreVert, stringResource(R.string.common_more)) { menu = true }
                     DropdownMenu(menu, { menu = false }) {
                         @Composable
                         fun item(icon: ImageVector, label: String, checked: Boolean? = null, enabled: Boolean = true, onClick: () -> Unit) =
@@ -244,32 +252,32 @@ fun SourceScreen(state: BrowserState, view: SourceView) {
                                 trailingIcon = checked?.let { { androidx.compose.material3.Checkbox(it, null) } },
                                 onClick = { if (checked == null) menu = false; onClick() },
                             )
-                        if (canFormat) item(Icons.Rounded.FormatAlignLeft, "Uporządkuj wcięcia", pretty) { pretty = !pretty }
-                        item(Icons.AutoMirrored.Rounded.WrapText, "Zawijaj długie wiersze", wrap) { wrap = !wrap }
-                        item(Icons.Rounded.Palette, "Kolorowanie składni", colorize) { colorize = !colorize }
-                        item(Icons.Rounded.FormatListNumbered, "Numery linii", numbers) { numbers = !numbers }
+                        if (canFormat) item(Icons.Rounded.FormatAlignLeft, stringResource(R.string.source_format), pretty) { pretty = !pretty }
+                        item(Icons.AutoMirrored.Rounded.WrapText, stringResource(R.string.source_wrap), wrap) { wrap = !wrap }
+                        item(Icons.Rounded.Palette, stringResource(R.string.source_colorize), colorize) { colorize = !colorize }
+                        item(Icons.Rounded.FormatListNumbered, stringResource(R.string.source_line_numbers), numbers) { numbers = !numbers }
                         HorizontalDivider()
-                        item(Icons.Rounded.TextIncrease, "Większy tekst", enabled = fontSize < 22) { fontSize++ }
-                        item(Icons.Rounded.TextDecrease, "Mniejszy tekst", enabled = fontSize > 8) { fontSize-- }
+                        item(Icons.Rounded.TextIncrease, stringResource(R.string.source_text_bigger), enabled = fontSize < 22) { fontSize++ }
+                        item(Icons.Rounded.TextDecrease, stringResource(R.string.source_text_smaller), enabled = fontSize > 8) { fontSize-- }
                         HorizontalDivider()
-                        item(Icons.Rounded.VerticalAlignTop, "Na początek", enabled = p != null) { scope.launch { listState.scrollToItem(0) } }
-                        item(Icons.Rounded.VerticalAlignBottom, "Na koniec", enabled = p != null) {
+                        item(Icons.Rounded.VerticalAlignTop, stringResource(R.string.source_to_top), enabled = p != null) { scope.launch { listState.scrollToItem(0) } }
+                        item(Icons.Rounded.VerticalAlignBottom, stringResource(R.string.source_to_bottom), enabled = p != null) {
                             scope.launch { listState.scrollToItem(((p?.rows?.size ?: 1) - 1).coerceAtLeast(0)) }
                         }
-                        item(Icons.Rounded.FormatListNumbered, "Przejdź do linii…", enabled = p != null) { goToLine = true }
+                        item(Icons.Rounded.FormatListNumbered, stringResource(R.string.source_go_to_line_menu), enabled = p != null) { goToLine = true }
                         HorizontalDivider()
-                        item(Icons.Rounded.ContentCopy, "Kopiuj cały kod", enabled = p != null) {
+                        item(Icons.Rounded.ContentCopy, stringResource(R.string.source_copy_all), enabled = p != null) {
                             p?.let {
-                                if (it.text.length > 1_000_000) state.snack("Kod jest za duży do schowka – użyj „Udostępnij”")
-                                else { copy(ctx, it.text); state.snack("Skopiowano kod") }
+                                if (it.text.length > 1_000_000) state.snack(ctx.getString(R.string.source_too_big))
+                                else { copy(ctx, it.text); state.snack(ctx.getString(R.string.source_copied)) }
                             }
                         }
-                        item(Icons.Rounded.Share, "Udostępnij kod", enabled = p != null) {
+                        item(Icons.Rounded.Share, stringResource(R.string.source_share), enabled = p != null) {
                             p?.let { shareText(ctx, it.text.take(500_000), view.title) }
                         }
-                        item(Icons.Rounded.ContentCopy, "Kopiuj adres") { copy(ctx, view.url); state.snack("Skopiowano adres") }
-                        item(Icons.AutoMirrored.Rounded.OpenInNew, "Otwórz w nowej karcie") {
-                            state.sourceView = null
+                        item(Icons.Rounded.ContentCopy, stringResource(R.string.common_copy_address)) { copy(ctx, view.url); state.snack(ctx.getString(R.string.common_address_copied)) }
+                        item(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.common_open_new_tab)) {
+                            state.source.view = null
                             state.newTab(view.url, view.incognito)
                         }
                     }
@@ -278,11 +286,16 @@ fun SourceScreen(state: BrowserState, view: SourceView) {
         }
 
         // Zakładki
+        val serverLabel = stringResource(R.string.source_tab_server)
+        val domLabel = stringResource(R.string.source_tab_dom)
+        val resourcesLabel = if (view.resources.isNotEmpty()) stringResource(R.string.source_tab_resources_count, view.resources.size)
+        else stringResource(R.string.source_tab_resources)
+        val headersLabel = stringResource(R.string.source_tab_headers)
         val tabs = buildList {
-            add("server" to "Z serwera")
-            if (view.hasDom) add("dom" to "Po wczytaniu")
-            if (view.hasDom) add("resources" to "Zasoby" + if (view.resources.isNotEmpty()) " (${view.resources.size})" else "")
-            add("headers" to "Nagłówki")
+            add("server" to serverLabel)
+            if (view.hasDom) add("dom" to domLabel)
+            if (view.hasDom) add("resources" to resourcesLabel)
+            add("headers" to headersLabel)
         }
         LazyRow(
             contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -297,19 +310,19 @@ fun SourceScreen(state: BrowserState, view: SourceView) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (tab) {
                 "resources" -> ResourceList(view.resources, onOpen = { r ->
-                    if (r.type == "image") { state.sourceView = null; state.newTab(r.url, view.incognito) } else state.viewResource(r.url)
-                }, onCopy = { copy(ctx, it.url); state.snack("Skopiowano adres") })
+                    if (r.type == "image") { state.source.view = null; state.newTab(r.url, view.incognito) } else state.source.viewResource(r.url)
+                }, onCopy = { copy(ctx, it.url); state.snack(ctx.getString(R.string.common_address_copied)) })
                 "headers" -> HeadersView(view)
                 else -> when {
-                    tab == "server" && view.serverError != null -> Message(view.serverError!!, if (view.hasDom) "Zobacz „Po wczytaniu”" else null) { tab = "dom" }
+                    tab == "server" && view.serverError != null -> Message(view.serverError!!, if (view.hasDom) stringResource(R.string.source_see_dom) else null) { tab = "dom" }
                     p == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                    p.text.isEmpty() -> Message("Strona nie zwróciła żadnego kodu", null) {}
+                    p.text.isEmpty() -> Message(stringResource(R.string.source_empty), null) {}
                     else -> CodeView(p, listState, wrap, numbers, fontSize, matches, matchIndex, query.length)
                 }
             }
             if (tab == "server" && view.info?.truncated == true) {
                 Text(
-                    "Pokazano pierwsze ${formatSize(BrowserState.MAX_SOURCE.toLong())} kodu",
+                    stringResource(R.string.source_truncated, formatSize(com.blacksingularities.openexplorer.browser.SourceViewer.MAX_SOURCE.toLong())),
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp).clip(RoundedCornerShape(50))
                         .background(MaterialTheme.colorScheme.tertiaryContainer).padding(horizontal = 14.dp, vertical = 6.dp),
@@ -323,11 +336,11 @@ fun SourceScreen(state: BrowserState, view: SourceView) {
         val last = p.rows.line[p.rows.size - 1]
         AlertDialog(
             onDismissRequest = { goToLine = false },
-            title = { Text("Przejdź do linii") },
+            title = { Text(stringResource(R.string.source_go_to_line)) },
             text = {
                 OutlinedTextField(
                     input, { input = it.filter(Char::isDigit).take(9) }, singleLine = true,
-                    label = { Text("Numer linii (1–$last)") },
+                    label = { Text(stringResource(R.string.source_line_number, last)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             },
@@ -335,9 +348,9 @@ fun SourceScreen(state: BrowserState, view: SourceView) {
                 TextButton(onClick = {
                     goToLine = false
                     input.toIntOrNull()?.let { scrollToRow(p.rows.rowOfLine(it.coerceIn(1, last))) }
-                }) { Text("Przejdź") }
+                }) { Text(stringResource(R.string.source_go)) }
             },
-            dismissButton = { TextButton(onClick = { goToLine = false }) { Text("Anuluj") } },
+            dismissButton = { TextButton(onClick = { goToLine = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }
@@ -453,10 +466,11 @@ private fun rowText(p: Prepared, row: Int, c: CodeColors, matches: IntArray, mat
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ResourceList(resources: List<SourceResource>, onOpen: (SourceResource) -> Unit, onCopy: (SourceResource) -> Unit) {
-    if (resources.isEmpty()) return Message("Nie znaleziono zasobów tej strony", null) {}
+    if (resources.isEmpty()) return Message(stringResource(R.string.source_no_resources), null) {}
     val labels = mapOf(
-        "script" to "Skrypty", "style" to "Arkusze stylów", "frame" to "Ramki", "image" to "Obrazy",
-        "fetch" to "Zapytania sieciowe", "other" to "Inne",
+        "script" to stringResource(R.string.source_res_script), "style" to stringResource(R.string.source_res_style),
+        "frame" to stringResource(R.string.source_res_frame), "image" to stringResource(R.string.source_res_image),
+        "fetch" to stringResource(R.string.source_res_fetch), "other" to stringResource(R.string.source_res_other),
     )
     val groups = resources.groupBy { it.type }.toList().sortedBy { labels.keys.indexOf(it.first).let { i -> if (i < 0) 99 else i } }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -495,7 +509,7 @@ private fun ResourceList(resources: List<SourceResource>, onOpen: (SourceResourc
         }
         item(key = "hint") {
             Text(
-                "Dotknij, aby zobaczyć kod zasobu. Przytrzymaj, aby skopiować adres.",
+                stringResource(R.string.source_res_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(16.dp),
             )
@@ -512,9 +526,10 @@ private fun HeadersView(view: SourceView) {
         else -> SelectionContainer {
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 24.dp)) {
                 item {
-                    Text("Odpowiedź serwera", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    val type = info.contentType.ifBlank { null } ?: stringResource(R.string.source_unknown_type)
+                    Text(stringResource(R.string.source_response), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Text(
-                        "Kod ${info.status} · ${info.contentType.ifBlank { "nieznany typ" }} · ${formatSize(info.size)}",
+                        stringResource(R.string.source_response_summary, info.status, type, formatSize(info.size)),
                         style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                     )
                     Text(view.url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -541,5 +556,5 @@ private fun Message(text: String, action: String?, onAction: () -> Unit) {
 
 private fun shareText(ctx: android.content.Context, text: String, title: String) {
     val intent = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text).putExtra(Intent.EXTRA_SUBJECT, title)
-    runCatching { ctx.startActivity(Intent.createChooser(intent, "Udostępnij kod").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    runCatching { ctx.startActivity(Intent.createChooser(intent, ctx.getString(R.string.source_share)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }

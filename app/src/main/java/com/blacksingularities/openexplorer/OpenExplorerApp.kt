@@ -32,6 +32,7 @@ class OpenExplorerApp : Application(), ImageLoaderFactory {
         store = Store(this)
         adBlocker = AdBlocker(this)
         com.blacksingularities.openexplorer.update.UpdateWorker.schedule(this)
+        com.blacksingularities.openexplorer.browser.FiltersWorker.schedule(this)
     }
 
     /** Logo kafelków trzymane w pamięci podręcznej na dysku – strona startowa działa bez sieci. */

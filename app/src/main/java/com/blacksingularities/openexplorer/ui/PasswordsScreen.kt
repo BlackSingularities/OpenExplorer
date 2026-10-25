@@ -63,11 +63,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.data.Credential
 import com.blacksingularities.openexplorer.data.PasswordTools
@@ -86,7 +89,8 @@ fun PasswordsScreen(
     val ctx = LocalContext.current
     val store = state.passwords
     val secureDevice = remember { ctx.getSystemService(KeyguardManager::class.java)?.isDeviceSecure == true }
-    fun unlock() = authenticate("Odblokuj hasła") { ok -> if (ok) state.passwordsUnlocked = true }
+    val unlockTitle = stringResource(R.string.passwords_unlock_title)
+    fun unlock() = authenticate(unlockTitle) { ok -> if (ok) state.passwordsUnlocked = true }
     LaunchedEffect(Unit) { if (!state.passwordsUnlocked) unlock() }
 
     var query by remember { mutableStateOf("") }
@@ -102,27 +106,27 @@ fun PasswordsScreen(
         uri ?: return@rememberLauncherForActivityResult
         runCatching {
             ctx.contentResolver.openOutputStream(uri)?.use { it.write(store.exportCsv().toByteArray()) }
-            state.snack("Wyeksportowano ${store.items.size} haseł – usuń plik, gdy nie będzie potrzebny")
-        }.onFailure { state.toast("Błąd zapisu: ${it.message}") }
+            state.snack(ctx.resources.getQuantityString(R.plurals.passwords_exported, store.items.size, store.items.size))
+        }.onFailure { state.toast(ctx.getString(R.string.passwords_export_error, it.message.orEmpty())) }
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         runCatching {
-            val text = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } ?: error("pusty plik")
+            val text = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } ?: error(ctx.getString(R.string.passwords_file_empty))
             val n = store.importCsv(text)
-            if (n > 0) state.snack("Zaimportowano $n haseł – usuń plik CSV z telefonu")
-            else state.toast("Nie znaleziono haseł w pliku (oczekiwane kolumny: url, username, password)")
-        }.onFailure { state.toast("Nie udało się wczytać pliku: ${it.message}") }
+            if (n > 0) state.snack(ctx.resources.getQuantityString(R.plurals.passwords_imported, n, n))
+            else state.toast(ctx.getString(R.string.passwords_import_empty))
+        }.onFailure { state.toast(ctx.getString(R.string.passwords_import_error, it.message.orEmpty())) }
     }
 
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", onClick = onBack)
+            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back), onClick = onBack)
             if (searching) {
                 TextField(
-                    query, { query = it }, placeholder = { Text("Szukaj strony lub loginu") }, singleLine = true,
+                    query, { query = it }, placeholder = { Text(stringResource(R.string.passwords_search_hint)) }, singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
@@ -130,27 +134,27 @@ fun PasswordsScreen(
                     modifier = Modifier.weight(1f),
                 )
             } else {
-                Text("Hasła", fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                Text(stringResource(R.string.passwords_title), fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(start = 8.dp))
             }
             if (state.passwordsUnlocked) {
-                RoundIcon(if (searching) Icons.Rounded.Close else Icons.Rounded.Search, "Szukaj") {
+                RoundIcon(if (searching) Icons.Rounded.Close else Icons.Rounded.Search, stringResource(R.string.common_search)) {
                     searching = !searching
                     if (!searching) query = ""
                 }
-                RoundIcon(Icons.Rounded.Add, "Dodaj hasło") { adding = true }
+                RoundIcon(Icons.Rounded.Add, stringResource(R.string.passwords_add)) { adding = true }
                 Box {
-                    RoundIcon(Icons.Rounded.MoreVert, "Więcej") { menu = true }
+                    RoundIcon(Icons.Rounded.MoreVert, stringResource(R.string.common_more)) { menu = true }
                     DropdownMenu(menu, { menu = false }) {
                         DropdownMenuItem(
-                            text = { Text("Importuj z pliku CSV") }, leadingIcon = { Icon(Icons.Rounded.Download, null) },
+                            text = { Text(stringResource(R.string.passwords_import_csv)) }, leadingIcon = { Icon(Icons.Rounded.Download, null) },
                             onClick = { menu = false; importLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain", "*/*")) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Eksportuj do pliku CSV") }, leadingIcon = { Icon(Icons.Rounded.Upload, null) },
+                            text = { Text(stringResource(R.string.passwords_export_csv)) }, leadingIcon = { Icon(Icons.Rounded.Upload, null) },
                             enabled = store.items.isNotEmpty(), onClick = { menu = false; exportConfirm = true },
                         )
                         DropdownMenuItem(
-                            text = { Text("Strony bez zapisywania (${store.never.size})") }, leadingIcon = { Icon(Icons.Rounded.Block, null) },
+                            text = { Text(stringResource(R.string.passwords_never_menu, store.never.size)) }, leadingIcon = { Icon(Icons.Rounded.Block, null) },
                             onClick = { menu = false; neverList = true },
                         )
                     }
@@ -168,12 +172,12 @@ fun PasswordsScreen(
                     Modifier.size(72.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh),
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.Rounded.Lock, null, Modifier.size(32.dp)) }
-                Text("Hasła są zablokowane", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 18.dp))
+                Text(stringResource(R.string.passwords_locked), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 18.dp))
                 Text(
-                    "Potwierdź, że to Ty – odciskiem palca, twarzą albo kodem blokady ekranu.",
+                    stringResource(R.string.passwords_locked_hint),
                     textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp),
                 )
-                Button(onClick = { unlock() }, modifier = Modifier.padding(top = 20.dp)) { Text("Odblokuj") }
+                Button(onClick = { unlock() }, modifier = Modifier.padding(top = 20.dp)) { Text(stringResource(R.string.passwords_unlock)) }
             }
             return@Column
         }
@@ -196,23 +200,28 @@ fun PasswordsScreen(
                     Notice(Icons.Rounded.Warning, err)
                 }
                 if (!secureDevice) {
-                    Notice(Icons.Rounded.Warning, "Telefon nie ma blokady ekranu – każdy, kto go weźmie, zobaczy hasła. Ustaw PIN, wzór lub odcisk palca w ustawieniach systemu.")
+                    Notice(Icons.Rounded.Warning, stringResource(R.string.passwords_no_screen_lock))
                 }
                 Text(
-                    if (all.isEmpty()) "Hasła zapisane w przeglądarce pojawią się tutaj. Możesz też zaimportować je z Edge, Chrome lub innego menedżera (menu ⋮ → Importuj z pliku CSV)."
-                    else "${all.size} zapisanych loginów · zaszyfrowane, przechowywane tylko na tym telefonie",
+                    if (all.isEmpty()) stringResource(R.string.passwords_empty)
+                    else pluralStringResource(R.plurals.passwords_summary, all.size, all.size),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
                 )
                 if (all.isNotEmpty()) {
                     ChipsRow(
                         null,
-                        listOf("all" to "Wszystkie · ${all.size}", "weak" to "Słabe · ${weak.size}", "reused" to "Powtórzone · ${repeated.size}"),
+                        listOf(
+                            "all" to stringResource(R.string.passwords_filter_all, all.size),
+                            "weak" to stringResource(R.string.passwords_filter_weak, weak.size),
+                            "reused" to stringResource(R.string.passwords_filter_reused, repeated.size),
+                        ),
                         filter,
                     ) { filter = it }
                 }
             }
             items(list, key = { it.id }) { c ->
+                val noUsername = stringResource(R.string.passwords_no_username)
                 Row(
                     Modifier.fillMaxWidth().clickable { editing = c }.padding(start = 16.dp, end = 4.dp, top = 9.dp, bottom = 9.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -221,15 +230,15 @@ fun PasswordsScreen(
                     Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
                         Text(c.host, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            c.username.ifEmpty { "(bez nazwy użytkownika)" }, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            c.username.ifEmpty { noUsername }, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     if (PasswordTools.strength(c.password) <= 1 || (reused[c.password] ?: 0) > 1) {
-                        Icon(Icons.Rounded.Warning, "Słabe lub powtórzone hasło", Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Rounded.Warning, stringResource(R.string.passwords_weak_or_reused), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
                     }
-                    IconButton(onClick = { copySecret(ctx, c.password); state.snack("Skopiowano hasło – schowek wyczyści się za minutę") }) {
-                        Icon(Icons.Rounded.ContentCopy, "Kopiuj hasło", Modifier.size(20.dp))
+                    IconButton(onClick = { copySecret(ctx, c.password); state.snack(ctx.getString(R.string.passwords_copied)) }) {
+                        Icon(Icons.Rounded.ContentCopy, stringResource(R.string.passwords_copy), Modifier.size(20.dp))
                     }
                 }
             }
@@ -251,34 +260,34 @@ fun PasswordsScreen(
         AlertDialog(
             onDismissRequest = { exportConfirm = false },
             icon = { Icon(Icons.Rounded.Warning, null) },
-            title = { Text("Eksportować hasła?") },
-            text = { Text("Plik CSV nie jest zaszyfrowany – każdy, kto go otworzy, zobaczy wszystkie hasła. Przenieś go od razu do innego menedżera i usuń.") },
+            title = { Text(stringResource(R.string.passwords_export_title)) },
+            text = { Text(stringResource(R.string.passwords_export_warning)) },
             confirmButton = {
                 TextButton(onClick = {
                     exportConfirm = false
-                    authenticate("Eksport haseł") { ok -> if (ok) exportLauncher.launch("OpenExplorer-hasla.csv") }
-                }) { Text("Eksportuj") }
+                    authenticate(ctx.getString(R.string.passwords_export_auth)) { ok -> if (ok) exportLauncher.launch("OpenExplorer-hasla.csv") }
+                }) { Text(stringResource(R.string.passwords_export)) }
             },
-            dismissButton = { TextButton(onClick = { exportConfirm = false }) { Text("Anuluj") } },
+            dismissButton = { TextButton(onClick = { exportConfirm = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
     if (neverList) {
         AlertDialog(
             onDismissRequest = { neverList = false },
-            title = { Text("Strony bez zapisywania haseł") },
+            title = { Text(stringResource(R.string.passwords_never_title)) },
             text = {
                 Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
-                    if (store.never.isEmpty()) Text("Brak – przy pytaniu o zapis możesz wybrać „Nigdy dla tej strony”.",
+                    if (store.never.isEmpty()) Text(stringResource(R.string.passwords_never_empty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     store.never.toList().sorted().forEach { h ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(h, Modifier.weight(1f))
-                            RoundIcon(Icons.Rounded.Close, "Usuń z listy", size = 36.dp, iconSize = 18.dp) { store.removeNever(h) }
+                            RoundIcon(Icons.Rounded.Close, stringResource(R.string.passwords_never_remove), size = 36.dp, iconSize = 18.dp) { store.removeNever(h) }
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { neverList = false }) { Text("Zamknij") } },
+            confirmButton = { TextButton(onClick = { neverList = false }) { Text(stringResource(R.string.common_close)) } },
         )
     }
 }
@@ -312,49 +321,51 @@ private fun CredentialDialog(state: BrowserState, c: Credential?, onDismiss: () 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.Key, null) },
-        title = { Text(if (c == null) "Nowy login" else c.host, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        title = { Text(if (c == null) stringResource(R.string.passwords_new_login) else c.host, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    site, { site = it }, label = { Text("Strona (np. example.com)") }, singleLine = true,
+                    site, { site = it }, label = { Text(stringResource(R.string.passwords_site_label)) }, singleLine = true,
                     isError = site.isNotEmpty() && origin == null, modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
-                    user, { user = it }, label = { Text("Nazwa użytkownika lub e-mail") }, singleLine = true,
+                    user, { user = it }, label = { Text(stringResource(R.string.passwords_username_label)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        if (user.isNotEmpty()) IconButton(onClick = { copy(ctx, user); state.snack("Skopiowano nazwę użytkownika") }) {
-                            Icon(Icons.Rounded.ContentCopy, "Kopiuj nazwę użytkownika", Modifier.size(20.dp))
+                        if (user.isNotEmpty()) IconButton(onClick = { copy(ctx, user); state.snack(ctx.getString(R.string.passwords_username_copied)) }) {
+                            Icon(Icons.Rounded.ContentCopy, stringResource(R.string.passwords_copy_username), Modifier.size(20.dp))
                         }
                     },
                 )
-                PasswordField(pass, { pass = it }, "Hasło") {
-                    IconButton(onClick = { pass = PasswordTools.generate() }) { Icon(Icons.Rounded.Autorenew, "Wygeneruj silne hasło") }
-                    if (pass.isNotEmpty()) IconButton(onClick = { copySecret(ctx, pass); state.snack("Skopiowano hasło – schowek wyczyści się za minutę") }) {
-                        Icon(Icons.Rounded.ContentCopy, "Kopiuj hasło", Modifier.size(20.dp))
+                PasswordField(pass, { pass = it }, stringResource(R.string.passwords_password_label)) {
+                    IconButton(onClick = { pass = PasswordTools.generate() }) { Icon(Icons.Rounded.Autorenew, stringResource(R.string.passwords_generate)) }
+                    if (pass.isNotEmpty()) IconButton(onClick = { copySecret(ctx, pass); state.snack(ctx.getString(R.string.passwords_copied)) }) {
+                        Icon(Icons.Rounded.ContentCopy, stringResource(R.string.passwords_copy), Modifier.size(20.dp))
                     }
                 }
                 StrengthMeter(pass)
                 if (others > 0) {
-                    Text("To samo hasło jest używane na $others innych stronach – lepiej użyć innego.",
+                    Text(pluralStringResource(R.plurals.passwords_reused_warning, others, others),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
-                OutlinedTextField(note, { note = it }, label = { Text("Notatka (opcjonalnie)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.passwords_note_label)) }, modifier = Modifier.fillMaxWidth())
                 if (c != null) {
+                    val created = DateUtils.getRelativeTimeSpanString(c.created).toString().lowercase()
                     Text(
-                        buildString {
-                            append("Zapisano ")
-                            append(DateUtils.getRelativeTimeSpanString(c.created).toString().lowercase())
-                            if (c.lastUsed > 0) append(" · ostatnio użyte " + DateUtils.getRelativeTimeSpanString(c.lastUsed).toString().lowercase())
-                        },
+                        if (c.lastUsed > 0) {
+                            stringResource(
+                                R.string.passwords_saved_and_used, created,
+                                DateUtils.getRelativeTimeSpanString(c.lastUsed).toString().lowercase(),
+                            )
+                        } else stringResource(R.string.passwords_saved_at, created),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row {
                         TextButton(onClick = onOpen) {
                             Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, Modifier.size(18.dp))
-                            Text("Otwórz stronę", Modifier.padding(start = 6.dp))
+                            Text(stringResource(R.string.passwords_open_site), Modifier.padding(start = 6.dp))
                         }
-                        TextButton(onClick = { confirmDelete = true }) { Text("Usuń", color = MaterialTheme.colorScheme.error) }
+                        TextButton(onClick = { confirmDelete = true }) { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) }
                     }
                 }
             }
@@ -368,28 +379,31 @@ private fun CredentialDialog(state: BrowserState, c: Credential?, onDismiss: () 
                             if (store.find(PasswordTools.hostOf(o), user.trim()) != null) store.upsert(o, user.trim(), pass)
                             else store.save(Credential(origin = o, username = user.trim(), password = pass, note = note))
                         } else store.save(c.copy(origin = o, username = user.trim(), password = pass, note = note))
-                        state.snack("Zapisano")
+                        state.snack(ctx.getString(R.string.common_saved))
                         onDismiss()
                     }
                 },
-            ) { Text("Zapisz") }
+            ) { Text(stringResource(R.string.common_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Anuluj") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
     )
     if (confirmDelete && c != null) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Usunąć login?") },
-            text = { Text("${c.username.ifEmpty { "Login" }} na ${c.host} zostanie usunięty z tego telefonu.") },
+            title = { Text(stringResource(R.string.passwords_delete_title)) },
+            text = {
+                val fallback = stringResource(R.string.passwords_login)
+                Text(stringResource(R.string.passwords_delete_text, c.username.ifEmpty { fallback }, c.host))
+            },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     store.remove(c.id)
                     onDismiss()
-                    state.snack("Usunięto login", "Cofnij") { store.save(c) }
-                }) { Text("Usuń", color = MaterialTheme.colorScheme.error) }
+                    state.snack(ctx.getString(R.string.passwords_deleted), ctx.getString(R.string.common_undo)) { store.save(c) }
+                }) { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Anuluj") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }

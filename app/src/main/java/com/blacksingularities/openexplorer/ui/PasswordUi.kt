@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -63,6 +64,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.browser.LoginOffer
 import com.blacksingularities.openexplorer.data.PasswordTools
@@ -89,7 +91,7 @@ fun PasswordField(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 extra?.invoke()
                 IconButton(onClick = { shown = !shown }) {
-                    Icon(if (shown) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility, if (shown) "Ukryj hasło" else "Pokaż hasło")
+                    Icon(if (shown) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility, stringResource(if (shown) R.string.passwords_hide else R.string.passwords_show))
                 }
             }
         },
@@ -97,6 +99,16 @@ fun PasswordField(
 }
 
 private val STRENGTH_COLORS = listOf(Color(0xFFE5484D), Color(0xFFE5484D), Color(0xFFF5A524), Color(0xFF30A46C), Color(0xFF30A46C))
+
+/** Opis siły hasła dla wyniku [PasswordTools.strength] (0–4). */
+@androidx.annotation.StringRes
+private fun strengthLabel(score: Int): Int = when (score) {
+    0 -> R.string.strength_very_weak
+    1 -> R.string.strength_weak
+    2 -> R.string.strength_medium
+    3 -> R.string.strength_strong
+    else -> R.string.strength_very_strong
+}
 
 /** Pasek siły hasła (4 odcinki) z opisem. */
 @Composable
@@ -114,7 +126,7 @@ fun StrengthMeter(password: String, modifier: Modifier = Modifier) {
             }
         }
         Text(
-            "Siła hasła: " + PasswordTools.strengthLabel(score).lowercase(),
+            stringResource(R.string.passwords_strength, stringResource(strengthLabel(score)).lowercase()),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
         )
@@ -153,24 +165,25 @@ private fun FloatingCard(content: @Composable () -> Unit) {
 /** „Zaloguj się zapisanym kontem” nad paskiem, gdy strona ma formularz logowania. */
 @Composable
 fun LoginOfferCard(state: BrowserState) {
-    val offer = state.loginOffer
+    val offer = state.logins.loginOffer
     val visible = offer != null && offer.tabId == state.current?.id
     var last by remember { mutableStateOf<LoginOffer?>(null) }
     if (offer != null) last = offer
     AnimatedVisibility(visible, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
         val o = last ?: return@AnimatedVisibility
+        val noUsername = stringResource(R.string.passwords_no_username)
         FloatingCard {
             Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Key, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    "Zapisane loginy · ${o.host}", style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    stringResource(R.string.passwords_saved_logins, o.host), style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f).padding(start = 10.dp),
                 )
-                RoundIcon(Icons.Rounded.Close, "Nie teraz", size = 34.dp, iconSize = 18.dp) { state.loginOffer = null }
+                RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_not_now), size = 34.dp, iconSize = 18.dp) { state.logins.loginOffer = null }
             }
             o.accounts.take(4).forEach { c ->
                 Row(
-                    Modifier.fillMaxWidth().clickable { state.fillLogin(o, c) }.padding(horizontal = 16.dp, vertical = 9.dp),
+                    Modifier.fillMaxWidth().clickable { state.logins.fillLogin(o, c) }.padding(horizontal = 16.dp, vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
@@ -183,12 +196,12 @@ fun LoginOfferCard(state: BrowserState) {
                         )
                     }
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                        Text(c.username.ifEmpty { "(bez nazwy użytkownika)" }, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        Text(c.username.ifEmpty { noUsername }, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodyLarge)
                         Text(if (c.host != o.host) c.host else "••••••••", maxLines = 1, style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Text("Uzupełnij", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(stringResource(R.string.passwords_fill), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
@@ -198,27 +211,27 @@ fun LoginOfferCard(state: BrowserState) {
 /** Propozycja silnego hasła przy rejestracji albo zmianie hasła. */
 @Composable
 fun NewPasswordCard(state: BrowserState) {
-    val tabId = state.newPasswordTab
-    val visible = tabId != null && tabId == state.current?.id && state.loginOffer == null
+    val tabId = state.logins.newPasswordTab
+    val visible = tabId != null && tabId == state.current?.id && state.logins.loginOffer == null
     val generated = remember(tabId) { PasswordTools.generate() }
     AnimatedVisibility(visible, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
         FloatingCard {
             Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Password, null, Modifier.size(20.dp))
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text("Użyć silnego hasła?", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.passwords_use_strong), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                     Text(generated, fontFamily = FontFamily.Monospace, fontSize = 13.sp, maxLines = 1,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(
-                    "Użyj", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp,
+                    stringResource(R.string.passwords_use), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp,
                     modifier = Modifier.clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary)
-                        .clickable { state.fillGenerated(generated) }.padding(horizontal = 14.dp, vertical = 8.dp),
+                        .clickable { state.logins.fillGenerated(generated) }.padding(horizontal = 14.dp, vertical = 8.dp),
                 )
-                RoundIcon(Icons.Rounded.Close, "Nie teraz", size = 34.dp, iconSize = 18.dp) { state.newPasswordTab = null }
+                RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_not_now), size = 34.dp, iconSize = 18.dp) { state.logins.newPasswordTab = null }
             }
             Text(
-                "Zostanie zapisane w menedżerze haseł po wysłaniu formularza.",
+                stringResource(R.string.passwords_saved_after_submit),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 48.dp, end = 16.dp, bottom = 4.dp),
             )
@@ -230,12 +243,12 @@ fun NewPasswordCard(state: BrowserState) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavePasswordSheet(state: BrowserState) {
-    val p = state.savePrompt ?: return
+    val p = state.logins.savePrompt ?: return
     var user by remember(p) { mutableStateOf(p.username) }
     var pass by remember(p) { mutableStateOf(p.password) }
     val update = p.existing != null && p.existing.username == user
     ModalBottomSheet(
-        onDismissRequest = { state.savePrompt = null },
+        onDismissRequest = { state.logins.savePrompt = null },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
@@ -243,32 +256,32 @@ fun SavePasswordSheet(state: BrowserState) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SiteLogo(p.origin, p.host, 0L, "auto", "", "hd", false, Modifier.size(40.dp), RoundedCornerShape(12.dp))
                 Column(Modifier.padding(start = 14.dp)) {
-                    Text(if (update) "Zaktualizować hasło?" else "Zapisać hasło?", style = MaterialTheme.typography.titleLarge,
+                    Text(stringResource(if (update) R.string.passwords_update_title else R.string.passwords_save_title), style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold)
                     Text(p.host, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(14.dp))
-            OutlinedTextField(user, { user = it }, label = { Text("Nazwa użytkownika lub e-mail") }, singleLine = true,
+            OutlinedTextField(user, { user = it }, label = { Text(stringResource(R.string.passwords_username_label)) }, singleLine = true,
                 modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            PasswordField(pass, { pass = it }, "Hasło")
+            PasswordField(pass, { pass = it }, stringResource(R.string.passwords_password_label))
             StrengthMeter(pass, Modifier.padding(top = 8.dp))
             Text(
-                "Hasła są szyfrowane i zostają wyłącznie na tym telefonie.",
+                stringResource(R.string.passwords_local_only),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 10.dp),
             )
             Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (p.existing == null) TextButton(onClick = { state.neverSave(p) }) { Text("Nigdy dla tej strony") }
+                if (p.existing == null) TextButton(onClick = { state.logins.neverSave(p) }) { Text(stringResource(R.string.passwords_never_for_site)) }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = { state.savePrompt = null }) { Text("Nie teraz") }
+                TextButton(onClick = { state.logins.savePrompt = null }) { Text(stringResource(R.string.common_not_now)) }
                 Spacer(Modifier.width(6.dp))
                 Button(
-                    onClick = { state.savePassword(p, user.trim(), pass) },
+                    onClick = { state.logins.savePassword(p, user.trim(), pass) },
                     enabled = pass.isNotEmpty(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                ) { Text(if (update) "Aktualizuj" else "Zapisz") }
+                ) { Text(stringResource(if (update) R.string.passwords_update else R.string.common_save)) }
             }
         }
     }

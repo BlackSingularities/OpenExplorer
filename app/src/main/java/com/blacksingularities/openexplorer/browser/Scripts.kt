@@ -129,7 +129,8 @@ object Scripts {
   window.__oePassInit = true;
   var B = window.__oePassBridge;
   if (!B) return;
-  var cfg = { eye: false, on: false };
+  // Etykiety przycisku z okiem przychodzą od aplikacji w cfg (w języku telefonu).
+  var cfg = { eye: false, on: false, show: 'Show password', hide: 'Hide password' };
   var revealed = [], eyes = [], lastSent = '', announced = '', pending = false, raf = 0;
   var EYE = '<svg viewBox="0 0 24 24"><path d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>';
   var EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M2.1 3.5 3.5 2.1l18.4 18.4-1.4 1.4-3.3-3.3A11.7 11.7 0 0 1 12 19c-5 0-9.3-3.1-11-7a12.5 12.5 0 0 1 3.9-4.9L2.1 3.5zM12 5c5 0 9.3 3.1 11 7a12.7 12.7 0 0 1-3.3 4.4l-3.1-3.1a4.5 4.5 0 0 0-5-5L8.4 5.4C9.5 5.1 10.7 5 12 5zm-4.4 5.4a4.5 4.5 0 0 0 6 6l-1.6-1.6a2.5 2.5 0 0 1-2.8-2.8l-1.6-1.6z"/></svg>';
@@ -229,9 +230,10 @@ object Scripts {
     var host = document.createElement('span');
     host.style.cssText = 'position:absolute!important;top:0!important;left:0!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;display:block!important;z-index:2147483646!important';
     var sh = host.attachShadow({ mode: 'closed' });
-    sh.innerHTML = '<style>button{all:initial;box-sizing:border-box;position:absolute;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:18px;cursor:pointer;-webkit-tap-highlight-color:transparent}button:active{background:rgba(127,127,127,.22)}svg{width:20px;height:20px;fill:currentColor;opacity:.72}</style><button type="button" aria-label="Pokaż hasło"></button>';
+    sh.innerHTML = '<style>button{all:initial;box-sizing:border-box;position:absolute;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:18px;cursor:pointer;-webkit-tap-highlight-color:transparent}button:active{background:rgba(127,127,127,.22)}svg{width:20px;height:20px;fill:currentColor;opacity:.72}</style><button type="button"></button>';
     var btn = sh.querySelector('button');
     btn.innerHTML = EYE;
+    btn.setAttribute('aria-label', cfg.show);
     btn.addEventListener('mousedown', function(ev){ ev.preventDefault(); });
     btn.addEventListener('click', function(ev){
       ev.preventDefault(); ev.stopPropagation();
@@ -239,7 +241,7 @@ object Scripts {
       pw.type = show ? 'text' : 'password';
       if (show && revealed.indexOf(pw) < 0) revealed.push(pw);
       btn.innerHTML = show ? EYE_OFF : EYE;
-      btn.setAttribute('aria-label', show ? 'Ukryj hasło' : 'Pokaż hasło');
+      btn.setAttribute('aria-label', show ? cfg.hide : cfg.show);
     });
     document.documentElement.appendChild(host);
     var e = { pw: pw, host: host, btn: btn };

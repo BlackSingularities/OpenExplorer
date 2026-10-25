@@ -3,7 +3,6 @@ package com.blacksingularities.openexplorer.browser
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -11,7 +10,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
 import android.net.http.SslError
-import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
@@ -23,9 +21,9 @@ import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.SslErrorHandler
-import android.webkit.URLUtil
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
@@ -33,6 +31,7 @@ import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebViewDatabase
+import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -46,11 +45,10 @@ import androidx.webkit.WebViewFeature
 import com.blacksingularities.openexplorer.R
 import com.blacksingularities.openexplorer.data.Credential
 import com.blacksingularities.openexplorer.data.PasswordStore
-import com.blacksingularities.openexplorer.data.PasswordTools
 import com.blacksingularities.openexplorer.data.SavedTab
 import com.blacksingularities.openexplorer.data.Settings
 import com.blacksingularities.openexplorer.data.Store
-import org.json.JSONObject
+import com.blacksingularities.openexplorer.data.deviceLanguage
 import org.json.JSONTokener
 import java.io.ByteArrayInputStream
 
@@ -92,6 +90,8 @@ sealed interface BrowserDialog {
     ) : BrowserDialog
     data class LinkMenu(val link: String?, val image: String?, val incognito: Boolean) : BrowserDialog
     data class Ssl(val url: String, val error: String, val handler: SslErrorHandler) : BrowserDialog
+    /** „Tylko HTTPS” nie powiodło się – [httpUrl] to oryginalny, nieszyfrowany adres. */
+    data class HttpsFallback(val tab: Tab, val httpUrl: String, val reason: String) : BrowserDialog
     data class Qr(val url: String, val title: String) : BrowserDialog
     data class SiteInfo(val tab: Tab) : BrowserDialog
     data class PageZoom(val tab: Tab) : BrowserDialog
@@ -113,6 +113,9 @@ class BrowserState(
     val passwords: PasswordStore,
 ) {
     private val context: Context get() = host.activity
+
+    /** Napis z zasobów – także dla klas pomocniczych (hasła, pobieranie, narzędzia strony). */
+    internal fun str(@StringRes id: Int, vararg args: Any): String = context.getString(id, *args)
     private val main = Handler(Looper.getMainLooper())
     private var nextId = 1L
 
@@ -138,21 +141,22 @@ class BrowserState(
     var showScrollTop by mutableStateOf(false)
         private set
 
-    // Menedżer haseł
-    var loginOffer by mutableStateOf<LoginOffer?>(null)
-    var savePrompt by mutableStateOf<SavePrompt?>(null)
-    /** Karta, na której jest pole nowego hasła (propozycja silnego hasła). */
-    var newPasswordTab by mutableStateOf<Long?>(null)
     /** Ekran haseł odblokowany odciskiem / PIN-em (blokuje się po wyjściu z aplikacji). */
     var passwordsUnlocked by mutableStateOf(false)
-    /** Ostatnio wpisana nazwa użytkownika dla domeny (logowanie dwuetapowe: najpierw login, potem hasło). */
-    private val recentUser = HashMap<String, Pair<String, Long>>()
     /** Tekst wpisywany w pasku adresu (podpowiedzi). */
     var suggestQuery by mutableStateOf("")
 
     val current: Tab? get() = tabs.firstOrNull { it.id == currentId }
 
-    private val defaultUa: String by lazy {
+    /** Menedżer haseł na stronach. */
+    val logins = PasswordBridge(this, host, settings, passwords)
+    /** Zapis offline, czytanie na głos, zrzuty ekranu. */
+    val tools = PageTools(this, host, settings)
+    val downloads = Downloads(this, host, settings, store)
+    /** Podgląd kodu strony. */
+    val source = SourceViewer(this)
+
+    internal val defaultUa: String by lazy {
         WebSettings.getDefaultUserAgent(context)
             .replace("; wv)", ")")
             .replace(Regex("Version/\\d+\\.\\d+ "), "")
@@ -223,8 +227,7 @@ class BrowserState(
         }
         currentId = id
         findMode = false
-        loginOffer = null
-        newPasswordTab = null
+        logins.onTabSelected()
         showScrollTop = false
         showBars(animate = false)
         current?.webView?.onResume()
@@ -247,7 +250,7 @@ class BrowserState(
             val saved = SavedTab(tab.url, tab.title)
             closed += saved
             if (closed.size > 25) closed.removeAt(0)
-            snack("Zamknięto kartę", "Cofnij") { closed.remove(saved); newTab(saved.url) }
+            snack(str(R.string.browser_tab_closed), str(R.string.common_undo)) { closed.remove(saved); newTab(saved.url) }
         }
         destroy(tab)
         if (tab.incognito && tabs.none { it.incognito }) clearIncognito()
@@ -300,18 +303,11 @@ class BrowserState(
         return settings.searchUrl(text)
     }
 
-    /** Skróty wyszukiwania: „!yt koty”, „!w Kraków”, „!gh compose”… */
-    private fun bang(text: String): String? {
-        if (!text.startsWith("!") || !text.contains(' ')) return null
-        val key = text.substring(1).substringBefore(' ').lowercase()
-        val q = java.net.URLEncoder.encode(text.substringAfter(' ').trim(), "UTF-8")
-        val pattern = BANGS[key] ?: return null
-        return pattern.replace("%s", q)
-    }
+    private fun bang(text: String): String? = bangUrl(text, deviceLanguage())
 
     fun navigate(input: String, tab: Tab? = current) {
         if (input.trim().startsWith("view-source:", ignoreCase = true)) {
-            return viewSourceOf(input.trim().substring("view-source:".length))
+            return source.viewUrl(input.trim().substring("view-source:".length))
         }
         val url = resolveInput(input)
         if (url.isEmpty() || tab == null) return
@@ -322,6 +318,7 @@ class BrowserState(
         tab.showHome = false
         tab.readerMode = false
         val target = upgrade(url)
+        tab.upgradedFrom = url.takeIf { it != target }
         tab.url = target
         tab.pageHost = Uri.parse(target).host
         val wv = tab.webView
@@ -336,7 +333,26 @@ class BrowserState(
         if (!settings.httpsOnly || !url.startsWith("http://")) return url
         val h = Uri.parse(url).host ?: return url
         if (h == "localhost" || h.endsWith(".local") || Regex("^\\d+(\\.\\d+){3}$").matches(h)) return url
+        if (h.lowercase() in httpAllowed) return url
         return "https://" + url.removePrefix("http://")
+    }
+
+    /** Domeny bez HTTPS, które użytkownik świadomie otworzył (do zamknięcia aplikacji). */
+    private val httpAllowed = HashSet<String>()
+
+    /** „Otwórz bez szyfrowania” w oknie [BrowserDialog.HttpsFallback]. */
+    fun openInsecure(tab: Tab, httpUrl: String) {
+        Uri.parse(httpUrl).host?.let { httpAllowed += it.lowercase() }
+        load(tab, httpUrl)
+    }
+
+    /** Strona po zamianie na https:// nie odpowiada – zapytaj, zamiast pokazywać sam błąd. */
+    private fun offerHttpFallback(tab: Tab, failedUrl: String, reason: String): Boolean {
+        val from = tab.upgradedFrom ?: return false
+        if (Uri.parse(from).host != Uri.parse(failedUrl).host) return false
+        tab.upgradedFrom = null
+        dialog = BrowserDialog.HttpsFallback(tab, from, reason)
+        return true
     }
 
     fun goHome(tab: Tab? = current) {
@@ -430,7 +446,7 @@ class BrowserState(
         applySettings(wv, tab)
         wv.webViewClient = Client(tab)
         wv.webChromeClient = Chrome(tab)
-        wv.setDownloadListener { url, ua, disposition, mime, length -> onDownload(tab, url, ua, disposition, mime, length) }
+        wv.setDownloadListener { url, ua, disposition, mime, length -> downloads.onDownload(tab, url, ua, disposition, mime, length) }
         wv.setOnLongClickListener { onLongPress(tab, wv) }
         wv.setFindListener { active, count, _ ->
             tab.findIndex = if (count == 0) 0 else active + 1
@@ -444,7 +460,7 @@ class BrowserState(
             WebSettingsCompat.setOffscreenPreRaster(wv.settings, true)
         }
         wv.overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
-        setupPasswordBridge(wv, tab)
+        logins.attach(wv, tab)
         if (attach) tab.webView = wv
         return wv
     }
@@ -511,6 +527,7 @@ class BrowserState(
                 "http" -> {
                     val up = upgrade(uri.toString())
                     if (up != uri.toString() && request.isForMainFrame) {
+                        tab.upgradedFrom = uri.toString()
                         view.loadUrl(up, headers())
                         return true
                     }
@@ -569,8 +586,7 @@ class BrowserState(
             tab.readerMode = false
             tab.pageHost = Uri.parse(url).host
             tab.autoFilled = false
-            if (loginOffer?.tabId == tab.id) loginOffer = null
-            if (newPasswordTab == tab.id) newPasswordTab = null
+            logins.onPageStarted(tab)
             if (tab.id == currentId) {
                 showScrollTop = false
                 showBars()
@@ -579,7 +595,15 @@ class BrowserState(
         }
 
         override fun onPageCommitVisible(view: WebView, url: String) {
+            tab.upgradedFrom = null
             injectCss(view, tab)
+        }
+
+        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+            if (!request.isForMainFrame) return
+            val noHttps = error.errorCode == WebViewClient.ERROR_CONNECT || error.errorCode == WebViewClient.ERROR_FAILED_SSL_HANDSHAKE ||
+                error.errorCode == WebViewClient.ERROR_TIMEOUT
+            if (noHttps) offerHttpFallback(tab, request.url.toString(), str(R.string.https_no_response))
         }
 
         override fun onPageFinished(view: WebView, url: String) {
@@ -591,7 +615,7 @@ class BrowserState(
             injectCss(view, tab)
             if (settings.webDarkMode == "force" && store.rule(tab.pageHost)?.darkMode != false) view.evaluateJavascript(Scripts.FORCE_DARK, null)
             if (settings.forceZoom) view.evaluateJavascript(Scripts.FORCE_ZOOM, null)
-            if (!tab.passScriptAtStart && passwordBridge) view.evaluateJavascript(Scripts.PASSWORDS, null)
+            logins.onPageFinished(view, tab)
             if (!tab.incognito) saveSession()
         }
 
@@ -603,12 +627,17 @@ class BrowserState(
 
         override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
             val reason = when (error.primaryError) {
-                SslError.SSL_EXPIRED -> "Certyfikat wygasł."
-                SslError.SSL_IDMISMATCH -> "Certyfikat wystawiono dla innej domeny."
-                SslError.SSL_UNTRUSTED -> "Certyfikat nie pochodzi z zaufanego źródła."
-                SslError.SSL_NOTYETVALID -> "Certyfikat nie jest jeszcze ważny."
-                SslError.SSL_DATE_INVALID -> "Nieprawidłowa data certyfikatu."
-                else -> "Połączenie nie jest bezpieczne."
+                SslError.SSL_EXPIRED -> str(R.string.ssl_expired)
+                SslError.SSL_IDMISMATCH -> str(R.string.ssl_id_mismatch)
+                SslError.SSL_UNTRUSTED -> str(R.string.ssl_untrusted)
+                SslError.SSL_NOTYETVALID -> str(R.string.ssl_not_yet_valid)
+                SslError.SSL_DATE_INVALID -> str(R.string.ssl_date_invalid)
+                else -> str(R.string.ssl_other)
+            }
+            // Strona otwarta jako http:// i podniesiona do https:// – zwykle po prostu nie ma certyfikatu.
+            if (offerHttpFallback(tab, error.url, str(R.string.https_bad_certificate, reason))) {
+                handler.cancel()
+                return
             }
             dialog = BrowserDialog.Ssl(error.url, reason, handler)
         }
@@ -619,7 +648,7 @@ class BrowserState(
             tab.pendingUrl = url.ifEmpty { null }
             tab.loading = false
             tab.generation++
-            host.toast("Strona przestała działać – wczytano ją ponownie")
+            host.toast(str(R.string.browser_renderer_crashed))
             return true
         }
     }
@@ -690,121 +719,6 @@ class BrowserState(
         current?.webView?.evaluateJavascript(Scripts.SCROLL_TOP, null)
     }
 
-    // ---------- Menedżer haseł ----------
-
-    private val passwordBridge: Boolean by lazy { WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) }
-
-    /**
-     * Most do skryptu haseł. Wiadomości przyjmowane są tylko z głównej ramki, a domena pochodzi
-     * z WebView (nie od strony) – strona może dostać wyłącznie loginy zapisane dla własnej domeny.
-     */
-    private fun setupPasswordBridge(wv: WebView, tab: Tab) {
-        if (!passwordBridge) return
-        val ok = runCatching {
-            WebViewCompat.addWebMessageListener(wv, Scripts.PASS_BRIDGE, setOf("*")) { _, message, origin, isMainFrame, reply ->
-                if (isMainFrame) message.data?.let { onPasswordMessage(tab, it, origin, reply) }
-            }
-        }.isSuccess
-        if (ok && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            runCatching {
-                WebViewCompat.addDocumentStartJavaScript(wv, Scripts.PASSWORDS, setOf("*"))
-                tab.passScriptAtStart = true
-            }
-        }
-    }
-
-    private fun onPasswordMessage(tab: Tab, data: String, origin: Uri, reply: androidx.webkit.JavaScriptReplyProxy) {
-        val scheme = origin.scheme?.lowercase()
-        val host = origin.host?.lowercase()?.removePrefix("www.")
-        if ((scheme != "https" && scheme != "http") || host.isNullOrEmpty()) return
-        val o = runCatching { JSONObject(data) }.getOrNull() ?: return
-        tab.passReply = reply
-        tab.passHost = host
-        tab.passScheme = scheme
-        when (o.optString("t")) {
-            "hello" -> reply.postMessage(
-                JSONObject().put("t", "cfg")
-                    .put("on", settings.passwordManager)
-                    .put("eye", settings.revealPasswordButton)
-                    .toString(),
-            )
-            "form" -> {
-                if (!settings.passwordManager) return
-                if (o.optBoolean("nw") && tab.id == currentId) newPasswordTab = tab.id
-                offerLogin(tab, host, scheme)
-            }
-            "user" -> o.optString("v").takeIf { it.isNotBlank() }?.let { recentUser[host] = it.take(200) to System.currentTimeMillis() }
-            "submit" -> onSubmitLogin(tab, host, "$scheme://$host", o.optString("u").trim(), o.optString("p"))
-        }
-    }
-
-    private fun offerLogin(tab: Tab, host: String, scheme: String) {
-        val list = passwords.forHost(host)
-        if (list.isEmpty()) return
-        val exact = list.filter { it.host == host }
-        if (settings.passwordAutofill && !settings.passwordAuthFill && scheme == "https" && exact.size == 1 && !tab.autoFilled) {
-            sendFill(tab, exact[0])
-            return
-        }
-        if (tab.id == currentId && !tab.autoFilled) loginOffer = LoginOffer(tab.id, host, list)
-    }
-
-    /** Wypełnienie formularza wybranym kontem (po potwierdzeniu tożsamości, jeśli tak ustawiono). */
-    fun fillLogin(offer: LoginOffer, c: Credential) {
-        val tab = tabs.firstOrNull { it.id == offer.tabId } ?: return
-        loginOffer = null
-        if (settings.passwordAuthFill) host.authenticate("Uzupełnij hasło dla ${offer.host}") { ok -> if (ok) sendFill(tab, c) }
-        else sendFill(tab, c)
-    }
-
-    private fun sendFill(tab: Tab, c: Credential) {
-        val reply = tab.passReply ?: return
-        // Strona mogła się w międzyczasie zmienić – hasło trafia tylko do domeny, dla której je zapisano.
-        val pageHost = tab.webView?.url?.let { Uri.parse(it).host?.lowercase()?.removePrefix("www.") }
-        if (pageHost == null || pageHost != tab.passHost || PasswordTools.baseDomain(pageHost) != PasswordTools.baseDomain(c.host)) return
-        reply.postMessage(JSONObject().put("t", "fill").put("u", c.username).put("p", c.password).toString())
-        tab.autoFilled = true
-        passwords.markUsed(c.id)
-    }
-
-    /** Wpisanie wygenerowanego silnego hasła w pola nowego hasła. */
-    fun fillGenerated(password: String) {
-        val tab = current ?: return
-        newPasswordTab = null
-        tab.passReply?.postMessage(JSONObject().put("t", "gen").put("p", password).toString())
-    }
-
-    private fun onSubmitLogin(tab: Tab, host: String, origin: String, user: String, password: String) {
-        if (!settings.passwordManager || !settings.offerSavePasswords || tab.incognito || password.isEmpty()) return
-        if (passwords.isNever(host)) return
-        val username = user.ifEmpty {
-            recentUser[host]?.takeIf { System.currentTimeMillis() - it.second < 10 * 60_000L }?.first.orEmpty()
-        }
-        val existing = passwords.find(host, username)
-            ?: if (username.isEmpty()) passwords.forHost(host).singleOrNull { it.host == host } else null
-        if (existing != null && existing.password == password) {
-            passwords.markUsed(existing.id)
-            return
-        }
-        val p = savePrompt
-        if (p != null && p.host == host && p.username == username && p.password == password) return
-        savePrompt = SavePrompt(tab.id, host, origin, username, password, existing)
-    }
-
-    fun savePassword(prompt: SavePrompt, username: String, password: String) {
-        savePrompt = null
-        val existing = prompt.existing
-        if (existing != null && existing.username == username) passwords.save(existing.copy(password = password))
-        else passwords.upsert(prompt.origin, username, password)
-        snack(if (existing != null) "Zaktualizowano hasło" else "Zapisano hasło")
-    }
-
-    fun neverSave(prompt: SavePrompt) {
-        savePrompt = null
-        passwords.addNever(prompt.host)
-        snack("Hasła dla ${prompt.host} nie będą zapisywane")
-    }
-
     /** Domeny do uzupełniania adresu w pasku (liczone raz na otwarcie paska). */
     fun completionHosts(): List<String> = Omnibox.rankHosts(
         store.history.asSequence().take(3000).map { Omnibox.hostOf(it.url) }.toList(),
@@ -830,7 +744,7 @@ class BrowserState(
 
         override fun onCreateWindow(view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message): Boolean {
             if (settings.blockPopups && !isUserGesture) {
-                host.toast("Zablokowano wyskakujące okno")
+                host.toast(str(R.string.browser_popup_blocked))
                 return false
             }
             val child = Tab(nextId++, tab.incognito, parentId = tab.id)
@@ -879,9 +793,9 @@ class BrowserState(
             val perms = mutableListOf<String>()
             request.resources.forEach {
                 when (it) {
-                    PermissionRequest.RESOURCE_VIDEO_CAPTURE -> { labels += "kamera"; perms += Manifest.permission.CAMERA }
-                    PermissionRequest.RESOURCE_AUDIO_CAPTURE -> { labels += "mikrofon"; perms += Manifest.permission.RECORD_AUDIO }
-                    PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID -> labels += "odtwarzanie chronionych treści"
+                    PermissionRequest.RESOURCE_VIDEO_CAPTURE -> { labels += str(R.string.permission_camera); perms += Manifest.permission.CAMERA }
+                    PermissionRequest.RESOURCE_AUDIO_CAPTURE -> { labels += str(R.string.permission_microphone); perms += Manifest.permission.RECORD_AUDIO }
+                    PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID -> labels += str(R.string.permission_protected_media)
                 }
             }
             if (labels.isEmpty()) {
@@ -898,7 +812,7 @@ class BrowserState(
         }
 
         override fun onGeolocationPermissionsShowPrompt(origin: String, callback: GeolocationPermissions.Callback) {
-            dialog = BrowserDialog.Permission(Uri.parse(origin).host ?: origin, listOf("lokalizacja")) { allow ->
+            dialog = BrowserDialog.Permission(Uri.parse(origin).host ?: origin, listOf(str(R.string.permission_location))) { allow ->
                 if (!allow) callback.invoke(origin, false, false)
                 else host.requestPermissions(
                     arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
@@ -913,48 +827,8 @@ class BrowserState(
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (_: ActivityNotFoundException) {
-            host.toast("Brak aplikacji do otwarcia: ${uri.scheme}")
+            host.toast(str(R.string.browser_no_app, uri.scheme.orEmpty()))
         }
-    }
-
-    // ---------- Pobieranie ----------
-
-    private fun onDownload(tab: Tab, url: String, ua: String, disposition: String?, mime: String?, length: Long) {
-        if (url.startsWith("blob:") || url.startsWith("data:")) {
-            host.toast("Ten rodzaj pobierania nie jest obsługiwany")
-            return
-        }
-        val name = URLUtil.guessFileName(url, disposition, mime)
-        val request = BrowserDialog.Download(url, name, mime, length, ua, tab.incognito)
-        if (settings.askDownload) dialog = request else startDownload(request)
-        // Karta otwarta tylko po to, by pobrać plik, zostaje pusta – zamknij ją.
-        if (tab.webView?.url == null && tab.parentId != null) main.post { close(tab.id) }
-    }
-
-    fun startDownload(d: BrowserDialog.Download, fileName: String = d.fileName) {
-        try {
-            val req = DownloadManager.Request(Uri.parse(d.url)).apply {
-                CookieManager.getInstance().getCookie(d.url)?.let { addRequestHeader("Cookie", it) }
-                addRequestHeader("User-Agent", d.userAgent)
-                setTitle(fileName)
-                setDescription(Uri.parse(d.url).host)
-                d.mimeType?.let { setMimeType(it) }
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-            }
-            val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            val id = dm.enqueue(req)
-            if (!d.incognito) store.addDownload(id)
-            host.toast("Pobieranie: $fileName")
-        } catch (e: Exception) {
-            host.toast("Nie udało się pobrać: ${e.message}")
-        }
-    }
-
-    /** Pobranie obrazka lub linku z menu kontekstowego. */
-    fun download(url: String, incognito: Boolean) {
-        val name = URLUtil.guessFileName(url, null, null)
-        startDownload(BrowserDialog.Download(url, name, null, -1, defaultUa, incognito))
     }
 
     // ---------- Menu kontekstowe ----------
@@ -1004,209 +878,14 @@ class BrowserState(
         }
         wv.evaluateJavascript(Scripts.reader(host.isDarkTheme())) { result ->
             if (result?.contains("ok") == true) tab.readerMode = true
-            else host.toast("Tryb czytania nie jest dostępny na tej stronie")
+            else host.toast(str(R.string.browser_reader_unavailable))
         }
-    }
-
-    /** Otwarty podgląd kodu strony (pełny ekran) albo null. */
-    var sourceView by mutableStateOf<SourceView?>(null)
-
-    /** Kod bieżącej strony: aktualny DOM od razu, oryginał z serwera i lista zasobów w tle. */
-    fun viewSource() {
-        val tab = current ?: return
-        if (tab.showHome) return toast("Strona startowa nie ma kodu do pokazania")
-        val wv = tab.webView
-        val view = SourceView(tab.url, tab.title, tab.incognito, hasDom = wv != null)
-        sourceView = view
-        if (wv != null) {
-            wv.evaluateJavascript(Scripts.SOURCE) { raw -> view.dom = decodeJs(raw) }
-            wv.evaluateJavascript(Scripts.RESOURCES) { raw ->
-                view.resources = runCatching {
-                    val arr = org.json.JSONArray(decodeJs(raw))
-                    List(arr.length()) { i ->
-                        val o = arr.getJSONObject(i)
-                        SourceResource(o.optString("type"), o.optString("url"))
-                    }
-                }.getOrDefault(emptyList())
-            }
-        }
-        fetchSource(view, wv?.settings?.userAgentString ?: defaultUa)
-    }
-
-    /** „view-source:adres” wpisane w pasek adresu. */
-    fun viewSourceOf(url: String) {
-        val target = resolveInput(url).ifEmpty { return }
-        val view = SourceView(target, Uri.parse(target).host ?: target, current?.incognito == true)
-        sourceView = view
-        fetchSource(view, current?.webView?.settings?.userAgentString ?: defaultUa)
-    }
-
-    /** Otwiera kod zasobu (skryptu, arkusza stylów) z listy zasobów. */
-    fun viewResource(url: String) {
-        val view = SourceView(url, url.substringAfterLast('/').substringBefore('?').ifBlank { url }, sourceView?.incognito == true)
-        view.parent = sourceView
-        sourceView = view
-        fetchSource(view, current?.webView?.settings?.userAgentString ?: defaultUa)
-    }
-
-    fun closeSource() {
-        sourceView = sourceView?.parent
-    }
-
-    private fun decodeJs(raw: String?): String =
-        runCatching { JSONTokener(raw).nextValue() as? String }.getOrNull() ?: ""
-
-    private fun fetchSource(view: SourceView, ua: String) {
-        val url = view.url
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            view.serverError = "Kod z serwera jest dostępny tylko dla stron http i https"
-            return
-        }
-        val cookies = if (view.incognito) null else runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull()
-        Thread {
-            val result = runCatching {
-                val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                conn.connectTimeout = 15_000
-                conn.readTimeout = 20_000
-                conn.instanceFollowRedirects = true
-                conn.setRequestProperty("User-Agent", ua)
-                conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.8")
-                if (!cookies.isNullOrBlank()) conn.setRequestProperty("Cookie", cookies)
-                try {
-                    val code = conn.responseCode
-                    val stream = if (code >= 400) conn.errorStream else conn.inputStream
-                    val charset = Regex("charset=([\\w-]+)", RegexOption.IGNORE_CASE)
-                        .find(conn.contentType ?: "")?.groupValues?.get(1)
-                    val bytes = stream?.use { input ->
-                        val out = java.io.ByteArrayOutputStream()
-                        val buf = ByteArray(16 * 1024)
-                        while (out.size() < MAX_SOURCE) {
-                            val r = input.read(buf)
-                            if (r < 0) break
-                            out.write(buf, 0, r)
-                        }
-                        out.toByteArray()
-                    } ?: ByteArray(0)
-                    val cs = runCatching { charset(charset ?: "UTF-8") }.getOrDefault(Charsets.UTF_8)
-                    val info = SourceInfo(
-                        status = code,
-                        contentType = conn.contentType ?: "",
-                        size = bytes.size.toLong(),
-                        truncated = bytes.size >= MAX_SOURCE,
-                        headers = conn.headerFields.filterKeys { it != null }
-                            .map { (k, v) -> k to v.joinToString(", ") }.sortedBy { it.first.lowercase() },
-                    )
-                    String(bytes, cs) to info
-                } finally {
-                    conn.disconnect()
-                }
-            }
-            main.post {
-                result.onSuccess { (text, info) -> view.server = text; view.info = info }
-                    .onFailure { view.serverError = "Nie udało się pobrać kodu: ${it.message ?: it.javaClass.simpleName}" }
-            }
-        }.start()
     }
 
     fun touchIcon(callback: (String) -> Unit) {
         val wv = current?.webView ?: return callback("")
         wv.evaluateJavascript(Scripts.TOUCH_ICON) { raw ->
             callback(runCatching { JSONTokener(raw).nextValue() as? String }.getOrNull() ?: "")
-        }
-    }
-
-    // ---------- Offline, mowa, zrzuty ----------
-
-    val offlineDir: java.io.File get() = java.io.File(context.filesDir, "offline").apply { mkdirs() }
-
-    fun saveOffline() {
-        val tab = current ?: return
-        val wv = tab.webView ?: return
-        val name = tab.title.ifBlank { tab.host }.replace(Regex("[^\\p{L}\\p{N} ._-]"), "_").take(60).trim()
-        val file = java.io.File(offlineDir, name + "-" + (System.currentTimeMillis() / 1000) + ".mht")
-        wv.saveWebArchive(file.absolutePath, false) { path ->
-            if (path != null) snack("Zapisano do czytania offline") else toast("Nie udało się zapisać strony")
-        }
-    }
-
-    private var tts: android.speech.tts.TextToSpeech? = null
-    var speaking by mutableStateOf(false)
-        private set
-
-    fun readAloud() {
-        if (speaking) {
-            tts?.stop()
-            speaking = false
-            return
-        }
-        val wv = current?.webView ?: return
-        wv.evaluateJavascript(Scripts.PAGE_TEXT) { raw ->
-            val text = runCatching { JSONTokener(raw).nextValue() as? String }.getOrNull().orEmpty().trim()
-            if (text.isEmpty()) {
-                toast("Brak tekstu do przeczytania")
-                return@evaluateJavascript
-            }
-            val existing = tts
-            if (existing != null) speak(existing, text)
-            else {
-                var created: android.speech.tts.TextToSpeech? = null
-                created = android.speech.tts.TextToSpeech(context) { status ->
-                    if (status == android.speech.tts.TextToSpeech.SUCCESS) {
-                        tts = created
-                        created?.let { speak(it, text) }
-                    } else toast("Synteza mowy jest niedostępna")
-                }
-            }
-        }
-    }
-
-    private fun speak(engine: android.speech.tts.TextToSpeech, text: String) {
-        engine.setSpeechRate(settings.ttsRate / 100f)
-        engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {}
-            override fun onDone(utteranceId: String?) {
-                if (utteranceId == "last") main.post { speaking = false }
-            }
-            @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {
-                main.post { speaking = false }
-            }
-        })
-        val chunks = text.chunked(3500)
-        chunks.forEachIndexed { i, c ->
-            val mode = if (i == 0) android.speech.tts.TextToSpeech.QUEUE_FLUSH else android.speech.tts.TextToSpeech.QUEUE_ADD
-            engine.speak(c, mode, null, if (i == chunks.lastIndex) "last" else "p$i")
-        }
-        speaking = true
-    }
-
-    /** Zrzut widocznej części strony do galerii (Obrazy/OpenExplorer). */
-    fun screenshot() {
-        val tab = current ?: return
-        val view = tab.container ?: return
-        if (view.width <= 0) return
-        try {
-            val bmp = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-            view.draw(Canvas(bmp))
-            val values = android.content.ContentValues().apply {
-                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "OpenExplorer-" + System.currentTimeMillis() + ".png")
-                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
-                if (android.os.Build.VERSION.SDK_INT >= 29) put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/OpenExplorer")
-            }
-            val resolver = context.contentResolver
-            val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error("brak miejsca")
-            resolver.openOutputStream(uri)?.use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            snack("Zapisano zrzut ekranu", "Udostępnij") {
-                context.startActivity(
-                    Intent.createChooser(
-                        Intent(Intent.ACTION_SEND).setType("image/png").putExtra(Intent.EXTRA_STREAM, uri)
-                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
-                        "Udostępnij",
-                    ),
-                )
-            }
-        } catch (e: Exception) {
-            toast("Nie udało się zapisać zrzutu: " + e.message)
         }
     }
 
@@ -1239,7 +918,7 @@ class BrowserState(
         cm.flush()
         WebStorage.getInstance().deleteOrigin(Uri.parse(url).scheme + "://" + h)
         tab.webView?.reload()
-        snack("Wyczyszczono dane strony " + h.removePrefix("www."))
+        snack(str(R.string.browser_site_data_cleared, h.removePrefix("www.")))
     }
 
     fun captureThumbnail(tab: Tab? = current) {
@@ -1292,16 +971,12 @@ class BrowserState(
     }
 
     fun onDestroy(finishing: Boolean) {
-        tts?.shutdown()
-        tts = null
+        tools.shutdown()
         if (finishing && settings.clearOnExit) clearData(cache = true, cookies = true, history = true, storage = true)
         tabs.forEach { destroy(it) }
     }
 
     companion object {
-        /** Największy pobierany kod strony (8 MB). */
-        const val MAX_SOURCE = 8 * 1024 * 1024
-
         const val INCOGNITO_PROFILE = "incognito"
 
         val BANGS = mapOf(
@@ -1309,7 +984,8 @@ class BrowserState(
             "d" to "https://duckduckgo.com/?q=%s",
             "b" to "https://www.bing.com/search?q=%s",
             "yt" to "https://www.youtube.com/results?search_query=%s",
-            "w" to "https://pl.wikipedia.org/w/index.php?search=%s",
+            // {lang} – język telefonu (Wikipedia i tłumacz w tym języku).
+            "w" to "https://{lang}.wikipedia.org/w/index.php?search=%s",
             "en" to "https://en.wikipedia.org/w/index.php?search=%s",
             "gh" to "https://github.com/search?q=%s",
             "m" to "https://www.google.com/maps/search/%s",
@@ -1317,10 +993,25 @@ class BrowserState(
             "a" to "https://allegro.pl/listing?string=%s",
             "am" to "https://www.amazon.pl/s?k=%s",
             "r" to "https://www.reddit.com/search/?q=%s",
-            "t" to "https://translate.google.com/?sl=auto&tl=pl&text=%s",
+            "t" to "https://translate.google.com/?sl=auto&tl={lang}&text=%s",
             "so" to "https://stackoverflow.com/search?q=%s",
             "x" to "https://x.com/search?q=%s",
             "imdb" to "https://www.imdb.com/find/?q=%s",
         )
+
+        /** Zamienniki sklepów dla telefonów w innym języku niż polski (Allegro i amazon.pl są lokalne). */
+        private val BANGS_INTL = mapOf(
+            "a" to "https://www.amazon.com/s?k=%s",
+            "am" to "https://www.amazon.com/s?k=%s",
+        )
+
+        /** Skróty wyszukiwania: „!yt koty”, „!w Kraków”, „!gh compose”… [lang] – kod języka, np. „pl”. */
+        fun bangUrl(text: String, lang: String): String? {
+            if (!text.startsWith("!") || !text.contains(' ')) return null
+            val key = text.substring(1).substringBefore(' ').lowercase()
+            val q = java.net.URLEncoder.encode(text.substringAfter(' ').trim(), "UTF-8")
+            val pattern = (if (lang == "pl") null else BANGS_INTL[key]) ?: BANGS[key] ?: return null
+            return pattern.replace("%s", q).replace("{lang}", lang)
+        }
     }
 }

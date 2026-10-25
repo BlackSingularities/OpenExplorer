@@ -6,12 +6,14 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import com.blacksingularities.openexplorer.R
 
 /**
  * Blokowanie reklam i śledzenia po domenach (dopasowanie domeny i wszystkich jej nadrzędnych).
  * Wbudowana lista działa od razu; pełną listę hostów (StevenBlack) można pobrać w ustawieniach.
  */
 class AdBlocker(context: Context) {
+    private val app = context.applicationContext
     private val file = File(context.filesDir, "hosts.txt")
 
     @Volatile
@@ -27,16 +29,7 @@ class AdBlocker(context: Context) {
         }.apply { isDaemon = true }.start()
     }
 
-    fun isBlocked(host: String?): Boolean {
-        var h = host?.lowercase() ?: return false
-        val d = domains
-        while (true) {
-            if (h in d) return true
-            val dot = h.indexOf('.')
-            if (dot < 0 || dot == h.lastIndexOf('.')) return false
-            h = h.substring(dot + 1)
-        }
-    }
+    fun isBlocked(host: String?): Boolean = matches(host, domains)
 
     /** Pobiera pełną listę filtrów. Zwraca liczbę domen. */
     suspend fun update(): Int = withContext(Dispatchers.IO) {
@@ -46,7 +39,7 @@ class AdBlocker(context: Context) {
         try {
             val lines = conn.inputStream.bufferedReader().readLines()
             val parsed = parse(lines)
-            if (parsed.size < 1000) error("Lista filtrów jest niepełna")
+            if (parsed.size < 1000) error(app.getString(R.string.adblock_incomplete))
             file.writeText(parsed.joinToString("\n"))
             domains = BUILT_IN + parsed
             domains.size
@@ -55,21 +48,33 @@ class AdBlocker(context: Context) {
         }
     }
 
-    private fun parse(lines: List<String>): Set<String> {
-        val out = HashSet<String>(lines.size)
-        for (raw in lines) {
-            val line = raw.substringBefore('#').trim()
-            if (line.isEmpty()) continue
-            val parts = line.split(' ', '\t').filter { it.isNotEmpty() }
-            val host = if (parts.size >= 2) parts[1] else parts[0]
-            if (host == "localhost" || host == "0.0.0.0" || !host.contains('.')) continue
-            out += host.lowercase()
-        }
-        return out
-    }
-
     companion object {
         const val HOSTS_URL = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+
+        /** Domena albo któraś z jej nadrzędnych jest na liście (bez samej końcówki typu „pl”). */
+        fun matches(host: String?, domains: Set<String>): Boolean {
+            var h = host?.lowercase() ?: return false
+            while (true) {
+                if (h in domains) return true
+                val dot = h.indexOf('.')
+                if (dot < 0 || dot == h.lastIndexOf('.')) return false
+                h = h.substring(dot + 1)
+            }
+        }
+
+        /** Plik hosts („0.0.0.0 domena” albo sama domena w wierszu), komentarze po „#”. */
+        fun parse(lines: List<String>): Set<String> {
+            val out = HashSet<String>(lines.size)
+            for (raw in lines) {
+                val line = raw.substringBefore('#').trim()
+                if (line.isEmpty()) continue
+                val parts = line.split(' ', '\t').filter { it.isNotEmpty() }
+                val host = if (parts.size >= 2) parts[1] else parts[0]
+                if (host == "localhost" || host == "0.0.0.0" || !host.contains('.')) continue
+                out += host.lowercase()
+            }
+            return out
+        }
 
         val BUILT_IN = setOf(
             "doubleclick.net", "googlesyndication.com", "googleadservices.com", "google-analytics.com",
@@ -89,7 +94,7 @@ class AdBlocker(context: Context) {
             "springserve.com", "yieldmo.com", "omnitagjs.com", "adsafeprotected.com", "doubleverify.com",
             "imrworldwide.com", "chartbeat.com", "chartbeat.net", "newrelic.com", "nr-data.net",
             "branch.io", "app-measurement.com", "appsflyer.com", "adjust.com", "kochava.com",
-            "onesignal.com", "pushwoosh.com", "yandex.ru/ads", "an.yandex.ru", "mc.yandex.ru",
+            "onesignal.com", "pushwoosh.com", "an.yandex.ru", "mc.yandex.ru",
             "ad.wp.pl", "adtraction.com", "tradedoubler.com", "awin1.com", "zemanta.com", "piwik.pro",
         )
     }

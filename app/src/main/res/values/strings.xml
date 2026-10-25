@@ -1,0 +1,670 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Napisy aplikacji (polski – wersja domyślna). Tłumaczenia: values-en/strings.xml.
+  Prefiksy: common_ (wspólne przyciski), passwords_, source_, library_, menu_, tabs_, settings_,
+  home_, browser_, update_ i inne – według ekranu lub klasy, z której pochodzi napis.
+-->
+<resources>
+    <string name="app_name">OpenExplorer</string>
+
+    <!-- Wspólne -->
+    <string name="common_back">Wstecz</string>
+    <string name="common_search">Szukaj</string>
+    <string name="common_more">Więcej</string>
+    <string name="common_cancel">Anuluj</string>
+    <string name="common_close">Zamknij</string>
+    <string name="common_delete">Usuń</string>
+    <string name="common_save">Zapisz</string>
+    <string name="common_saved">Zapisano</string>
+    <string name="common_undo">Cofnij</string>
+    <string name="common_not_now">Nie teraz</string>
+
+    <!-- Ekran haseł -->
+    <string name="passwords_title">Hasła</string>
+    <string name="passwords_unlock_title">Odblokuj hasła</string>
+    <string name="passwords_unlock">Odblokuj</string>
+    <string name="passwords_locked">Hasła są zablokowane</string>
+    <string name="passwords_locked_hint">Potwierdź, że to Ty – odciskiem palca, twarzą albo kodem blokady ekranu.</string>
+    <string name="passwords_search_hint">Szukaj strony lub loginu</string>
+    <string name="passwords_add">Dodaj hasło</string>
+    <string name="passwords_import_csv">Importuj z pliku CSV</string>
+    <string name="passwords_export_csv">Eksportuj do pliku CSV</string>
+    <string name="passwords_never_menu">Strony bez zapisywania (%d)</string>
+    <string name="passwords_no_screen_lock">Telefon nie ma blokady ekranu – każdy, kto go weźmie, zobaczy hasła. Ustaw PIN, wzór lub odcisk palca w ustawieniach systemu.</string>
+    <string name="passwords_empty">Hasła zapisane w przeglądarce pojawią się tutaj. Możesz też zaimportować je z Edge, Chrome lub innego menedżera (menu ⋮ → Importuj z pliku CSV).</string>
+    <plurals name="passwords_summary">
+        <item quantity="one">%d zapisany login · zaszyfrowany, przechowywany tylko na tym telefonie</item>
+        <item quantity="few">%d zapisane loginy · zaszyfrowane, przechowywane tylko na tym telefonie</item>
+        <item quantity="many">%d zapisanych loginów · zaszyfrowane, przechowywane tylko na tym telefonie</item>
+        <item quantity="other">%d zapisanego loginu · zaszyfrowane, przechowywane tylko na tym telefonie</item>
+    </plurals>
+    <string name="passwords_filter_all">Wszystkie · %d</string>
+    <string name="passwords_filter_weak">Słabe · %d</string>
+    <string name="passwords_filter_reused">Powtórzone · %d</string>
+    <string name="passwords_no_username">(bez nazwy użytkownika)</string>
+    <string name="passwords_weak_or_reused">Słabe lub powtórzone hasło</string>
+    <string name="passwords_copy">Kopiuj hasło</string>
+    <string name="passwords_copied">Skopiowano hasło – schowek wyczyści się za minutę</string>
+
+    <!-- Import i eksport CSV -->
+    <plurals name="passwords_exported">
+        <item quantity="one">Wyeksportowano %d hasło – usuń plik, gdy nie będzie potrzebny</item>
+        <item quantity="few">Wyeksportowano %d hasła – usuń plik, gdy nie będzie potrzebny</item>
+        <item quantity="many">Wyeksportowano %d haseł – usuń plik, gdy nie będzie potrzebny</item>
+        <item quantity="other">Wyeksportowano %d hasła – usuń plik, gdy nie będzie potrzebny</item>
+    </plurals>
+    <plurals name="passwords_imported">
+        <item quantity="one">Zaimportowano %d hasło – usuń plik CSV z telefonu</item>
+        <item quantity="few">Zaimportowano %d hasła – usuń plik CSV z telefonu</item>
+        <item quantity="many">Zaimportowano %d haseł – usuń plik CSV z telefonu</item>
+        <item quantity="other">Zaimportowano %d hasła – usuń plik CSV z telefonu</item>
+    </plurals>
+    <string name="passwords_import_empty">Nie znaleziono haseł w pliku (oczekiwane kolumny: url, username, password)</string>
+    <string name="passwords_import_error">Nie udało się wczytać pliku: %s</string>
+    <string name="passwords_file_empty">pusty plik</string>
+    <string name="passwords_export_error">Błąd zapisu: %s</string>
+    <string name="passwords_export_title">Eksportować hasła?</string>
+    <string name="passwords_export_warning">Plik CSV nie jest zaszyfrowany – każdy, kto go otworzy, zobaczy wszystkie hasła. Przenieś go od razu do innego menedżera i usuń.</string>
+    <string name="passwords_export_auth">Eksport haseł</string>
+    <string name="passwords_export">Eksportuj</string>
+
+    <!-- Strony bez zapisywania -->
+    <string name="passwords_never_title">Strony bez zapisywania haseł</string>
+    <string name="passwords_never_empty">Brak – przy pytaniu o zapis możesz wybrać „Nigdy dla tej strony”.</string>
+    <string name="passwords_never_remove">Usuń z listy</string>
+    <string name="passwords_never_for_site">Nigdy dla tej strony</string>
+
+    <!-- Okno loginu -->
+    <string name="passwords_new_login">Nowy login</string>
+    <string name="passwords_site_label">Strona (np. example.com)</string>
+    <string name="passwords_username_label">Nazwa użytkownika lub e-mail</string>
+    <string name="passwords_copy_username">Kopiuj nazwę użytkownika</string>
+    <string name="passwords_username_copied">Skopiowano nazwę użytkownika</string>
+    <string name="passwords_password_label">Hasło</string>
+    <string name="passwords_generate">Wygeneruj silne hasło</string>
+    <plurals name="passwords_reused_warning">
+        <item quantity="one">To samo hasło jest używane na %d innej stronie – lepiej użyć innego.</item>
+        <item quantity="few">To samo hasło jest używane na %d innych stronach – lepiej użyć innego.</item>
+        <item quantity="many">To samo hasło jest używane na %d innych stronach – lepiej użyć innego.</item>
+        <item quantity="other">To samo hasło jest używane na %d innych stronach – lepiej użyć innego.</item>
+    </plurals>
+    <string name="passwords_note_label">Notatka (opcjonalnie)</string>
+    <!-- %1$s – kiedy zapisano, np. „2 dni temu”; %2$s – kiedy ostatnio użyto. -->
+    <string name="passwords_saved_at">Zapisano %1$s</string>
+    <string name="passwords_saved_and_used">Zapisano %1$s · ostatnio użyte %2$s</string>
+    <string name="passwords_open_site">Otwórz stronę</string>
+    <string name="passwords_delete_title">Usunąć login?</string>
+    <!-- %1$s – nazwa użytkownika (albo „Login”), %2$s – domena. -->
+    <string name="passwords_delete_text">%1$s na %2$s zostanie usunięty z tego telefonu.</string>
+    <string name="passwords_login">Login</string>
+    <string name="passwords_deleted">Usunięto login</string>
+
+    <!-- Pole hasła i siła -->
+    <string name="passwords_show">Pokaż hasło</string>
+    <string name="passwords_hide">Ukryj hasło</string>
+    <string name="passwords_strength">Siła hasła: %s</string>
+
+    <!-- Na stronach: logowanie, nowe hasło, zapis -->
+    <string name="passwords_saved_logins">Zapisane loginy · %s</string>
+    <string name="passwords_fill">Uzupełnij</string>
+    <string name="passwords_use_strong">Użyć silnego hasła?</string>
+    <string name="passwords_use">Użyj</string>
+    <string name="passwords_saved_after_submit">Zostanie zapisane w menedżerze haseł po wysłaniu formularza.</string>
+    <string name="passwords_save_title">Zapisać hasło?</string>
+    <string name="passwords_update_title">Zaktualizować hasło?</string>
+    <string name="passwords_local_only">Hasła są szyfrowane i zostają wyłącznie na tym telefonie.</string>
+    <string name="passwords_update">Aktualizuj</string>
+
+    <!-- Wspólne (adresy, karty) -->
+    <string name="common_copy_address">Kopiuj adres</string>
+    <string name="common_address_copied">Skopiowano adres</string>
+    <string name="common_open_new_tab">Otwórz w nowej karcie</string>
+
+    <!-- Kod strony -->
+    <string name="source_title_default">Kod strony</string>
+    <string name="source_search_hint">Szukaj w kodzie</string>
+    <string name="source_prev">Poprzednie</string>
+    <string name="source_next">Następne</string>
+    <string name="source_close_search">Zamknij szukanie</string>
+    <plurals name="source_lines">
+        <item quantity="one">%d linia</item>
+        <item quantity="few">%d linie</item>
+        <item quantity="many">%d linii</item>
+        <item quantity="other">%d linii</item>
+    </plurals>
+    <string name="source_format">Uporządkuj wcięcia</string>
+    <string name="source_wrap">Zawijaj długie wiersze</string>
+    <string name="source_colorize">Kolorowanie składni</string>
+    <string name="source_line_numbers">Numery linii</string>
+    <string name="source_text_bigger">Większy tekst</string>
+    <string name="source_text_smaller">Mniejszy tekst</string>
+    <string name="source_to_top">Na początek</string>
+    <string name="source_to_bottom">Na koniec</string>
+    <string name="source_go_to_line_menu">Przejdź do linii…</string>
+    <string name="source_copy_all">Kopiuj cały kod</string>
+    <string name="source_too_big">Kod jest za duży do schowka – użyj „Udostępnij”</string>
+    <string name="source_copied">Skopiowano kod</string>
+    <string name="source_share">Udostępnij kod</string>
+    <string name="source_tab_server">Z serwera</string>
+    <string name="source_tab_dom">Po wczytaniu</string>
+    <string name="source_tab_resources">Zasoby</string>
+    <string name="source_tab_resources_count">Zasoby (%d)</string>
+    <string name="source_tab_headers">Nagłówki</string>
+    <string name="source_see_dom">Zobacz „Po wczytaniu”</string>
+    <string name="source_empty">Strona nie zwróciła żadnego kodu</string>
+    <!-- %s – rozmiar, np. „8 MB”. -->
+    <string name="source_truncated">Pokazano pierwsze %s kodu</string>
+    <string name="source_go_to_line">Przejdź do linii</string>
+    <string name="source_line_number">Numer linii (1–%d)</string>
+    <string name="source_go">Przejdź</string>
+    <string name="source_no_resources">Nie znaleziono zasobów tej strony</string>
+    <string name="source_res_script">Skrypty</string>
+    <string name="source_res_style">Arkusze stylów</string>
+    <string name="source_res_frame">Ramki</string>
+    <string name="source_res_image">Obrazy</string>
+    <string name="source_res_fetch">Zapytania sieciowe</string>
+    <string name="source_res_other">Inne</string>
+    <string name="source_res_hint">Dotknij, aby zobaczyć kod zasobu. Przytrzymaj, aby skopiować adres.</string>
+    <string name="source_response">Odpowiedź serwera</string>
+    <!-- %1$d – kod HTTP, %2$s – typ treści, %3$s – rozmiar. -->
+    <string name="source_response_summary">Kod %1$d · %2$s · %3$s</string>
+    <string name="source_unknown_type">nieznany typ</string>
+
+    <!-- Wspólne (listy) -->
+    <string name="common_edit">Edytuj</string>
+    <string name="common_nothing_found">Nic nie znaleziono</string>
+
+    <!-- Zakładki, historia, pobrane, strony offline -->
+    <string name="library_bookmarks">Zakładki</string>
+    <string name="library_bookmarks_empty">Brak zakładek – dodaj je gwiazdką w menu</string>
+    <string name="library_edit_bookmark">Edytuj zakładkę</string>
+    <string name="library_name">Nazwa</string>
+    <string name="library_address">Adres</string>
+    <string name="library_history">Historia</string>
+    <string name="library_history_empty">Historia jest pusta</string>
+    <string name="library_clear_history">Wyczyść historię</string>
+    <string name="library_clear_history_title">Wyczyścić całą historię?</string>
+    <string name="library_clear">Wyczyść</string>
+    <string name="library_downloads">Pobrane</string>
+    <string name="library_downloads_folder">Folder pobranych</string>
+    <string name="library_downloads_empty">Brak pobranych plików</string>
+    <string name="library_download_failed">Nie udało się</string>
+    <string name="library_download_paused">Wstrzymano</string>
+    <string name="library_download_pending">Oczekuje…</string>
+    <!-- %1$s – pobrano, %2$s – cały rozmiar. -->
+    <string name="library_download_progress">%1$s z %2$s</string>
+    <string name="library_remove_from_list">Usuń z listy</string>
+    <string name="library_no_app_for_file">Brak aplikacji do otwarcia pliku</string>
+    <string name="library_offline">Strony offline</string>
+    <string name="library_offline_empty">Brak zapisanych stron – zapisz stronę z menu</string>
+
+    <!-- Wspólne (udostępnianie) -->
+    <string name="common_share">Udostępnij</string>
+    <string name="common_copied">Skopiowano</string>
+
+    <!-- Menu przeglądarki -->
+    <string name="menu_forward">Dalej</string>
+    <string name="menu_reload">Odśwież</string>
+    <string name="menu_bookmark">Zakładka</string>
+    <string name="menu_bookmark_added">Dodano zakładkę</string>
+    <string name="menu_bookmark_removed">Usunięto zakładkę</string>
+    <string name="menu_new_tab">Nowa karta</string>
+    <string name="menu_incognito">Incognito</string>
+    <string name="menu_downloads">Pobrane pliki</string>
+    <string name="menu_offline">Zapisane strony</string>
+    <string name="menu_restore_tab">Przywróć kartę</string>
+    <string name="menu_find">Znajdź na stronie</string>
+    <string name="menu_desktop">Wersja komputerowa</string>
+    <string name="menu_reader">Tryb czytania</string>
+    <string name="menu_read_aloud">Czytaj na głos</string>
+    <string name="menu_stop_reading">Przestań czytać</string>
+    <string name="menu_text_size">Wielkość tekstu</string>
+    <string name="menu_translate">Przetłumacz</string>
+    <string name="menu_save_offline">Zapisz bez sieci</string>
+    <string name="menu_screenshot">Zrzut ekranu</string>
+    <string name="menu_qr">Kod QR</string>
+    <string name="menu_add_tile">Dodaj kafelek</string>
+    <string name="menu_tile_added">Dodano do strony startowej</string>
+    <string name="menu_shortcut">Skrót na pulpicie</string>
+    <string name="menu_print">Drukuj / PDF</string>
+    <string name="menu_print_default_name">Strona</string>
+    <string name="menu_edit_tiles">Edytuj kafelki</string>
+    <string name="menu_settings">Ustawienia</string>
+    <string name="menu_exit">Wyjdź</string>
+
+    <!-- Lista kart -->
+    <string name="tabs_normal">Karty · %d</string>
+    <string name="tabs_incognito">Incognito · %d</string>
+    <string name="tabs_restore_closed">Przywróć zamkniętą kartę</string>
+    <string name="tabs_close_all_short">Zamknij\nwszystkie</string>
+    <string name="tabs_empty">Brak kart</string>
+    <string name="tabs_empty_incognito">Brak kart incognito</string>
+    <string name="tabs_new_incognito">Nowa incognito</string>
+    <string name="tabs_close_all_title">Zamknąć wszystkie karty?</string>
+    <plurals name="tabs_close_all_text">
+        <item quantity="one">Zostanie zamknięta %d karta.</item>
+        <item quantity="few">Zostaną zamknięte %d karty.</item>
+        <item quantity="many">Zostanie zamkniętych %d kart.</item>
+        <item quantity="other">Zostanie zamkniętych %d karty.</item>
+    </plurals>
+    <string name="tabs_close_tab">Zamknij kartę</string>
+
+    <!-- Okna stron: uprawnienia, pobieranie -->
+    <string name="dialog_permission_title">Prośba o dostęp</string>
+    <!-- %1$s – domena, %2$s – lista, np. „kamera, mikrofon”. -->
+    <string name="dialog_permission_text">%1$s chce uzyskać dostęp: %2$s.</string>
+    <string name="dialog_allow">Zezwól</string>
+    <string name="dialog_deny">Odmów</string>
+    <string name="dialog_download_title">Pobrać plik?</string>
+    <string name="dialog_file_name">Nazwa pliku</string>
+    <string name="dialog_unknown_size">nieznany rozmiar</string>
+    <string name="dialog_download">Pobierz</string>
+
+    <!-- Menu linku i obrazu -->
+    <string name="link_open_background">Otwórz w tle</string>
+    <string name="link_opened_background">Otwarto w tle</string>
+    <string name="link_open_incognito">Otwórz w incognito</string>
+    <string name="link_copy">Kopiuj adres linku</string>
+    <string name="link_share">Udostępnij link</string>
+    <string name="link_qr">Kod QR linku</string>
+    <string name="link_download">Pobierz link</string>
+    <string name="image_open">Otwórz obraz</string>
+    <string name="image_download">Pobierz obraz</string>
+    <string name="image_copy">Kopiuj adres obrazu</string>
+
+    <!-- Certyfikaty i HTTPS -->
+    <string name="ssl_title">Połączenie nie jest prywatne</string>
+    <!-- %1$s – powód błędu, %2$s – domena. -->
+    <string name="ssl_text">%1$s\n\nOsoby trzecie mogą próbować przechwycić dane z %2$s.</string>
+    <string name="ssl_back">Wróć do bezpieczeństwa</string>
+    <string name="ssl_continue">Kontynuuj</string>
+    <string name="https_fallback_title">Strona bez szyfrowania</string>
+    <!-- %1$s – powód, %2$s – domena. -->
+    <string name="https_fallback_text">%1$s\n\n%2$s działa tylko przez http:// – osoby w tej samej sieci mogą zobaczyć i zmienić to, co wysyłasz i oglądasz.</string>
+    <string name="https_fallback_cancel">Nie otwieraj</string>
+    <string name="https_fallback_open">Otwórz bez szyfrowania</string>
+
+    <!-- Rozmiar tekstu strony -->
+    <string name="zoom_title">Rozmiar tekstu · %d%%</string>
+    <string name="zoom_remembered">Zapamiętywany dla %s</string>
+    <string name="zoom_default">Domyślny</string>
+
+    <!-- Panel strony -->
+    <string name="site_secure">Połączenie szyfrowane (HTTPS)</string>
+    <string name="site_insecure">Połączenie nieszyfrowane</string>
+    <string name="site_local">Strona lokalna</string>
+    <string name="site_blocked">Zablokowano elementów: %d</string>
+    <string name="site_settings">Ustawienia tej strony</string>
+    <string name="site_ad_block">Blokuj reklamy</string>
+    <string name="site_javascript">JavaScript</string>
+    <string name="site_desktop">Zawsze wersja komputerowa</string>
+    <string name="site_dark">Ciemny wygląd</string>
+    <string name="site_dark_hint">Gdy włączony jest ciemny motyw</string>
+    <string name="site_saved_logins">Zapisane loginy dla tej strony: %d (menu → Hasła)</string>
+    <string name="site_clear">Wyczyść ciasteczka i dane strony</string>
+    <string name="site_clear_hint">Wylogowuje z %s</string>
+
+    <!-- Ustawienia -->
+    <string name="settings_backup_saved">Zapisano kopię zapasową</string>
+    <string name="settings_backup_save_error">Błąd zapisu: %s</string>
+    <string name="settings_backup_empty_file">Pusty plik</string>
+    <string name="settings_backup_restored">Przywrócono kopię zapasową</string>
+    <string name="settings_backup_invalid">Nieprawidłowy plik kopii: %s</string>
+    <string name="settings_homepage_ask">Adres strony (puste = kafelki)</string>
+    <string name="settings_custom_search_ask" formatted="false">Adres wyszukiwania z %s w miejscu zapytania</string>
+    <string name="settings_filters_error">Nie udało się pobrać: %s</string>
+    <string name="settings_user_agent_ask">Własny User-Agent (puste = domyślny)</string>
+    <string name="settings_update_allow_install">Zezwól na instalację i wróć do aplikacji</string>
+    <string name="settings_reset_done">Przywrócono ustawienia</string>
+    <string name="settings_data_cleared">Wyczyszczono dane</string>
+    <string name="settings_page_home">Strona startowa</string>
+    <string name="settings_page_home_hint">Kafelki, loga, siatka, tło</string>
+    <string name="settings_page_look">Wygląd</string>
+    <string name="settings_page_look_hint">Motyw, kolory, paski, gesty</string>
+    <string name="settings_page_privacy">Prywatność i bezpieczeństwo</string>
+    <string name="settings_page_privacy_hint">Reklamy, HTTPS, ciasteczka, wyjątki stron</string>
+    <string name="settings_page_content">Wyświetlanie stron</string>
+    <string name="settings_page_content_hint">JavaScript, wielkość tekstu, czytanie na głos</string>
+    <string name="settings_page_tabs">Karty i pobieranie</string>
+    <string name="settings_page_tabs_hint">Przywracanie kart, nowe karty, pobieranie</string>
+    <string name="settings_page_backup">Kopia zapasowa</string>
+    <string name="settings_page_backup_hint">Eksport i import ustawień, kafelków i zakładek</string>
+    <string name="settings_page_search">Wyszukiwanie i pasek adresu</string>
+    <string name="settings_page_search_hint">%s · podpowiedzi, uzupełnianie adresów</string>
+    <string name="settings_page_passwords">Hasła i autouzupełnianie</string>
+    <string name="settings_page_updates">Aktualizacje</string>
+    <string name="settings_page_updates_hint">Automatycznie z GitHub · wersja %s</string>
+    <string name="settings_page_about">O aplikacji</string>
+    <string name="settings_default_browser">Ustaw jako domyślną przeglądarkę</string>
+    <string name="settings_default_browser_hint">Linki z innych aplikacji otworzą się w OpenExplorer</string>
+    <string name="settings_presets">Gotowe układy</string>
+    <string name="settings_preset_logos">Same loga</string>
+    <string name="settings_preset_classic">Kafelki</string>
+    <string name="settings_preset_dense">Gęsta siatka</string>
+    <string name="settings_preset_zen">Zen</string>
+    <string name="settings_arrange_tiles">Uporządkuj kafelki</string>
+    <string name="settings_arrange_tiles_hint">Przeciąganie, edycja i usuwanie na stronie startowej</string>
+    <string name="settings_home_wallpaper">Tło strony startowej</string>
+    <string name="settings_home_wallpaper_none">Brak</string>
+    <string name="settings_home_wallpaper_aurora">Zorza</string>
+    <string name="settings_home_wallpaper_gradient">Gradient</string>
+    <string name="settings_home_wallpaper_solid">Kolor</string>
+    <string name="settings_home_wallpaper_image">Obraz</string>
+    <string name="settings_pick_wallpaper">Wybierz obraz z galerii</string>
+    <string name="settings_homepage">Przycisk „Start” otwiera</string>
+    <string name="settings_homepage_hint">Kafelki albo wybraną stronę</string>
+    <string name="settings_homepage_tiles">Kafelki</string>
+    <string name="settings_reset_tiles">Przywróć domyślne kafelki</string>
+    <string name="settings_palette">Kolory</string>
+    <string name="settings_palette_mono">Czarno-białe</string>
+    <string name="settings_palette_accent">Akcent</string>
+    <string name="settings_palette_dynamic">Material You</string>
+    <string name="settings_web_dark_mode">Ciemny wygląd stron</string>
+    <string name="settings_web_dark_mode_auto">Gdy motyw jest ciemny</string>
+    <string name="settings_web_dark_mode_force">Zawsze (odwraca kolory)</string>
+    <string name="settings_web_dark_mode_off">Nigdy</string>
+    <string name="settings_search_engine">Wyszukiwarka</string>
+    <string name="settings_search_suggestions">Podpowiedzi wyszukiwarki</string>
+    <string name="settings_search_suggestions_hint">Wpisywany tekst trafia do %s, by zaproponować zapytania</string>
+    <string name="settings_bangs_hint">Skróty wyszukiwania – wpisz np. „!yt koty” albo „!w Kraków”: %s</string>
+    <string name="settings_saved_passwords">Zapisane hasła</string>
+    <string name="settings_password_auth_fill">Potwierdzaj odciskiem palca lub PIN-em</string>
+    <string name="settings_password_auth_fill_hint">Przed każdym uzupełnieniem hasła na stronie</string>
+    <string name="settings_system_autofill">Systemowe autouzupełnianie</string>
+    <string name="settings_system_autofill_hint">Okienka Google, Edge, Bitwardena itp. w polach stron. Wyłączone – nie wyskakują</string>
+    <string name="settings_passwords_import_hint">Hasła z Edge, Chrome lub innego menedżera przeniesiesz przez plik CSV: wyeksportuj je tam, a potem w „Zapisane hasła” wybierz ⋮ → Importuj z pliku CSV.</string>
+    <string name="settings_ad_block">Blokuj reklamy i śledzenie</string>
+    <string name="settings_ad_block_hint">Domen na liście: %d</string>
+    <string name="settings_filters_never">nigdy</string>
+    <string name="settings_filters_hint">StevenBlack · ostatnio: %s · potem odświeżana co tydzień przez Wi-Fi</string>
+    <string name="settings_filters_busy">Pobieranie listy blokowanych domen…</string>
+    <string name="settings_filters_download">Pobierz pełną listę blokowanych domen</string>
+    <string name="settings_clear_on_exit">Usuwaj dane po wyjściu</string>
+    <string name="settings_clear_on_exit_hint">Historia, ciasteczka i dane stron znikają po „Wyjdź” w menu i przy każdym uruchomieniu – zaczynasz od czystej karty</string>
+    <string name="settings_clear_now">Wyczyść dane przeglądania teraz</string>
+    <string name="settings_clear_now_hint">Pamięć podręczna, ciasteczka, historia, dane stron</string>
+    <string name="settings_site_rules">Własne ustawienia stron</string>
+    <string name="settings_rule_ads_allowed">reklamy dozwolone</string>
+    <string name="settings_rule_no_js">bez JavaScript</string>
+    <string name="settings_rule_desktop">wersja komputerowa</string>
+    <string name="settings_rule_no_dark">bez ciemnego wyglądu</string>
+    <string name="settings_rule_text_zoom">tekst %d%%</string>
+    <string name="settings_rule_reset">Przywróć domyślne dla tej strony</string>
+    <string name="settings_user_agent">Identyfikator przeglądarki (User-Agent)</string>
+    <string name="settings_user_agent_hint">Jak przeglądarka przedstawia się stronom</string>
+    <string name="settings_user_agent_custom">Własny</string>
+    <string name="settings_tabs_swipe_hint">Kartę zamkniesz też, przesuwając ją w bok na liście kart.</string>
+    <string name="settings_backup_export">Zapisz kopię do pliku</string>
+    <string name="settings_backup_export_hint">Ustawienia, kafelki i zakładki (bez haseł)</string>
+    <string name="settings_backup_import">Przywróć z pliku kopii</string>
+    <string name="settings_backup_passwords_hint">Hasła kopiujesz osobno: Hasła i autouzupełnianie → Zapisane hasła → ⋮ → Eksportuj do pliku CSV.</string>
+    <string name="settings_update_auto_install">Instaluj w tle bez pytania</string>
+    <string name="settings_update_auto_install_ok">Dostępne na tym urządzeniu</string>
+    <string name="settings_update_auto_install_no">Wymaga Androida 12+ i jednej aktualizacji z poziomu aplikacji</string>
+    <string name="settings_update_permission">Zezwól na instalowanie aktualizacji</string>
+    <string name="settings_update_permission_hint">Wymagane jednorazowo w ustawieniach systemu</string>
+    <string name="settings_update_checking">Sprawdzanie…</string>
+    <string name="settings_update_up_to_date">Masz najnowszą wersję</string>
+    <string name="settings_update_available">Dostępna wersja %s</string>
+    <string name="settings_update_downloading">Pobieranie %d%%</string>
+    <string name="settings_update_ready">Gotowa do instalacji</string>
+    <string name="settings_update_installing">Instalowanie…</string>
+    <string name="settings_update_failed">Błąd: %s</string>
+    <string name="settings_update_idle">Wersja %s</string>
+    <string name="settings_update_checked">%1$s · sprawdzono %2$s</string>
+    <string name="settings_update_download">Pobierz i zainstaluj %s</string>
+    <string name="settings_update_install">Zainstaluj wersję %s</string>
+    <string name="settings_update_install_hint">Pobrana i sprawdzona</string>
+    <string name="settings_update_check_now">Sprawdź teraz</string>
+    <string name="settings_about_source">Kod źródłowy i wydania na GitHub</string>
+    <string name="settings_about_author">Projekt i wykonanie: redzikowski.com</string>
+    <string name="settings_about_coffee">☕ Postaw kawę</string>
+    <string name="settings_about_coffee_hint">Wesprzyj rozwój na buycoffee.to</string>
+    <string name="settings_reset_all">Przywróć ustawienia domyślne</string>
+    <string name="settings_reset_tiles_title">Przywrócić domyślne kafelki?</string>
+    <string name="settings_reset_tiles_text">Twoje kafelki zostaną zastąpione zestawem domyślnym.</string>
+    <string name="settings_restore">Przywróć</string>
+    <string name="settings_clear_title">Wyczyść dane</string>
+    <string name="settings_home_columns">Kolumny</string>
+    <string name="settings_home_rows">Wiersze</string>
+    <string name="settings_home_all_tiles">Pokazuj wszystkie kafelki</string>
+    <string name="settings_home_all_tiles_hint">Bez limitu wierszy – strona przewija się w dół</string>
+    <string name="settings_tile_icon_scale">Wielkość logo w kafelku</string>
+    <string name="settings_tile_corner">Zaokrąglenie rogów</string>
+    <string name="settings_tile_spacing">Odstępy między kafelkami</string>
+    <string name="settings_home_width">Maksymalna szerokość siatki</string>
+    <string name="settings_logo_source_hd">Duże logo strony</string>
+    <string name="settings_logo_source_small">Mała ikona</string>
+    <string name="settings_logo_source_letter">Pierwsza litera</string>
+    <string name="settings_logo_source">Skąd brać logo</string>
+    <string name="settings_tile_background">Tło pod logo</string>
+    <string name="settings_tile_background_hint">Wyłączone – widać same loga</string>
+    <string name="settings_tile_clip">Przycinaj logo do kształtu kafelka</string>
+    <string name="settings_tile_clip_hint">Wyłączone – logo w oryginalnym kształcie</string>
+    <string name="settings_tile_labels">Nazwy pod kafelkami</string>
+    <string name="settings_tile_label_size">Wielkość nazw</string>
+    <string name="settings_tile_grayscale">Czarno-białe loga</string>
+    <string name="settings_tile_add_button">Kafelek „+” do dodawania stron</string>
+    <string name="settings_home_align_center">Na środku ekranu</string>
+    <string name="settings_home_align_top">U góry</string>
+    <string name="settings_home_align">Położenie kafelków</string>
+    <string name="settings_home_search_style_pill">Zaokrąglone</string>
+    <string name="settings_home_search_style_line">Sama linia</string>
+    <string name="settings_home_search_style_none">Ukryte</string>
+    <string name="settings_home_search_style">Pole wyszukiwania</string>
+    <string name="settings_home_clock">Zegar i data</string>
+    <string name="settings_home_clock_size">Wielkość zegara</string>
+    <string name="settings_home_logo">Napis „OpenExplorer”</string>
+    <string name="settings_home_logo_hint">Nad polem wyszukiwania</string>
+    <string name="settings_home_recent">Ostatnio odwiedzone strony</string>
+    <string name="settings_home_recent_hint">Lista pod kafelkami</string>
+    <string name="settings_home_recent_count">Ile ostatnich stron</string>
+    <string name="settings_home_wallpaper_dim">Przyciemnienie</string>
+    <string name="settings_home_wallpaper_blur">Rozmycie</string>
+    <string name="settings_theme_system">Systemowy</string>
+    <string name="settings_theme_light">Jasny</string>
+    <string name="settings_theme_dark">Ciemny</string>
+    <string name="settings_theme">Motyw</string>
+    <string name="settings_amoled">Głęboka czerń w ciemnym motywie</string>
+    <string name="settings_amoled_hint">Czarne tło zamiast szarego – oszczędza baterię na ekranach OLED</string>
+    <string name="settings_density_compact">Mniejsze</string>
+    <string name="settings_density_normal">Większe</string>
+    <string name="settings_density">Wielkość przycisków i pasków</string>
+    <string name="settings_address_bar_bottom">Pasek adresu na dole ekranu</string>
+    <string name="settings_address_bar_bottom_hint">Wygodniejszy przy obsłudze jedną ręką</string>
+    <string name="settings_nav_bar">Dolny pasek przycisków</string>
+    <string name="settings_nav_bar_hint">Wstecz, dalej, start, karty i menu zawsze pod ręką</string>
+    <string name="settings_show_home_button">Przycisk „Start” w pasku adresu</string>
+    <string name="settings_show_reload_button">Przycisk odświeżania w pasku adresu</string>
+    <string name="settings_show_tab_counter">Przycisk z liczbą kart</string>
+    <string name="settings_show_progress">Linia postępu wczytywania</string>
+    <string name="settings_hide_bars_on_scroll">Chowaj paski podczas przewijania</string>
+    <string name="settings_hide_bars_on_scroll_hint">Paski płynnie odjeżdżają razem ze stroną – więcej miejsca na treść</string>
+    <string name="settings_scroll_top_button">Przycisk „do góry”</string>
+    <string name="settings_scroll_top_button_hint">Pojawia się po przewinięciu długiej strony</string>
+    <string name="settings_swipe_tabs">Zmiana karty przesunięciem paska adresu</string>
+    <string name="settings_swipe_tabs_hint">Przeciągnij pasek w lewo lub w prawo</string>
+    <string name="settings_haptics">Wibracje przy dotyku przycisków</string>
+    <string name="settings_inline_autocomplete">Dopisuj adresy podczas pisania</string>
+    <string name="settings_inline_autocomplete_hint">„you” → „youtube.com” na podstawie historii i zakładek</string>
+    <string name="settings_clipboard_suggestion">Proponuj skopiowany link</string>
+    <string name="settings_clipboard_suggestion_hint">Po otwarciu paska adresu – jednym dotknięciem</string>
+    <string name="settings_password_manager">Wbudowany menedżer haseł</string>
+    <string name="settings_password_manager_hint">Zapisuje i uzupełnia loginy na stronach – bez Google, Edge i innych usług</string>
+    <string name="settings_offer_save_passwords">Pytaj o zapisanie hasła</string>
+    <string name="settings_offer_save_passwords_hint">Po zalogowaniu się na stronie (nigdy w incognito)</string>
+    <string name="settings_password_autofill">Uzupełniaj bez pytania</string>
+    <string name="settings_password_autofill_hint">Gdy dla strony jest zapisane tylko jedno konto</string>
+    <string name="settings_reveal_password_button">Przycisk „pokaż hasło” na stronach</string>
+    <string name="settings_reveal_password_button_hint">Oko przy polach haseł (gdy strona nie ma własnego)</string>
+    <string name="settings_cosmetic_filter">Ukrywaj puste ramki po reklamach</string>
+    <string name="settings_cosmetic_filter_hint">Strony nie mają dziur w miejscach zablokowanych reklam</string>
+    <string name="settings_hide_cookie_banners">Ukrywaj okienka zgody na cookies</string>
+    <string name="settings_hide_cookie_banners_hint">Popularne banery RODO znikają same</string>
+    <string name="settings_https_only">Zawsze łącz przez HTTPS</string>
+    <string name="settings_https_only_hint">Adresy http:// są zamieniane na szyfrowane https://</string>
+    <string name="settings_safe_browsing">Ostrzegaj przed niebezpiecznymi stronami</string>
+    <string name="settings_safe_browsing_hint">Wyłudzanie danych i złośliwe oprogramowanie (Google Safe Browsing)</string>
+    <string name="settings_third_party_cookies">Zezwalaj na ciasteczka innych firm</string>
+    <string name="settings_third_party_cookies_hint">Potrzebne przy niektórych logowaniach i osadzonych treściach, ale służą też do śledzenia</string>
+    <string name="settings_do_not_track">Proś strony o nieśledzenie</string>
+    <string name="settings_do_not_track_hint">Wysyła sygnały „Do Not Track” i „Global Privacy Control”</string>
+    <string name="settings_block_popups">Blokuj wyskakujące okna</string>
+    <string name="settings_block_popups_hint">Okna otwierane przez stronę bez Twojego dotknięcia</string>
+    <string name="settings_save_history">Zapisuj historię odwiedzin</string>
+    <string name="settings_javascript">JavaScript</string>
+    <string name="settings_javascript_hint">Wyłączenie przyspiesza strony, ale wiele z nich przestaje działać</string>
+    <string name="settings_load_images">Pokazuj obrazy</string>
+    <string name="settings_load_images_hint">Wyłączone – oszczędza dane komórkowe</string>
+    <string name="settings_block_autoplay">Nie odtwarzaj filmów i dźwięków samoczynnie</string>
+    <string name="settings_block_autoplay_hint">Ruszają dopiero po dotknięciu</string>
+    <string name="settings_desktop_default">Zawsze otwieraj wersję komputerową</string>
+    <string name="settings_desktop_default_hint">Strony jak na komputerze zamiast mobilnych</string>
+    <string name="settings_force_zoom">Pozwalaj powiększać każdą stronę</string>
+    <string name="settings_force_zoom_hint">Także te, które blokują przybliżanie palcami</string>
+    <string name="settings_pull_to_refresh">Odświeżanie pociągnięciem w dół</string>
+    <string name="settings_pull_to_refresh_hint">Na samej górze strony</string>
+    <string name="settings_text_zoom">Wielkość tekstu na stronach</string>
+    <string name="settings_tts_rate">Szybkość czytania na głos</string>
+    <string name="settings_restore_tabs">Przywracaj karty po ponownym uruchomieniu</string>
+    <string name="settings_links_in_background">Nowe karty otwieraj w tle</string>
+    <string name="settings_links_in_background_hint">Przy otwieraniu kafelka w nowej karcie zostajesz na bieżącej stronie</string>
+    <string name="settings_confirm_close_all">Pytaj przed zamknięciem wszystkich kart</string>
+    <string name="settings_ask_download">Pytaj o nazwę pliku przed pobraniem</string>
+    <string name="settings_ask_download_hint">Wyłączone – pobieranie startuje od razu</string>
+    <string name="settings_auto_update">Aktualizuj automatycznie z GitHub</string>
+    <string name="settings_auto_update_hint">Sprawdza przy otwarciu aplikacji i co kilka godzin w tle</string>
+    <string name="settings_update_auto_download">Pobieraj nowe wersje od razu</string>
+    <string name="settings_update_auto_download_hint">Aktualizacja czeka gotowa do instalacji</string>
+    <string name="settings_update_wifi_only">Pobieraj tylko przez Wi-Fi</string>
+    <string name="settings_update_wifi_only_hint">Nie zużywa danych komórkowych</string>
+    <string name="settings_clear_cache">Pamięć podręczna</string>
+    <string name="settings_clear_history">Historia</string>
+    <string name="settings_clear_cookies">Ciasteczka (wylogowuje ze stron)</string>
+    <string name="settings_clear_storage">Dane zapisane przez strony</string>
+    <plurals name="settings_filters_updated">
+        <item quantity="one">Lista filtrów: %d domena</item>
+        <item quantity="few">Lista filtrów: %d domeny</item>
+        <item quantity="many">Lista filtrów: %d domen</item>
+        <item quantity="other">Lista filtrów: %d domeny</item>
+    </plurals>
+    <plurals name="settings_page_passwords_hint">
+        <item quantity="one">%d zapisane · oko przy hasłach</item>
+        <item quantity="few">%d zapisane · oko przy hasłach</item>
+        <item quantity="many">%d zapisanych · oko przy hasłach</item>
+        <item quantity="other">%d zapisanego · oko przy hasłach</item>
+    </plurals>
+    <plurals name="settings_saved_passwords_hint">
+        <item quantity="one">%d login · zaszyfrowane, tylko na tym telefonie · wymaga odcisku palca lub PIN-u</item>
+        <item quantity="few">%d loginy · zaszyfrowane, tylko na tym telefonie · wymaga odcisku palca lub PIN-u</item>
+        <item quantity="many">%d loginów · zaszyfrowane, tylko na tym telefonie · wymaga odcisku palca lub PIN-u</item>
+        <item quantity="other">%d loginu · zaszyfrowane, tylko na tym telefonie · wymaga odcisku palca lub PIN-u</item>
+    </plurals>
+
+    <!-- Strona startowa, pasek adresu, baner aktualizacji -->
+    <string name="home_incognito_hint">Historia, ciasteczka i dane stron z tych kart znikną po ich zamknięciu.</string>
+    <string name="home_reorder_hint">Przytrzymaj i przeciągnij, aby zmienić kolejność</string>
+    <string name="home_done">Gotowe</string>
+    <string name="home_search_hint">Szukaj lub wpisz adres</string>
+    <string name="home_new_tile">Nowy kafelek</string>
+    <string name="home_edit_tile">Edytuj kafelek</string>
+    <string name="home_tile_name">Nazwa (opcjonalnie)</string>
+    <string name="home_frequent">Często odwiedzane</string>
+    <string name="home_icon_auto">Logo</string>
+    <string name="home_icon_letter">Litera</string>
+    <string name="home_icon_custom">Własne</string>
+    <string name="home_icon_url">Adres obrazka</string>
+    <string name="home_icon_picked">Wybrano obraz z galerii · zmień</string>
+    <string name="home_icon_pick">Wybierz z galerii</string>
+    <string name="browser_scroll_top">Przewiń na górę</string>
+    <string name="browser_home">Strona startowa</string>
+    <string name="browser_menu">Menu</string>
+    <string name="browser_incognito_tabs">Karty incognito</string>
+    <string name="browser_address_hint">Szukaj lub wpisz adres  ·  !yt, !w, !gh…</string>
+    <string name="browser_site_info">Informacje o stronie</string>
+    <string name="browser_blocked">Zablokowane</string>
+    <string name="browser_stop">Zatrzymaj</string>
+    <string name="browser_paste_link">Otwórz skopiowany link</string>
+    <string name="browser_switch_to_tab">Przełącz na otwartą kartę</string>
+    <string name="browser_insert_query">Wstaw do paska</string>
+    <string name="browser_find_prev">Poprzedni</string>
+    <string name="browser_find_next">Następny</string>
+    <string name="update_banner_available">Nowa wersja %s</string>
+    <string name="update_banner_downloading">Pobieranie %1$s · %2$d%%</string>
+    <string name="update_banner_ready">Wersja %s pobrana</string>
+    <string name="update_banner_install">Zainstaluj</string>
+    <string name="update_banner_installing">Instalowanie %s…</string>
+    <string name="update_banner_failed">Aktualizacja nie powiodła się</string>
+    <string name="update_banner_retry">Ponów</string>
+    <string name="update_banner_available_hint">Pobierze się i zainstaluje automatycznie</string>
+    <string name="update_banner_ready_hint">Aplikacja uruchomi się ponownie, karty zostaną przywrócone</string>
+    <string name="update_banner_wait">Nie zamykaj aplikacji</string>
+    <string name="update_banner_hide">Ukryj</string>
+
+    <!-- Komunikaty logiki: karty, certyfikaty, uprawnienia, narzędzia, aktualizacje -->
+    <string name="browser_tab_closed">Zamknięto kartę</string>
+    <string name="https_no_response">Serwer nie odpowiada przez szyfrowane połączenie.</string>
+    <string name="ssl_expired">Certyfikat wygasł.</string>
+    <string name="ssl_id_mismatch">Certyfikat wystawiono dla innej domeny.</string>
+    <string name="ssl_untrusted">Certyfikat nie pochodzi z zaufanego źródła.</string>
+    <string name="ssl_not_yet_valid">Certyfikat nie jest jeszcze ważny.</string>
+    <string name="ssl_date_invalid">Nieprawidłowa data certyfikatu.</string>
+    <string name="ssl_other">Połączenie nie jest bezpieczne.</string>
+    <string name="https_bad_certificate">Strona nie ma poprawnego certyfikatu HTTPS. %s</string>
+    <string name="browser_renderer_crashed">Strona przestała działać – wczytano ją ponownie</string>
+    <string name="browser_popup_blocked">Zablokowano wyskakujące okno</string>
+    <string name="permission_camera">kamera</string>
+    <string name="permission_microphone">mikrofon</string>
+    <string name="permission_protected_media">odtwarzanie chronionych treści</string>
+    <string name="permission_location">lokalizacja</string>
+    <string name="browser_no_app">Brak aplikacji do otwarcia: %s</string>
+    <string name="browser_reader_unavailable">Tryb czytania nie jest dostępny na tej stronie</string>
+    <string name="browser_site_data_cleared">Wyczyszczono dane strony %s</string>
+    <string name="passwords_fill_auth">Uzupełnij hasło dla %s</string>
+    <string name="passwords_updated">Zaktualizowano hasło</string>
+    <string name="passwords_saved">Zapisano hasło</string>
+    <string name="passwords_never_saved">Hasła dla %s nie będą zapisywane</string>
+    <string name="tools_offline_saved">Zapisano do czytania offline</string>
+    <string name="tools_offline_failed">Nie udało się zapisać strony</string>
+    <string name="tools_no_text">Brak tekstu do przeczytania</string>
+    <string name="tools_tts_unavailable">Synteza mowy jest niedostępna</string>
+    <string name="tools_no_space">brak miejsca</string>
+    <string name="tools_screenshot_saved">Zapisano zrzut ekranu</string>
+    <string name="tools_screenshot_failed">Nie udało się zapisać zrzutu: %s</string>
+    <string name="download_unsupported">Ten rodzaj pobierania nie jest obsługiwany</string>
+    <string name="download_started">Pobieranie: %s</string>
+    <string name="source_home_has_no_code">Strona startowa nie ma kodu do pokazania</string>
+    <string name="source_http_only">Kod z serwera jest dostępny tylko dla stron http i https</string>
+    <string name="source_fetch_failed">Nie udało się pobrać kodu: %s</string>
+    <string name="update_allow_source">Zezwól na instalację z tego źródła – aktualizacja dokończy się po powrocie</string>
+    <string name="main_no_file_picker">Brak aplikacji do wyboru plików</string>
+    <string name="main_auth_failed">Nie udało się potwierdzić tożsamości</string>
+    <string name="update_network_error">Błąd sieci</string>
+    <string name="update_rate_limited">GitHub chwilowo ogranicza zapytania – spróbuj później</string>
+    <string name="update_no_releases">Brak opublikowanych wydań</string>
+    <string name="update_http_error">GitHub odpowiedział kodem %d</string>
+    <string name="update_no_apk">Wydanie nie zawiera pliku APK</string>
+    <string name="update_download_http">Pobieranie nie powiodło się (%d)</string>
+    <string name="update_corrupted">Pobrany plik jest uszkodzony – spróbuj ponownie</string>
+    <string name="update_cannot_save">Nie można zapisać pliku aktualizacji</string>
+    <string name="update_download_failed">Nie udało się pobrać aktualizacji</string>
+    <string name="update_install_failed">Instalacja nieudana: %s</string>
+    <string name="update_conflict">Podpis lub wersja nie pasują do zainstalowanej aplikacji – zainstaluj ręcznie z GitHub</string>
+    <string name="update_no_storage">Za mało miejsca na urządzeniu</string>
+    <string name="update_status_code">kod %d</string>
+    <string name="update_ready_title">OpenExplorer %s jest gotowy</string>
+    <string name="update_ready_text">Dotknij, aby zainstalować aktualizację</string>
+    <string name="update_done_title">OpenExplorer zaktualizowany do %s</string>
+    <string name="update_done_text">Dotknij, aby otworzyć</string>
+    <string name="update_confirm_title">Aktualizacja OpenExplorer</string>
+    <string name="update_confirm_text">Dotknij, aby potwierdzić instalację</string>
+    <string name="update_available_text">Dotknij, aby zaktualizować OpenExplorer</string>
+    <string name="adblock_incomplete">Lista filtrów jest niepełna</string>
+    <string name="passwords_load_error">Nie udało się odczytać zapisanych haseł (klucz szyfrowania jest niedostępny). Zaimportuj je ponownie z pliku CSV.</string>
+    <string name="strength_very_weak">Bardzo słabe</string>
+    <string name="strength_weak">Słabe</string>
+    <string name="strength_medium">Średnie</string>
+    <string name="strength_strong">Silne</string>
+    <string name="strength_very_strong">Bardzo silne</string>
+    <string name="search_engine_custom">Własny</string>
+</resources>
