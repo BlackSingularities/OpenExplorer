@@ -18,9 +18,12 @@ object Omnibox {
     }
 
     /** Domeny do uzupełniania: kafelki i zakładki mają pierwszeństwo, potem najczęściej odwiedzane. */
-    fun rankHosts(history: List<String>, preferred: List<String>): List<String> {
-        val counts = HashMap<String, Int>()
-        history.forEach { h -> counts[h] = (counts[h] ?: 0) + 1 }
+    fun rankHosts(history: List<String>, preferred: List<String>): List<String> =
+        rankHosts(history.groupingBy { it }.eachCount(), preferred)
+
+    /** Jak wyżej, z gotową liczbą odwiedzin każdej domeny [visits]. */
+    fun rankHosts(visits: Map<String, Int>, preferred: List<String>): List<String> {
+        val counts = HashMap(visits)
         preferred.forEach { h -> counts[h] = (counts[h] ?: 0) + 5 }
         return counts.entries.filter { it.key.isNotEmpty() }.sortedByDescending { it.value }.map { it.key }
     }

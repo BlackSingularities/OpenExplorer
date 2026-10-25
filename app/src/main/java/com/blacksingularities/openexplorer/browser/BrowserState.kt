@@ -720,8 +720,8 @@ class BrowserState(
     }
 
     /** Domeny do uzupełniania adresu w pasku (liczone raz na otwarcie paska). */
-    fun completionHosts(): List<String> = Omnibox.rankHosts(
-        store.history.asSequence().take(3000).map { Omnibox.hostOf(it.url) }.toList(),
+    suspend fun completionHosts(): List<String> = Omnibox.rankHosts(
+        store.hostVisits(3000),
         store.tiles.map { Omnibox.hostOf(it.url) } + store.bookmarks.map { Omnibox.hostOf(it.url) },
     )
 

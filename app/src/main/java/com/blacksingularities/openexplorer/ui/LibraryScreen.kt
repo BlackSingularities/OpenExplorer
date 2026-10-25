@@ -37,7 +37,9 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -156,33 +158,39 @@ fun BookmarksScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) ->
     }
 }
 
+private const val HISTORY_PAGE = 300
+
 @Composable
 fun HistoryScreen(state: BrowserState, onBack: () -> Unit, onOpen: (String) -> Unit) {
     val ctx = LocalContext.current
     var query by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf(false) }
+    val q = query.trim()
+    // Wpisy z bazy porcjami: kolejne doczytują się po przewinięciu do końca listy.
+    var limit by remember(q) { mutableIntStateOf(HISTORY_PAGE) }
+    val list by remember(q, limit) { state.store.historyFlow(q, limit) }.collectAsState(null)
     LibraryScaffold(stringResource(R.string.library_history), onBack, query, { query = it }, actions = {
         RoundIcon(Icons.Filled.DeleteSweep, stringResource(R.string.library_clear_history)) { confirm = true }
     }) { m ->
-        val q = query.lowercase()
-        val list = state.store.history.filter { q.isEmpty() || it.title.lowercase().contains(q) || it.url.lowercase().contains(q) }.take(1000)
-        if (list.isEmpty()) Empty(stringResource(if (q.isEmpty()) R.string.library_history_empty else R.string.common_nothing_found), m)
+        val entries = list ?: return@LibraryScaffold
+        if (entries.isEmpty()) Empty(stringResource(if (q.isEmpty()) R.string.library_history_empty else R.string.common_nothing_found), m)
         else LazyColumn(m) {
             var lastDay = ""
-            list.forEach { h ->
+            entries.forEach { h ->
                 val day = DateUtils.getRelativeTimeSpanString(h.time, System.currentTimeMillis(), DateUtils.DAY_IN_MILLIS).toString()
                 if (day != lastDay) {
                     lastDay = day
                     item { Text(day, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)) }
                 }
-                item {
+                item(key = h.id) {
                     val time = DateUtils.formatDateTime(ctx, h.time, DateUtils.FORMAT_SHOW_TIME)
                     SiteRow(h.url, h.title, "$time · ${hostOf(h.url)}", { onOpen(h.url) }) {
                         IconButton(onClick = { state.store.removeHistory(h) }) { Icon(Icons.Filled.Close, stringResource(R.string.common_delete)) }
                     }
                 }
             }
+            if (entries.size >= limit) item { LaunchedEffect(limit) { limit += HISTORY_PAGE } }
         }
     }
     if (confirm) {

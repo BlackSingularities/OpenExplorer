@@ -1,5 +1,15 @@
 # Zmiany
 
+## 1.4.0
+
+Historia przeglądania w bazie danych.
+
+- Historia zapisuje się w bazie SQLite zamiast w jednym pliku JSON przepisywanym przy każdej odwiedzonej stronie – mniej zapisów i szybsze uruchamianie przy długiej historii.
+- Dotychczasowa historia przenosi się do bazy sama przy pierwszym uruchomieniu, a stary plik jest potem usuwany.
+- Ekran historii, podpowiedzi w pasku adresu, ostatnie strony i najczęściej odwiedzane domeny czytają z bazy w tle, porcjami – lista historii doczytuje się przy przewijaniu.
+- Nadal najwyżej 5000 wpisów; „Wyczyść historię” i „Usuwaj dane po wyjściu” czyszczą bazę.
+- Testy bazy historii i migracji uruchamiane w CI (Robolectric).
+
 ## 1.3.2
 
 Bezpieczniejsze aktualizacje i HTTPS, zgodność z Androidem 16.

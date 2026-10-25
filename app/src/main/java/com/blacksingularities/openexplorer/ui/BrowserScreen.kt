@@ -76,6 +76,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -110,6 +111,7 @@ import com.blacksingularities.openexplorer.browser.BrowserDialog
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.browser.Omnibox
 import com.blacksingularities.openexplorer.browser.Tab
+import com.blacksingularities.openexplorer.data.HistoryEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -363,7 +365,9 @@ private fun AddressField(
     // Tekst wpisany przez użytkownika (bez dopisanej podpowiedzi adresu).
     var typed by remember { mutableStateOf("") }
     var swipe by remember { mutableFloatStateOf(0f) }
-    val hosts = remember(editing) { if (editing && state.settings.inlineAutocomplete) state.completionHosts() else emptyList() }
+    val hosts by produceState(emptyList<String>(), editing) {
+        value = if (editing && state.settings.inlineAutocomplete) state.completionHosts() else emptyList()
+    }
 
     LaunchedEffect(state.suggestQuery) {
         val q = state.suggestQuery
@@ -521,16 +525,17 @@ private fun SuggestionsPanel(state: BrowserState, tab: Tab, bottom: Boolean, onP
         remote = fetchSuggestions(query, state.settings.searchEngine)
     }
     val q = query.trim().lowercase()
+    // Historia z bazy, poza wątkiem głównym; do czasu odpowiedzi zostają poprzednie podpowiedzi.
+    val history by produceState(emptyList<HistoryEntry>(), q, tab.incognito) {
+        value = if (tab.incognito) emptyList() else state.store.historySuggestions(q, if (q.isEmpty()) 8 else 9)
+    }
     val local = if (q.isEmpty()) {
-        if (tab.incognito) emptyList()
-        else state.store.history.distinctBy { it.url }.take(8).map { Suggestion(it.title.ifBlank { it.url }, it.url, 1) }
+        history.map { Suggestion(it.title.ifBlank { it.url }, it.url, 1) }
     } else {
         val bm = state.store.bookmarks.filter { it.title.lowercase().contains(q) || it.url.lowercase().contains(q) }
             .take(4).map { Suggestion(it.title, it.url, 2) }
-        val hist = if (tab.incognito) emptyList() else state.store.history.asSequence()
-            .filter { it.title.lowercase().contains(q) || it.url.lowercase().contains(q) }
-            .distinctBy { it.url }.take(5).map { Suggestion(it.title.ifBlank { it.url }, it.url, 1) }.toList()
-        bm + hist.filter { h -> bm.none { it.url == h.url } }
+        val hist = history.filter { h -> bm.none { it.url == h.url } }.take(5).map { Suggestion(it.title.ifBlank { it.url }, it.url, 1) }
+        bm + hist
     }
     val openTabs = if (q.isEmpty()) emptyList() else state.tabs.asSequence()
         .filter { it.id != tab.id && it.incognito == tab.incognito && !it.showHome && it.url.isNotEmpty() }
