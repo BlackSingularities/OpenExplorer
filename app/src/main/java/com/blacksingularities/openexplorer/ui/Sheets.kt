@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -122,6 +123,7 @@ import com.blacksingularities.openexplorer.browser.BrowserDialog
 import com.blacksingularities.openexplorer.browser.BrowserState
 import com.blacksingularities.openexplorer.browser.Tab
 import com.blacksingularities.openexplorer.data.Container
+import com.blacksingularities.openexplorer.data.SiteRule
 import com.blacksingularities.openexplorer.data.Tile
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
@@ -596,13 +598,15 @@ fun BrowserDialogs(state: BrowserState) {
 @Composable
 private fun SiteInfoSheet(state: BrowserState, tab: Tab) {
     val host = tab.pageHost?.removePrefix("www.") ?: tab.host
-    val rule = state.store.rule(host) ?: com.blacksingularities.openexplorer.data.SiteRule(host)
+    val rule = state.store.rule(host) ?: SiteRule(host)
+    // Otwarty edytor własnego kodu: "css", "js" albo null.
+    var code by remember { mutableStateOf<String?>(null) }
     ModalBottomSheet(
         onDismissRequest = { state.dialog = null },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Column(Modifier.navigationBarsPadding().padding(bottom = 12.dp)) {
+        Column(Modifier.navigationBarsPadding().verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
             Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                 SiteLogo(tab.url, tab.title, 0L, "auto", "", "hd", false, Modifier.size(36.dp), RoundedCornerShape(10.dp))
                 Column(Modifier.padding(start = 14.dp)) {
@@ -628,6 +632,15 @@ private fun SiteInfoSheet(state: BrowserState, tab: Tab) {
             ToggleRow(stringResource(R.string.site_javascript), null, rule.javascript) { v -> state.updateRule(tab) { it.copy(javascript = v) } }
             ToggleRow(stringResource(R.string.site_desktop), null, rule.desktop) { v -> state.updateRule(tab) { it.copy(desktop = v) } }
             ToggleRow(stringResource(R.string.site_dark), stringResource(R.string.site_dark_hint), rule.darkMode) { v -> state.updateRule(tab) { it.copy(darkMode = v) } }
+            SectionTitle(stringResource(R.string.site_custom_code))
+            val none = stringResource(R.string.site_code_none)
+            val on = stringResource(R.string.site_code_on)
+            ClickRow(stringResource(R.string.site_custom_css), stringResource(R.string.site_custom_css_hint), value = if (rule.css.isBlank()) none else on) { code = "css" }
+            ClickRow(stringResource(R.string.site_custom_js), stringResource(R.string.site_custom_js_hint), value = if (rule.js.isBlank()) none else on) { code = "js" }
+            if (tab.incognito && (rule.css.isNotBlank() || rule.js.isNotBlank())) {
+                Text(stringResource(R.string.site_code_incognito), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            }
             val saved = state.passwords.forHost(host).count { it.host == host }
             if (saved > 0) {
                 Text(stringResource(R.string.site_saved_logins, saved), style = MaterialTheme.typography.bodySmall,
@@ -636,6 +649,50 @@ private fun SiteInfoSheet(state: BrowserState, tab: Tab) {
             ClickRow(stringResource(R.string.site_clear), stringResource(R.string.site_clear_hint, host)) { state.clearSiteData(tab); state.dialog = null }
         }
     }
+    code?.let { kind -> CustomCodeDialog(kind == "js", host, if (kind == "js") rule.js else rule.css, onDismiss = { code = null }) { text ->
+        state.updateRule(tab) { if (kind == "js") it.copy(js = text) else it.copy(css = text) }
+        code = null
+    } }
+}
+
+/** Edytor własnego CSS albo skryptu domeny; przy skrypcie wyraźne ostrzeżenie o dostępie do strony. */
+@Composable
+private fun CustomCodeDialog(js: Boolean, host: String, initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var text by remember(js) { mutableStateOf(initial) }
+    val colors = MaterialTheme.colorScheme
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (js) R.string.site_custom_js else R.string.site_custom_css)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (js) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
+                            .background(colors.errorContainer).padding(12.dp),
+                    ) {
+                        Text(stringResource(R.string.site_js_warning_title), color = colors.onErrorContainer,
+                            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.site_js_warning, host), color = colors.onErrorContainer,
+                            style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+                OutlinedTextField(
+                    text, { text = it.take(SiteRule.MAX_CODE) },
+                    Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 320.dp),
+                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    placeholder = {
+                        Text(if (js) "document.querySelector('.baner')?.remove();" else ".baner { display: none !important; }",
+                            fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                    },
+                    keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
+                )
+                Text(stringResource(R.string.site_code_applies, host), style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(text.trim()) }) { Text(stringResource(R.string.common_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
+    )
 }
 
 fun formatSize(bytes: Long): String = when {

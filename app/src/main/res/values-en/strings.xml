@@ -282,6 +282,17 @@
     <string name="site_desktop">Always desktop site</string>
     <string name="site_dark">Dark appearance</string>
     <string name="site_dark_hint">When the dark theme is on</string>
+    <string name="site_custom_code">Custom style and script</string>
+    <string name="site_custom_css">Custom CSS</string>
+    <string name="site_custom_css_hint">Styles added after the page loads, e.g. to hide elements</string>
+    <string name="site_custom_js">Custom JavaScript</string>
+    <string name="site_custom_js_hint">Script run after the page loads</string>
+    <string name="site_code_none">none</string>
+    <string name="site_code_on">on</string>
+    <string name="site_code_incognito">Custom CSS and scripts don\'t run in incognito tabs.</string>
+    <string name="site_js_warning_title">Warning: the script has full access to the page</string>
+    <string name="site_js_warning">The code sees everything on %s – including passwords and sign-in details you type – and can send them elsewhere or act on your behalf. Only paste code you understand, never at the request of strangers or “tech support”.</string>
+    <string name="site_code_applies">Applies to %s and its subdomains. The page reloads after saving.</string>
     <string name="site_saved_logins">Saved logins for this site: %d (menu → Passwords)</string>
     <string name="site_clear">Clear cookies and site data</string>
     <string name="site_clear_hint">Signs you out of %s</string>
@@ -371,6 +382,8 @@
     <string name="settings_rule_desktop">desktop site</string>
     <string name="settings_rule_no_dark">no dark appearance</string>
     <string name="settings_rule_text_zoom">text %d%%</string>
+    <string name="settings_rule_css">custom CSS</string>
+    <string name="settings_rule_js">custom script</string>
     <string name="settings_rule_reset">Restore defaults for this site</string>
     <string name="settings_user_agent">Browser identifier (User-Agent)</string>
     <string name="settings_user_agent_hint">How the browser identifies itself to sites</string>

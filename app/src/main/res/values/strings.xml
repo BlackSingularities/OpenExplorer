@@ -304,6 +304,17 @@
     <string name="site_desktop">Zawsze wersja komputerowa</string>
     <string name="site_dark">Ciemny wygląd</string>
     <string name="site_dark_hint">Gdy włączony jest ciemny motyw</string>
+    <string name="site_custom_code">Własny wygląd i skrypt</string>
+    <string name="site_custom_css">Własny CSS</string>
+    <string name="site_custom_css_hint">Style dodawane po wczytaniu strony, np. ukrycie elementów</string>
+    <string name="site_custom_js">Własny JavaScript</string>
+    <string name="site_custom_js_hint">Skrypt uruchamiany po wczytaniu strony</string>
+    <string name="site_code_none">brak</string>
+    <string name="site_code_on">włączony</string>
+    <string name="site_code_incognito">Własny CSS i skrypt nie działają w kartach incognito.</string>
+    <string name="site_js_warning_title">Uwaga: skrypt ma pełny dostęp do strony</string>
+    <string name="site_js_warning">Kod widzi wszystko na %s – także wpisywane hasła i dane logowania – i może je wysłać dalej albo działać w Twoim imieniu. Wklejaj tylko kod, który rozumiesz, nigdy na prośbę nieznajomych czy „wsparcia technicznego”.</string>
+    <string name="site_code_applies">Dotyczy %s i jej subdomen. Po zapisaniu strona wczyta się ponownie.</string>
     <string name="site_saved_logins">Zapisane loginy dla tej strony: %d (menu → Hasła)</string>
     <string name="site_clear">Wyczyść ciasteczka i dane strony</string>
     <string name="site_clear_hint">Wylogowuje z %s</string>
@@ -393,6 +404,8 @@
     <string name="settings_rule_desktop">wersja komputerowa</string>
     <string name="settings_rule_no_dark">bez ciemnego wyglądu</string>
     <string name="settings_rule_text_zoom">tekst %d%%</string>
+    <string name="settings_rule_css">własny CSS</string>
+    <string name="settings_rule_js">własny skrypt</string>
     <string name="settings_rule_reset">Przywróć domyślne dla tej strony</string>
     <string name="settings_user_agent">Identyfikator przeglądarki (User-Agent)</string>
     <string name="settings_user_agent_hint">Jak przeglądarka przedstawia się stronom</string>

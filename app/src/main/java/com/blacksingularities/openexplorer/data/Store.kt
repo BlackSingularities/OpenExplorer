@@ -47,8 +47,33 @@ data class SiteRule(
     val darkMode: Boolean = true,
     /** 0 = domyślny rozmiar tekstu. */
     val textZoom: Int = 0,
+    /** Własny arkusz stylów wstrzykiwany po wczytaniu strony. */
+    val css: String = "",
+    /** Własny skrypt uruchamiany po wczytaniu strony (nie w kartach incognito). */
+    val js: String = "",
 ) {
-    val isDefault: Boolean get() = adBlock && javascript && !desktop && darkMode && textZoom == 0
+    val isDefault: Boolean get() = adBlock && javascript && !desktop && darkMode && textZoom == 0 && css.isBlank() && js.isBlank()
+
+    fun toJson(): JSONObject = JSONObject().put("host", host).put("adBlock", adBlock).put("javascript", javascript)
+        .put("desktop", desktop).put("darkMode", darkMode).put("textZoom", textZoom)
+        .also { if (css.isNotBlank()) it.put("css", css) }
+        .also { if (js.isNotBlank()) it.put("js", js) }
+
+    companion object {
+        /** Najdłuższy własny CSS lub skrypt (znaki) – większe wklejki są przycinane. */
+        const val MAX_CODE = 50_000
+
+        /** Reguła z JSON (także ze starszych wersji bez css/js); null bez domeny. */
+        fun fromJson(o: JSONObject): SiteRule? {
+            val host = o.optString("host").trim().lowercase().removePrefix("www.")
+            if (host.isEmpty()) return null
+            return SiteRule(
+                host, o.optBoolean("adBlock", true), o.optBoolean("javascript", true),
+                o.optBoolean("desktop"), o.optBoolean("darkMode", true), o.optInt("textZoom"),
+                o.optString("css").take(MAX_CODE), o.optString("js").take(MAX_CODE),
+            )
+        }
+    }
 }
 
 /** Kod języka telefonu, np. „pl”, „en”, „he” (nowe kody, nie przestarzałe „iw”); nieznany – „en”. */
@@ -96,13 +121,7 @@ class Store(context: Context) {
         readArray("history")?.objects()?.forEach {
             history += HistoryEntry(it.optString("url"), it.optString("title"), it.optLong("time"))
         }
-        readArray("sites")?.objects()?.forEach {
-            val r = SiteRule(
-                it.optString("host"), it.optBoolean("adBlock", true), it.optBoolean("javascript", true),
-                it.optBoolean("desktop"), it.optBoolean("darkMode", true), it.optInt("textZoom"),
-            )
-            sites[r.host] = r
-        }
+        readArray("sites")?.objects()?.forEach { o -> SiteRule.fromJson(o)?.let { sites[it.host] = it } }
         readArray("downloads")?.let { a -> for (i in 0 until a.length()) downloads += a.getLong(i) }
         readArray("containers")?.let { containers.addAll(containersFromJson(it)) }
     }
@@ -205,13 +224,10 @@ class Store(context: Context) {
 
     fun saveRule(rule: SiteRule) {
         if (rule.isDefault) sites.remove(rule.host) else sites[rule.host] = rule
-        write("sites") {
-            JSONArray(sites.values.map {
-                JSONObject().put("host", it.host).put("adBlock", it.adBlock).put("javascript", it.javascript)
-                    .put("desktop", it.desktop).put("darkMode", it.darkMode).put("textZoom", it.textZoom)
-            })
-        }
+        saveSites()
     }
+
+    private fun saveSites() = write("sites") { JSONArray(sites.values.map { it.toJson() }) }
 
     /** Najczęściej odwiedzane domeny (do szybkiego dodawania kafelków). */
     fun topSites(limit: Int): List<HistoryEntry> = history.groupBy { runCatching { android.net.Uri.parse(it.url).host?.removePrefix("www.") }.getOrNull() ?: "" }
@@ -258,6 +274,7 @@ class Store(context: Context) {
         .put("tiles", JSONArray(tiles.map { it.toJson() }))
         .put("bookmarks", JSONArray(bookmarks.map { it.toJson() }))
         .put("containers", containersToJson(containers))
+        .put("sites", JSONArray(sites.values.map { it.toJson() }))
 
     fun import(o: JSONObject) {
         o.optJSONArray("tiles")?.let { a ->
@@ -275,6 +292,11 @@ class Store(context: Context) {
             containers.clear()
             containers.addAll(merged)
             saveContainers()
+        }
+        // Ustawienia stron (z własnym CSS i skryptami): reguła z kopii zastępuje regułę tej samej domeny.
+        o.optJSONArray("sites")?.let { a ->
+            a.objects().mapNotNull { SiteRule.fromJson(it) }.forEach { if (it.isDefault) sites.remove(it.host) else sites[it.host] = it }
+            saveSites()
         }
     }
 

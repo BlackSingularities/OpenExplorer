@@ -403,6 +403,8 @@ fun SettingsScreen(
                                         if (r.desktop) add(stringResource(R.string.settings_rule_desktop))
                                         if (!r.darkMode) add(stringResource(R.string.settings_rule_no_dark))
                                         if (r.textZoom > 0) add(stringResource(R.string.settings_rule_text_zoom, r.textZoom))
+                                        if (r.css.isNotBlank()) add(stringResource(R.string.settings_rule_css))
+                                        if (r.js.isNotBlank()) add(stringResource(R.string.settings_rule_js))
                                     }.joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

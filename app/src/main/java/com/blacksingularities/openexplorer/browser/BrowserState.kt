@@ -686,6 +686,7 @@ class BrowserState(
             injectCss(view, tab)
             if (settings.webDarkMode == "force" && store.rule(tab.pageHost)?.darkMode != false) view.evaluateJavascript(Scripts.FORCE_DARK, null)
             if (settings.forceZoom) view.evaluateJavascript(Scripts.FORCE_ZOOM, null)
+            injectUserScript(view, tab)
             logins.onPageFinished(view, tab)
             if (!tab.incognito) saveSession()
         }
@@ -725,12 +726,26 @@ class BrowserState(
     }
 
     private fun injectCss(view: WebView, tab: Tab) {
-        val adOk = settings.adBlock && store.rule(tab.pageHost)?.adBlock != false
+        val rule = store.rule(tab.pageHost)
+        val adOk = settings.adBlock && rule?.adBlock != false
         val css = buildString {
             if (adOk && settings.cosmeticFilter) append(Scripts.COSMETIC_CSS)
             if (settings.hideCookieBanners) append(Scripts.COOKIE_CSS)
         }
         if (css.isNotEmpty()) view.evaluateJavascript(Scripts.injectStyle("__oe_filters", css), null)
+        // Własne style domeny – osobny element, żeby nie mieszać ich z filtrami.
+        rule?.css?.takeIf { it.isNotBlank() && !tab.incognito }?.let { view.evaluateJavascript(Scripts.injectStyle("__oe_user_css", it), null) }
+    }
+
+    /**
+     * Własny skrypt domeny po wczytaniu strony. Nie w incognito: skrypt ma pełny dostęp do strony
+     * (może zapisywać dane i wysyłać je dalej), a incognito ma zostawać czyste i niepowiązane
+     * ze zwykłym przeglądaniem. Z tego samego powodu w incognito nie ma też własnych stylów.
+     */
+    private fun injectUserScript(view: WebView, tab: Tab) {
+        if (tab.incognito || !view.settings.javaScriptEnabled) return
+        val js = store.rule(tab.pageHost)?.js
+        if (!js.isNullOrBlank()) view.evaluateJavascript(Scripts.userScript(js), null)
     }
 
     private fun updateNav(view: WebView) {
