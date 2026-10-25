@@ -532,7 +532,7 @@ fun TileEditor(tile: Tile, store: Store, settings: Settings, isNew: Boolean, onD
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 )
                 OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.home_tile_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                val topSites by produceState(emptyList<HistoryEntry>(), isNew) { if (isNew) value = store.topSites(8) }
+                val topSites by produceState(emptyList<HistoryEntry>(), isNew) { if (isNew) this.value = store.topSites(8) }
                 if (isNew && url.isBlank()) {
                     val suggestions = (topSites.map { it.url to it.title } + store.bookmarks.take(6).map { it.url to it.title })
                         .distinctBy { hostOf(it.first) }.filter { s -> store.tiles.none { hostOf(it.url) == hostOf(s.first) } }.take(10)

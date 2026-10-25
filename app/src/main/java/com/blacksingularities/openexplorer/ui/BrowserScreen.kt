@@ -366,7 +366,7 @@ private fun AddressField(
     var typed by remember { mutableStateOf("") }
     var swipe by remember { mutableFloatStateOf(0f) }
     val hosts by produceState(emptyList<String>(), editing) {
-        value = if (editing && state.settings.inlineAutocomplete) state.completionHosts() else emptyList()
+        this.value = if (editing && state.settings.inlineAutocomplete) state.completionHosts() else emptyList()
     }
 
     LaunchedEffect(state.suggestQuery) {
@@ -527,7 +527,7 @@ private fun SuggestionsPanel(state: BrowserState, tab: Tab, bottom: Boolean, onP
     val q = query.trim().lowercase()
     // Historia z bazy, poza wątkiem głównym; do czasu odpowiedzi zostają poprzednie podpowiedzi.
     val history by produceState(emptyList<HistoryEntry>(), q, tab.incognito) {
-        value = if (tab.incognito) emptyList() else state.store.historySuggestions(q, if (q.isEmpty()) 8 else 9)
+        this.value = if (tab.incognito) emptyList() else state.store.historySuggestions(q, if (q.isEmpty()) 8 else 9)
     }
     val local = if (q.isEmpty()) {
         history.map { Suggestion(it.title.ifBlank { it.url }, it.url, 1) }
