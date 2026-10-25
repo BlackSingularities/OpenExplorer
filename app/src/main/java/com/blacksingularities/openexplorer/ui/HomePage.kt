@@ -50,9 +50,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -84,10 +86,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.blacksingularities.openexplorer.R
+import com.blacksingularities.openexplorer.data.HistoryEntry
 import com.blacksingularities.openexplorer.data.Settings
 import com.blacksingularities.openexplorer.data.Store
 import com.blacksingularities.openexplorer.data.Tile
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flowOf
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -216,10 +220,14 @@ fun HomePage(
 
                     TileGrid(settings, store, onBg, editMode, onEditMode, onOpen, onOpenNewTab, onEdit = { editing = it })
 
-                    if (settings.homeRecent && !incognito && !editMode && store.history.isNotEmpty()) {
+                    val showRecent = settings.homeRecent && !incognito
+                    val recent by remember(showRecent, settings.homeRecentCount) {
+                        if (showRecent) store.recentSites(settings.homeRecentCount) else flowOf(emptyList())
+                    }.collectAsState(emptyList())
+                    if (showRecent && !editMode && recent.isNotEmpty()) {
                         Spacer(Modifier.height(24.dp))
                         Column(Modifier.fillMaxWidth().widthIn(max = settings.homeWidth.dp)) {
-                            store.history.distinctBy { hostOf(it.url) }.take(settings.homeRecentCount).forEach { h ->
+                            recent.forEach { h ->
                                 Row(
                                     Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onOpen(h.url) }
                                         .padding(horizontal = 6.dp, vertical = 7.dp),
@@ -524,8 +532,9 @@ fun TileEditor(tile: Tile, store: Store, settings: Settings, isNew: Boolean, onD
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 )
                 OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.home_tile_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                val topSites by produceState(emptyList<HistoryEntry>(), isNew) { if (isNew) this.value = store.topSites(8) }
                 if (isNew && url.isBlank()) {
-                    val suggestions = (store.topSites(8).map { it.url to it.title } + store.bookmarks.take(6).map { it.url to it.title })
+                    val suggestions = (topSites.map { it.url to it.title } + store.bookmarks.take(6).map { it.url to it.title })
                         .distinctBy { hostOf(it.first) }.filter { s -> store.tiles.none { hostOf(it.url) == hostOf(s.first) } }.take(10)
                     if (suggestions.isNotEmpty()) {
                         Text(stringResource(R.string.home_frequent), style = MaterialTheme.typography.labelLarge)

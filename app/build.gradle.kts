@@ -4,6 +4,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 // Wersja z pliku VERSION; CI podaje własny numer (-PversionCode, -PversionName). Bez parametrów
@@ -88,6 +89,8 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
+    // Robolectric (testy bazy historii) potrzebuje zasobów i manifestu aplikacji.
+    testOptions.unitTests.isIncludeAndroidResources = true
 }
 
 kotlin {
@@ -114,6 +117,10 @@ dependencies {
     implementation("com.google.zxing:core:3.5.3")
     // Sprawdzanie i pobieranie aktualizacji w tle.
     implementation("androidx.work:work-runtime-ktx:2.10.1")
+    // Historia przeglądania w bazie SQLite.
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    ksp("androidx.room:room-compiler:2.8.4")
 
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
@@ -124,6 +131,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.16")
+    testImplementation("androidx.test:core:1.7.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     // Prawdziwe org.json w testach jednostkowych (w android.jar są tylko zaślepki).
     testImplementation("org.json:json:20240303")
 }

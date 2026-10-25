@@ -5,10 +5,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import androidx.room.Room
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -32,8 +35,6 @@ data class Bookmark(
     val folder: String = "",
     val created: Long = System.currentTimeMillis(),
 )
-
-data class HistoryEntry(val url: String, val title: String, val time: Long)
 
 /** Karta zapisana w sesji (albo ostatnio zamknięta); [container] – id kontenera, puste = bez kontenera. */
 data class SavedTab(val url: String, val title: String, val container: String = "")
@@ -101,15 +102,20 @@ fun defaultTiles(lang: String): List<Tile> {
     )
 }
 
-/** Dane użytkownika (kafelki, zakładki, historia, sesja kart) w plikach JSON. */
+/** Dane użytkownika: kafelki, zakładki i sesja kart w plikach JSON, historia w bazie SQLite (Room). */
 class Store(context: Context) {
     private val dir = File(context.filesDir, "data").apply { mkdirs() }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pending = HashMap<String, Job>()
 
+    private val db = Room.databaseBuilder(context, AppDatabase::class.java, "openexplorer.db").build()
+    private val historyDao = db.history()
+
+    /** Zapisy historii po kolei, w tej samej kolejności co wywołania (wizyta, tytuł, czyszczenie). */
+    private val historyWrites = Dispatchers.IO.limitedParallelism(1)
+
     val tiles: SnapshotStateList<Tile> = mutableStateListOf()
     val bookmarks: SnapshotStateList<Bookmark> = mutableStateListOf()
-    val history: SnapshotStateList<HistoryEntry> = mutableStateListOf()
     val downloads: SnapshotStateList<Long> = mutableStateListOf()
     val sites = androidx.compose.runtime.mutableStateMapOf<String, SiteRule>()
     val containers: SnapshotStateList<Container> = mutableStateListOf()
@@ -118,12 +124,10 @@ class Store(context: Context) {
         val t = readArray("tiles")
         if (t == null) tiles.addAll(defaultTiles(deviceLanguage())) else tiles.addAll(t.objects().map { it.toTile() })
         readArray("bookmarks")?.objects()?.forEach { bookmarks += it.toBookmark() }
-        readArray("history")?.objects()?.forEach {
-            history += HistoryEntry(it.optString("url"), it.optString("title"), it.optLong("time"))
-        }
         readArray("sites")?.objects()?.forEach { o -> SiteRule.fromJson(o)?.let { sites[it.host] = it } }
         readArray("downloads")?.let { a -> for (i in 0 until a.length()) downloads += a.getLong(i) }
         readArray("containers")?.let { containers.addAll(containersFromJson(it)) }
+        migrateHistory()
     }
 
     // Kafelki
@@ -179,36 +183,57 @@ class Store(context: Context) {
     // Historia
     fun addHistory(url: String, title: String) {
         if (url.isBlank() || url.startsWith("about:") || url.startsWith("data:")) return
-        val first = history.firstOrNull()
-        if (first != null && first.url == url) {
-            history[0] = first.copy(title = title.ifBlank { first.title }, time = System.currentTimeMillis())
-        } else {
-            history.add(0, HistoryEntry(url, title, System.currentTimeMillis()))
-            while (history.size > MAX_HISTORY) history.removeAt(history.lastIndex)
-        }
-        saveHistory()
+        val time = System.currentTimeMillis()
+        scope.launch(historyWrites) { historyDao.visit(url, title, time) }
     }
 
     fun updateHistoryTitle(url: String, title: String) {
-        val i = history.indexOfFirst { it.url == url }
-        if (i in 0..5 && title.isNotBlank() && history[i].title != title) {
-            history[i] = history[i].copy(title = title)
-            saveHistory()
-        }
+        if (title.isBlank()) return
+        scope.launch(historyWrites) { historyDao.updateRecentTitle(url, title) }
     }
 
     fun removeHistory(entry: HistoryEntry) {
-        history.remove(entry)
-        saveHistory()
+        scope.launch(historyWrites) { historyDao.delete(entry.id) }
     }
 
     fun clearHistory() {
-        history.clear()
-        saveHistory()
+        scope.launch(historyWrites) {
+            historyDao.clear()
+            File(dir, "history.json").delete()
+        }
     }
 
-    private fun saveHistory() = write("history", debounce = 1500) {
-        JSONArray(history.map { JSONObject().put("url", it.url).put("title", it.title).put("time", it.time) })
+    /** Najnowsze wpisy zawierające [query] w tytule lub adresie (puste = wszystkie), najwyżej [limit]. */
+    fun historyFlow(query: String, limit: Int): Flow<List<HistoryEntry>> = historyDao.search(likeContains(query.trim()), limit)
+
+    /** Ostatnio odwiedzone różne domeny (lista na stronie startowej). */
+    fun recentSites(limit: Int): Flow<List<HistoryEntry>> = historyDao.recentHosts(limit)
+
+    /** Różne adresy z historii do podpowiedzi w pasku adresu. */
+    suspend fun historySuggestions(query: String, limit: Int): List<HistoryEntry> =
+        withContext(Dispatchers.IO) { historyDao.recentUrls(likeContains(query.trim()), limit) }
+
+    /** Liczba odwiedzin domen wśród [recent] najnowszych wpisów (uzupełnianie adresu). */
+    suspend fun hostVisits(recent: Int): Map<String, Int> =
+        withContext(Dispatchers.IO) { historyDao.hostCounts(recent).associate { it.host to it.visits } }
+
+    /**
+     * Jednorazowe przeniesienie historii z data/history.json (do wersji 1.3.x) do bazy. Plik jest usuwany
+     * dopiero po zapisie wpisów, a nie zostaje jako kopia – inaczej „Wyczyść historię” nie usuwałaby
+     * starych wpisów. Gdy migracja przerwie się po zapisie, a przed usunięciem pliku, kolejna niczego nie dubluje.
+     */
+    private fun migrateHistory() {
+        val file = File(dir, "history.json")
+        if (!file.exists()) return
+        scope.launch(historyWrites) {
+            val entries = try {
+                LegacyHistory.parse(file.readText())
+            } catch (_: Exception) {
+                emptyList()
+            }
+            historyDao.importLegacy(entries)
+            file.delete()
+        }
     }
 
     // Ustawienia stron
@@ -230,11 +255,12 @@ class Store(context: Context) {
     private fun saveSites() = write("sites") { JSONArray(sites.values.map { it.toJson() }) }
 
     /** Najczęściej odwiedzane domeny (do szybkiego dodawania kafelków). */
-    fun topSites(limit: Int): List<HistoryEntry> = history.groupBy { runCatching { android.net.Uri.parse(it.url).host?.removePrefix("www.") }.getOrNull() ?: "" }
-        .filterKeys { it.isNotEmpty() }
-        .entries.sortedByDescending { it.value.size }
-        .take(limit)
-        .map { e -> e.value.first().let { HistoryEntry("https://" + (android.net.Uri.parse(it.url).host ?: e.key), it.title, it.time) } }
+    suspend fun topSites(limit: Int): List<HistoryEntry> = withContext(Dispatchers.IO) {
+        historyDao.topHosts(limit).map { v ->
+            val host = runCatching { android.net.Uri.parse(v.url).host }.getOrNull() ?: v.host
+            HistoryEntry(url = "https://$host", title = v.title, time = v.time)
+        }
+    }
 
     // Pobrane
     fun addDownload(id: Long) {
@@ -319,9 +345,6 @@ class Store(context: Context) {
         }
     }
 
-    private companion object {
-        const val MAX_HISTORY = 5000
-    }
 }
 
 private fun JSONArray.objects(): List<JSONObject> = (0 until length()).mapNotNull { optJSONObject(it) }
