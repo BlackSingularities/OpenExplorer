@@ -34,7 +34,7 @@ Szybka, minimalistyczna i rozbudowana przeglądarka internetowa na Androida (8.0
 
 ## Wydania i aktualizacje
 
-Każdy merge do gałęzi `main` buduje podpisany plik APK i publikuje wydanie na GitHub. Numer wersji pochodzi z pliku `VERSION`; gdy wydanie o tym numerze już istnieje, dostaje przyrostek z numerem budowania. Aplikacja sama sprawdza nowe wydania, pobiera APK i otwiera instalator.
+Każdy wypchnięty tag `vX.Y.Z` buduje podpisany plik APK i publikuje wydanie na GitHub. Numer wersji pochodzi z tagu. Aplikacja sama sprawdza nowe wydania, pobiera APK i otwiera instalator.
 
 Podpis wydań wymaga sekretów repozytorium: `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_PASSWORD`, `SIGNING_KEY_ALIAS`.
 

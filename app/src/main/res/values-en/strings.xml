@@ -435,8 +435,7 @@
     <string name="settings_update_install">Install version %s</string>
     <string name="settings_update_install_hint">Downloaded and verified</string>
     <string name="settings_update_check_now">Check now</string>
-    <string name="settings_about_source">Source code and releases on GitHub</string>
-    <string name="settings_about_author">Design and development: redzikowski.com</string>
+    <string name="settings_about_author">Idea and development: Adam Rędzikowski · redzikowski.com</string>
     <string name="settings_about_coffee">☕ Buy me a coffee</string>
     <string name="settings_about_coffee_hint">Support development on buycoffee.to</string>
     <string name="settings_reset_all">Restore default settings</string>

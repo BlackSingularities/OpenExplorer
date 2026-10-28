@@ -459,8 +459,7 @@
     <string name="settings_update_install">Zainstaluj wersję %s</string>
     <string name="settings_update_install_hint">Pobrana i sprawdzona</string>
     <string name="settings_update_check_now">Sprawdź teraz</string>
-    <string name="settings_about_source">Kod źródłowy i wydania na GitHub</string>
-    <string name="settings_about_author">Projekt i wykonanie: redzikowski.com</string>
+    <string name="settings_about_author">Pomysł i wykonanie: Adam Rędzikowski · redzikowski.com</string>
     <string name="settings_about_coffee">☕ Postaw kawę</string>
     <string name="settings_about_coffee_hint">Wesprzyj rozwój na buycoffee.to</string>
     <string name="settings_reset_all">Przywróć ustawienia domyślne</string>

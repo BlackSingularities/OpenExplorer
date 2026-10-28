@@ -597,10 +597,7 @@ fun SettingsScreen(
             }
             "about" -> {
                 androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.blacksingularities.openexplorer.R.drawable.brand_mark), null, Modifier.size(56.dp))
-                ClickRow("OpenExplorer ${BuildConfig.VERSION_NAME}", stringResource(R.string.settings_about_source)) {
-                    state.newTab("https://github.com/${BuildConfig.UPDATE_REPO}")
-                    onBack()
-                }
+                Text("OpenExplorer ${BuildConfig.VERSION_NAME}", modifier = Modifier.padding(vertical = 8.dp))
                 ClickRow(stringResource(R.string.settings_about_author)) {
                     state.newTab("https://redzikowski.com")
                     onBack()
