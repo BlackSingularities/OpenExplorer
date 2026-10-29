@@ -112,7 +112,7 @@ class Updater(context: Context) {
     }
 
     private fun fetchLatest(): ReleaseInfo {
-        val conn = open("https://api.github.com/repos/${BuildConfig.UPDATE_REPO}/releases/latest")
+        val conn = open("https://redzikowski.com/api/github/repos/${BuildConfig.UPDATE_REPO}/releases/latest")
         conn.setRequestProperty("Accept", "application/vnd.github+json")
         try {
             when (conn.responseCode) {
