@@ -621,6 +621,8 @@
     <string name="browser_scroll_top">Przewiń na górę</string>
     <string name="browser_home">Strona startowa</string>
     <string name="browser_menu">Menu</string>
+    <string name="nav_start">Start</string>
+    <string name="nav_tabs">Karty</string>
     <string name="browser_incognito_tabs">Karty incognito</string>
     <string name="browser_address_hint">Szukaj lub wpisz adres  ·  !yt, !w, !gh…</string>
     <string name="browser_site_info">Informacje o stronie</string>

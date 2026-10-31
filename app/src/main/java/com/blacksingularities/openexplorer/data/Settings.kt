@@ -68,7 +68,7 @@ class Settings(context: Context) {
     var accent by l("accent", 0xFF3D7BF7)
     var addressBarBottom by b("address_bar_bottom", false)
     /** Osobny pasek z przyciskami wstecz / dalej / start / karty / menu. */
-    var navBar by b("nav_bar", false)
+    var navBar by b("nav_bar", true)
     /** compact / normal */
     var density by s("density", "compact")
     /** auto (zgodnie z motywem) / force (filtr) / off */

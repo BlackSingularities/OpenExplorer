@@ -591,6 +591,8 @@
     <string name="browser_scroll_top">Scroll to top</string>
     <string name="browser_home">Start page</string>
     <string name="browser_menu">Menu</string>
+    <string name="nav_start">Home</string>
+    <string name="nav_tabs">Tabs</string>
     <string name="browser_incognito_tabs">Incognito tabs</string>
     <string name="browser_address_hint">Search or type an address  ·  !yt, !w, !gh…</string>
     <string name="browser_site_info">Site information</string>

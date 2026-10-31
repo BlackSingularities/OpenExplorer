@@ -1,5 +1,10 @@
 package com.blacksingularities.openexplorer.ui
 
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.animation.animateColorAsState
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
@@ -317,24 +322,74 @@ private fun Toolbar(
 private fun NavBar(state: BrowserState, tab: Tab, onOpenTabs: () -> Unit, onOpenMenu: () -> Unit) {
     val dims = LocalDims.current
     Row(
-        Modifier.fillMaxWidth().height(dims.bar).background(MaterialTheme.colorScheme.background).padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        Modifier.fillMaxWidth().height(dims.bar).background(MaterialTheme.colorScheme.background).padding(horizontal = 6.dp, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back), enabled = !tab.showHome || tab.parentId != null) { state.back() }
-        RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, stringResource(R.string.menu_forward), enabled = tab.canGoForward && !tab.showHome) { state.forward() }
-        RoundIcon(Icons.Rounded.Home, stringResource(R.string.browser_home), active = tab.showHome) { state.goHome(tab) }
-        Box(Modifier.size(dims.button).clip(CircleShape).clickable(onClick = onOpenTabs), contentAlignment = Alignment.Center) {
-            TabCounter(state.tabs.count { it.incognito == tab.incognito }, tab.incognito)
+        NavTile(stringResource(R.string.common_back), enabled = !tab.showHome || tab.parentId != null, onClick = { state.back() }) {
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = it, modifier = Modifier.size(20.dp))
         }
-        RoundIcon(Icons.Rounded.MoreVert, stringResource(R.string.browser_menu), onClick = onOpenMenu)
+        NavTile(stringResource(R.string.menu_forward), enabled = tab.canGoForward && !tab.showHome, onClick = { state.forward() }) {
+            Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = it, modifier = Modifier.size(20.dp))
+        }
+        NavTile(stringResource(R.string.nav_start), selected = tab.showHome, onClick = { state.goHome(tab) }) {
+            Icon(Icons.Rounded.Home, null, tint = it, modifier = Modifier.size(20.dp))
+        }
+        NavTile(stringResource(R.string.nav_tabs), onClick = onOpenTabs) {
+            TabCounter(state.tabs.count { t -> t.incognito == tab.incognito }, tab.incognito, it)
+        }
+        NavTile(stringResource(R.string.browser_menu), onClick = onOpenMenu) {
+            Icon(Icons.Rounded.MoreVert, null, tint = it, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/** Styl wspólny dla aplikacji Open: wybrana pozycja to kafel w kolorze akcentu z kontrastową ikoną i podpisem. */
+@Composable
+private fun RowScope.NavTile(
+    label: String,
+    selected: Boolean = false,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+    icon: @Composable (Color) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val bg by animateColorAsState(if (selected) colors.primary else Color.Transparent, label = "navBg")
+    val tint by animateColorAsState(
+        when {
+            selected -> colors.onPrimary
+            enabled -> colors.onBackground.copy(alpha = 0.7f)
+            else -> colors.onBackground.copy(alpha = 0.3f)
+        },
+        label = "navTint",
+    )
+    Column(
+        Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(6.dp))
+            .background(bg)
+            .clickable(enabled = enabled, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) { icon(tint) }
+        Spacer(Modifier.height(2.dp))
+        Text(
+            label,
+            color = tint,
+            fontSize = 10.sp,
+            lineHeight = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1,
+            softWrap = false,
+        )
     }
 }
 
 /** Kwadracik z liczbą kart (kolory jawne – czytelny w każdym motywie). */
 @Composable
-fun TabCounter(count: Int, incognito: Boolean) {
-    val c = MaterialTheme.colorScheme.onSurface
+fun TabCounter(count: Int, incognito: Boolean, color: Color = MaterialTheme.colorScheme.onSurface) {
+    val c = color
     Box(
         Modifier.size(22.dp).border(1.8.dp, c, RoundedCornerShape(7.dp)),
         contentAlignment = Alignment.Center,
