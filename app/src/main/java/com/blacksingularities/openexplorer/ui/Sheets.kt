@@ -66,6 +66,16 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Javascript
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Title
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.material.icons.rounded.Print
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Refresh
@@ -132,6 +142,12 @@ import java.util.Locale
 
 private class MenuAction(val icon: ImageVector, val label: String, val active: Boolean = false, val onClick: () -> Unit)
 
+/** Grupa akcji menu z nagłówkiem i własnym kolorem ikon – łatwiej odróżnić rodzaje akcji. */
+private class MenuGroup(val title: String, val tint: Color, val actions: List<MenuAction>)
+
+/** Kolory grup menu (stonowane, czytelne w jasnym i ciemnym motywie). */
+private val GROUP_TINTS = listOf(0xFF3D7BF7, 0xFF00A884, 0xFFE8590C, 0xFF7C5CFF, 0xFFD6336C, 0xFF868E96).map { Color(it) }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -> Unit, onEditTiles: () -> Unit) {
@@ -140,12 +156,15 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
     val page = !tab.showHome && tab.url.isNotEmpty()
     val bookmarked = page && state.store.bookmarks.any { it.url == tab.url }
     fun run(block: () -> Unit): () -> Unit = { onDismiss(); block() }
+    // 0 strona, 1 narzędzia, 2 biblioteka; na stronie startowej zaczynamy od biblioteki.
+    var section by remember { mutableStateOf(if (page) 0 else 2) }
+    val colors = MaterialTheme.colorScheme
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        dragHandle = { Box(Modifier.padding(top = 8.dp, bottom = 4.dp).size(36.dp, 4.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.outline)) },
+        containerColor = colors.surfaceContainerLow,
+        dragHandle = { Box(Modifier.padding(top = 8.dp, bottom = 4.dp).size(36.dp, 4.dp).clip(RoundedCornerShape(50)).background(colors.outline)) },
     ) {
         Column(Modifier.padding(horizontal = 12.dp).navigationBarsPadding()) {
             // Szybkie akcje strony w jednym rzędzie.
@@ -159,70 +178,208 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
                 }
                 RoundIcon(Icons.Rounded.Share, stringResource(R.string.common_share), enabled = page, onClick = run { share(ctx, tab.url, tab.title) })
             }
-            if (page) {
-                Text(tab.displayTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 8.dp))
-                Text(tab.url, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
-            }
-            val actions = buildList {
-                add(MenuAction(Icons.Rounded.Add, stringResource(R.string.menu_new_tab), onClick = run { state.newTab() }))
-                add(MenuAction(Icons.Rounded.VisibilityOff, stringResource(R.string.menu_incognito), onClick = run { state.newTab(incognito = true) }))
-                add(MenuAction(Icons.Rounded.Bookmarks, stringResource(R.string.library_bookmarks), onClick = run { onNavigate("bookmarks") }))
-                add(MenuAction(Icons.Rounded.History, stringResource(R.string.library_history), onClick = run { onNavigate("history") }))
-                add(MenuAction(Icons.Rounded.Download, stringResource(R.string.menu_downloads), onClick = run { onNavigate("downloads") }))
-                add(MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_offline), onClick = run { onNavigate("offline") }))
-                add(MenuAction(Icons.Rounded.Key, stringResource(R.string.passwords_title), onClick = run { onNavigate("passwords") }))
-                if (state.closed.isNotEmpty()) add(MenuAction(Icons.Rounded.RestorePage, stringResource(R.string.menu_restore_tab), onClick = run { state.reopenClosed() }))
-                if (page) {
-                    add(MenuAction(Icons.Rounded.FindInPage, stringResource(R.string.menu_find), onClick = run { state.findMode = true }))
-                    add(MenuAction(Icons.Rounded.DesktopWindows, stringResource(R.string.menu_desktop), tab.desktop, onClick = run { state.toggleDesktop() }))
-                    add(MenuAction(Icons.AutoMirrored.Rounded.MenuBook, stringResource(R.string.menu_reader), tab.readerMode, onClick = run { state.readerMode() }))
-                    add(MenuAction(if (state.tools.speaking) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp, stringResource(if (state.tools.speaking) R.string.menu_stop_reading else R.string.menu_read_aloud),
-                        state.tools.speaking, onClick = run { state.tools.readAloud() }))
-                    add(MenuAction(Icons.Rounded.FormatSize, stringResource(R.string.menu_text_size), onClick = run { state.dialog = BrowserDialog.PageZoom(tab) }))
-                    add(MenuAction(Icons.Rounded.Translate, stringResource(R.string.menu_translate), onClick = run {
-                        val lang = Locale.getDefault().language
-                        state.load(tab, "https://translate.google.com/translate?sl=auto&tl=$lang&u=" + java.net.URLEncoder.encode(tab.url, "UTF-8"))
-                    }))
-                    add(MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_save_offline), onClick = run { state.tools.saveOffline() }))
-                    add(MenuAction(Icons.Rounded.Screenshot, stringResource(R.string.menu_screenshot), onClick = run { state.tools.screenshot() }))
-                    add(MenuAction(Icons.Rounded.QrCode2, stringResource(R.string.menu_qr), onClick = run { state.dialog = BrowserDialog.Qr(tab.url, tab.title) }))
-                    add(MenuAction(Icons.Rounded.DashboardCustomize, stringResource(R.string.menu_add_tile), onClick = run {
-                        state.store.saveTile(Tile(title = tab.title.take(24).ifBlank { tab.host }, url = tab.url))
-                        state.snack(ctx.getString(R.string.menu_tile_added))
-                    }))
-                    add(MenuAction(Icons.Rounded.AddToHomeScreen, stringResource(R.string.menu_shortcut), onClick = run { addShortcut(ctx, tab) }))
-                    add(MenuAction(Icons.Rounded.Print, stringResource(R.string.menu_print), onClick = run { print(ctx, tab) }))
-                    add(MenuAction(Icons.Rounded.Code, stringResource(R.string.source_title_default), onClick = run { state.source.viewPage() }))
-                    add(MenuAction(Icons.Rounded.ContentCopy, stringResource(R.string.common_copy_address), onClick = run { copy(ctx, tab.url); state.snack(ctx.getString(R.string.common_address_copied)) }))
-                } else {
-                    add(MenuAction(Icons.Rounded.Wallpaper, stringResource(R.string.menu_edit_tiles), onClick = run { onEditTiles() }))
+            // Karta bieżącej strony – dotknięcie otwiera informacje o stronie.
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(colors.surfaceContainerHigh)
+                    .clickable(enabled = page, onClick = run { state.dialog = BrowserDialog.SiteInfo(tab) })
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(colors.surfaceContainerHighest), contentAlignment = Alignment.Center) {
+                    if (page) Favicon(tab, 20) else Icon(Icons.Rounded.Home, null, Modifier.size(20.dp))
                 }
-                add(MenuAction(Icons.Rounded.Settings, stringResource(R.string.menu_settings), onClick = run { onNavigate("settings") }))
-                add(MenuAction(Icons.AutoMirrored.Rounded.ExitToApp, stringResource(R.string.menu_exit), onClick = run { onNavigate("exit") }))
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text(if (page) tab.displayTitle else stringResource(R.string.menu_home_page), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.titleMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (page) Icon(if (tab.secure) Icons.Rounded.Lock else Icons.Rounded.LockOpen, null, Modifier.size(12.dp),
+                            tint = if (tab.secure) colors.onSurfaceVariant else colors.error)
+                        Text(if (page) tab.host else stringResource(R.string.menu_empty_home), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp))
+                    }
+                }
+                if (page) Icon(Icons.Rounded.Info, stringResource(R.string.menu_site_info), Modifier.size(20.dp), tint = colors.onSurfaceVariant)
             }
-            LazyVerticalGrid(GridCells.Adaptive(76.dp), Modifier.heightIn(max = 480.dp).padding(top = 6.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
-                items(actions) { a ->
-                    Column(
-                        Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = a.onClick).padding(vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Box(
-                            Modifier.size(42.dp).clip(RoundedCornerShape(50))
-                                .background(if (a.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(a.icon, null, Modifier.size(20.dp),
-                                tint = if (a.active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
+            // Przełącznik sekcji zamiast jednej długiej siatki kilkudziesięciu ikon.
+            Row(
+                Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(50)).background(colors.surfaceContainerHigh).padding(3.dp),
+            ) {
+                listOf(R.string.menu_tab_page, R.string.menu_tab_tools, R.string.menu_tab_library).forEachIndexed { i, label ->
+                    val on = i == section
+                    Text(
+                        stringResource(label), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
+                        color = if (on) colors.onPrimary else colors.onSurface,
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(50))
+                            .background(if (on) colors.primary else Color.Transparent)
+                            .clickable { section = i }.padding(vertical = 9.dp),
+                    )
+                }
+            }
+            val ruleHost = tab.pageHost?.removePrefix("www.") ?: tab.host
+            val rule = if (page) state.store.rule(ruleHost) ?: SiteRule(ruleHost) else null
+            val groups: List<MenuGroup> = when (section) {
+                0 -> if (!page) emptyList() else listOf(
+                    MenuGroup(stringResource(R.string.menu_group_view), GROUP_TINTS[0], listOf(
+                        MenuAction(Icons.Rounded.FindInPage, stringResource(R.string.menu_find), onClick = run { state.findMode = true }),
+                        MenuAction(Icons.AutoMirrored.Rounded.MenuBook, stringResource(R.string.menu_reader), tab.readerMode, onClick = run { state.readerMode() }),
+                        MenuAction(Icons.Rounded.DesktopWindows, stringResource(R.string.menu_desktop), tab.desktop, onClick = run { state.toggleDesktop() }),
+                        MenuAction(Icons.Rounded.FormatSize, stringResource(R.string.menu_text_size), onClick = run { state.dialog = BrowserDialog.PageZoom(tab) }),
+                        MenuAction(Icons.Rounded.Translate, stringResource(R.string.menu_translate), onClick = run {
+                            val lang = Locale.getDefault().language
+                            state.load(tab, "https://translate.google.com/translate?sl=auto&tl=$lang&u=" + java.net.URLEncoder.encode(tab.url, "UTF-8"))
+                        }),
+                        MenuAction(if (state.tools.speaking) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp,
+                            stringResource(if (state.tools.speaking) R.string.menu_stop_reading else R.string.menu_read_aloud),
+                            state.tools.speaking, onClick = run { state.tools.readAloud() }),
+                    )),
+                    MenuGroup(stringResource(R.string.menu_group_save), GROUP_TINTS[1], listOf(
+                        MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_save_offline), onClick = run { state.tools.saveOffline() }),
+                        MenuAction(Icons.Rounded.Print, stringResource(R.string.menu_print), onClick = run { print(ctx, tab) }),
+                        MenuAction(Icons.Rounded.Screenshot, stringResource(R.string.menu_screenshot), onClick = run { state.tools.screenshot() }),
+                        MenuAction(Icons.Rounded.QrCode2, stringResource(R.string.menu_qr), onClick = run { state.dialog = BrowserDialog.Qr(tab.url, tab.title) }),
+                        MenuAction(Icons.Rounded.ContentCopy, stringResource(R.string.common_copy_address), onClick = run { copy(ctx, tab.url); state.snack(ctx.getString(R.string.common_address_copied)) }),
+                        MenuAction(Icons.Rounded.Link, stringResource(R.string.menu_copy_markdown), onClick = run {
+                            copy(ctx, "[" + tab.displayTitle.replace("]", "\\]") + "](" + tab.url + ")")
+                            state.snack(ctx.getString(R.string.common_copied))
+                        }),
+                        MenuAction(Icons.Rounded.DashboardCustomize, stringResource(R.string.menu_add_tile), onClick = run {
+                            state.store.saveTile(Tile(title = tab.title.take(24).ifBlank { tab.host }, url = tab.url))
+                            state.snack(ctx.getString(R.string.menu_tile_added))
+                        }),
+                        MenuAction(Icons.Rounded.AddToHomeScreen, stringResource(R.string.menu_shortcut), onClick = run { addShortcut(ctx, tab) }),
+                    )),
+                )
+                1 -> listOfNotNull(
+                    if (page) MenuGroup(stringResource(R.string.menu_tab_page), GROUP_TINTS[2], listOf(
+                        MenuAction(Icons.Rounded.Info, stringResource(R.string.menu_site_info), onClick = run { state.dialog = BrowserDialog.SiteInfo(tab) }),
+                        MenuAction(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.menu_open_in_app), onClick = run { openInApp(ctx, tab.url) }),
+                        MenuAction(Icons.Rounded.History, stringResource(R.string.menu_archive), onClick = run { state.load(tab, "https://web.archive.org/web/2/" + tab.url) }),
+                        MenuAction(Icons.Rounded.Code, stringResource(R.string.source_title_default), onClick = run { state.source.viewPage() }),
+                        MenuAction(Icons.Rounded.Title, stringResource(R.string.menu_copy_title), onClick = run { copy(ctx, tab.displayTitle); state.snack(ctx.getString(R.string.common_copied)) }),
+                    )) else null,
+                    MenuGroup(stringResource(R.string.menu_group_tabs), GROUP_TINTS[3], buildList {
+                        add(MenuAction(Icons.Rounded.Add, stringResource(R.string.menu_new_tab), onClick = run { state.newTab() }))
+                        add(MenuAction(Icons.Rounded.VisibilityOff, stringResource(R.string.menu_incognito), onClick = run { state.newTab(incognito = true) }))
+                        if (page) add(MenuAction(Icons.Rounded.Layers, stringResource(R.string.menu_duplicate_tab), onClick = run {
+                            state.newTab(tab.url, tab.incognito, parent = tab.id, container = tab.containerId)
+                        }))
+                        if (state.closed.isNotEmpty()) add(MenuAction(Icons.Rounded.RestorePage, stringResource(R.string.menu_restore_tab), onClick = run { state.reopenClosed() }))
+                        add(MenuAction(Icons.Rounded.Close, stringResource(R.string.menu_close_tab), onClick = run { state.close(tab.id) }))
+                    }),
+                )
+                else -> listOf(
+                    MenuGroup(stringResource(R.string.menu_group_data), GROUP_TINTS[4], listOf(
+                        MenuAction(Icons.Rounded.Bookmarks, stringResource(R.string.library_bookmarks), onClick = run { onNavigate("bookmarks") }),
+                        MenuAction(Icons.Rounded.History, stringResource(R.string.library_history), onClick = run { onNavigate("history") }),
+                        MenuAction(Icons.Rounded.Download, stringResource(R.string.menu_downloads), onClick = run { onNavigate("downloads") }),
+                        MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_offline), onClick = run { onNavigate("offline") }),
+                        MenuAction(Icons.Rounded.Key, stringResource(R.string.passwords_title), onClick = run { onNavigate("passwords") }),
+                    )),
+                    MenuGroup(stringResource(R.string.menu_group_app), GROUP_TINTS[5], buildList {
+                        if (!page) add(MenuAction(Icons.Rounded.Wallpaper, stringResource(R.string.menu_edit_tiles), onClick = run { onEditTiles() }))
+                        add(MenuAction(Icons.Rounded.Settings, stringResource(R.string.menu_settings), onClick = run { onNavigate("settings") }))
+                        add(MenuAction(Icons.AutoMirrored.Rounded.ExitToApp, stringResource(R.string.menu_exit), onClick = run { onNavigate("exit") }))
+                    }),
+                )
+            }
+            Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+                if (section == 0 && !page) {
+                    Text(stringResource(R.string.menu_empty_home), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant,
+                        textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp))
+                }
+                // Szybkie przełączniki dla bieżącej strony.
+                if (section == 0 && rule != null) {
+                    MenuHeader(stringResource(R.string.menu_quick))
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        QuickToggle(Icons.Rounded.Shield, stringResource(R.string.site_ad_block), state.settings.adBlock && rule.adBlock) {
+                            state.updateRule(tab) { it.copy(adBlock = !rule.adBlock) }
+                            tab.webView?.reload()
                         }
-                        Text(a.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, minLines = 2,
-                            lineHeight = 13.sp, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp, start = 2.dp, end = 2.dp))
+                        QuickToggle(Icons.Rounded.Javascript, stringResource(R.string.site_javascript), state.settings.javascript && rule.javascript) {
+                            state.updateRule(tab) { it.copy(javascript = !rule.javascript) }
+                            tab.webView?.reload()
+                        }
+                        QuickToggle(Icons.Rounded.DarkMode, stringResource(R.string.site_dark), rule.darkMode) {
+                            state.updateRule(tab) { it.copy(darkMode = !rule.darkMode) }
+                        }
+                        QuickToggle(Icons.Rounded.Image, stringResource(R.string.menu_images), state.settings.loadImages) {
+                            state.settings.loadImages = !state.settings.loadImages
+                            state.applySettingsToAll()
+                            tab.webView?.reload()
+                        }
+                    }
+                }
+                groups.forEach { g ->
+                    MenuHeader(g.title)
+                    g.actions.chunked(4).forEach { row ->
+                        Row(Modifier.fillMaxWidth()) {
+                            row.forEach { a -> MenuTile(a, g.tint, Modifier.weight(1f)) }
+                            repeat(4 - row.size) { Box(Modifier.weight(1f)) }
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun MenuHeader(title: String) {
+    Text(
+        title.uppercase(), style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp, fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 6.dp, top = 14.dp, bottom = 6.dp),
+    )
+}
+
+@Composable
+private fun MenuTile(a: MenuAction, tint: Color, modifier: Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = a.onClick).padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(if (a.active) tint else tint.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(a.icon, null, Modifier.size(21.dp), tint = if (a.active) Color.White else lerp(tint, colors.onSurface, 0.15f))
+        }
+        Text(a.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, minLines = 2,
+            lineHeight = 13.sp, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp, start = 2.dp, end = 2.dp))
+    }
+}
+
+/** Pigułka włącz/wyłącz z ikoną – wyraźnie inny stan włączony i wyłączony. */
+@Composable
+private fun QuickToggle(icon: ImageVector, label: String, on: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        Modifier.clip(RoundedCornerShape(50))
+            .background(if (on) colors.primary else colors.surfaceContainerHigh)
+            .border(1.dp, if (on) colors.primary else colors.outline, RoundedCornerShape(50))
+            .clickable(onClick = onClick).padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, Modifier.size(16.dp), tint = if (on) colors.onPrimary else colors.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1, color = if (on) colors.onPrimary else colors.onSurface,
+            modifier = Modifier.padding(start = 6.dp))
+    }
+}
+
+/** Otwiera adres w innej aplikacji (np. YouTube, Mapy) z pominięciem tej przeglądarki. */
+private fun openInApp(ctx: Context, url: String) {
+    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)
+    @Suppress("DEPRECATION")
+    val others = ctx.packageManager.queryIntentActivities(intent, 0).filter { it.activityInfo.packageName != ctx.packageName }
+    if (others.isEmpty()) {
+        android.widget.Toast.makeText(ctx, R.string.menu_no_app, android.widget.Toast.LENGTH_SHORT).show()
+        return
+    }
+    val targets = others.map { Intent(intent).setPackage(it.activityInfo.packageName) }
+    val chooser = Intent.createChooser(targets.first(), ctx.getString(R.string.menu_open_in_app))
+    if (targets.size > 1) chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, targets.drop(1).toTypedArray())
+    runCatching { ctx.startActivity(chooser) }
 }
 
 fun share(ctx: Context, url: String, title: String) {

@@ -1,5 +1,13 @@
 # Zmiany
 
+## 1.7.0
+
+- Nowe menu: zakładki Strona / Narzędzia / Biblioteka, grupy z kolorowymi ikonami i karta bieżącej strony.
+- Szybkie przełączniki strony: blokowanie reklam, JavaScript, ciemny wygląd, obrazy.
+- Nowe akcje: otwórz w aplikacji, duplikuj i zamknij kartę, wersja archiwalna, kopiuj jako link Markdown, kopiuj tytuł.
+- Wyraźniejszy kontrast interfejsu i kolorowe kategorie ustawień.
+- Przycisk „Postaw kawę” na dole ustawień; aktualizacje opisane jako pochodzące z redzikowski.com.
+
 ## 1.6.3
 
 - Dopasowane kolorystycznie tła ikon aplikacji i spójne zasoby graficzne.

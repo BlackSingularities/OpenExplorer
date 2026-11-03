@@ -206,6 +206,18 @@ fun SettingsScreen(
                     }
                 }
                 pages.forEach { pg -> CategoryRow(pg) { page = pg.id } }
+                // Prośba o wsparcie na końcu listy.
+                Box(
+                    Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
+                        .background(androidx.compose.ui.graphics.Color(0xFFF59F00).copy(alpha = 0.16f))
+                        .clickable { state.newTab("https://buycoffee.to/adamredzikowski"); onBack() }.padding(16.dp),
+                ) {
+                    Column {
+                        Text(stringResource(R.string.settings_about_coffee), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.settings_about_coffee_hint), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Box(Modifier.height(24.dp))
             }
             "home" -> {
@@ -714,7 +726,17 @@ fun SettingsScreen(
 @Composable
 private fun engineName(e: SearchEngine): String = e.name.ifEmpty { stringResource(R.string.search_engine_custom) }
 
-private class SettingsPage(val id: String, val title: String, val subtitle: String, val icon: ImageVector)
+private class SettingsPage(val id: String, val title: String, val subtitle: String, val icon: ImageVector) {
+    /** Kolor ikony kategorii – kategorie łatwiej odróżnić na pierwszy rzut oka. */
+    val tint: androidx.compose.ui.graphics.Color
+        get() = androidx.compose.ui.graphics.Color(
+            when (id) {
+                "home" -> 0xFF3D7BF7; "look" -> 0xFFD6336C; "search" -> 0xFF00A884; "passwords" -> 0xFFE8590C
+                "privacy" -> 0xFF0CA678; "content" -> 0xFF7C5CFF; "tabs" -> 0xFF1C7ED6; "backup" -> 0xFFF59F00
+                "updates" -> 0xFF4C6EF5; else -> 0xFF868E96
+            },
+        )
+}
 
 @Composable
 private fun CategoryRow(page: SettingsPage, onClick: () -> Unit) {
@@ -723,9 +745,9 @@ private fun CategoryRow(page: SettingsPage, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(page.tint.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
-        ) { Icon(page.icon, null, Modifier.size(20.dp)) }
+        ) { Icon(page.icon, null, Modifier.size(20.dp), tint = androidx.compose.ui.graphics.lerp(page.tint, MaterialTheme.colorScheme.onSurface, 0.15f)) }
         Column(Modifier.weight(1f).padding(start = 14.dp)) {
             Text(page.title, style = MaterialTheme.typography.bodyLarge)
             Text(page.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)

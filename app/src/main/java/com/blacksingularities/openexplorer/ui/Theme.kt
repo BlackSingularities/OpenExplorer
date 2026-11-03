@@ -54,8 +54,8 @@ private fun mono(dark: Boolean, amoled: Boolean): ColorScheme = if (dark) {
         surface = bg, onSurface = Color.White,
         surfaceVariant = Color(0xFF1C1C1E), onSurfaceVariant = Color(0xB3FFFFFF),
         surfaceContainerLowest = bg, surfaceContainerLow = if (amoled) Color(0xFF080808) else Color(0xFF131314),
-        surfaceContainer = Color(0xFF161618), surfaceContainerHigh = Color(0xFF1C1C1E), surfaceContainerHighest = Color(0xFF262628),
-        outline = Color(0x33FFFFFF), outlineVariant = Color(0x1FFFFFFF),
+        surfaceContainer = Color(0xFF18181A), surfaceContainerHigh = Color(0xFF232326), surfaceContainerHighest = Color(0xFF2E2E31),
+        outline = Color(0x40FFFFFF), outlineVariant = Color(0x29FFFFFF),
         error = Color(0xFFFF3B47),
     )
 } else {
@@ -68,8 +68,8 @@ private fun mono(dark: Boolean, amoled: Boolean): ColorScheme = if (dark) {
         surface = Color.White, onSurface = Color.Black,
         surfaceVariant = Color(0xFFF2F2F4), onSurfaceVariant = Color(0x99000000),
         surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF8F8FA),
-        surfaceContainer = Color(0xFFF2F2F4), surfaceContainerHigh = Color(0xFFEDEDF0), surfaceContainerHighest = Color(0xFFE5E5E8),
-        outline = Color(0x26000000), outlineVariant = Color(0x14000000),
+        surfaceContainer = Color(0xFFF2F2F4), surfaceContainerHigh = Color(0xFFE9E9ED), surfaceContainerHighest = Color(0xFFDFDFE4),
+        outline = Color(0x33000000), outlineVariant = Color(0x1F000000),
         error = Color(0xFFE5202E),
     )
 }
