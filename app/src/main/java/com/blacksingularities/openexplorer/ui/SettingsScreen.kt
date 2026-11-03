@@ -598,7 +598,7 @@ fun SettingsScreen(
             "about" -> {
                 androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.blacksingularities.openexplorer.R.drawable.brand_mark), null, Modifier.size(56.dp))
                 Text("OpenExplorer ${BuildConfig.VERSION_NAME}", modifier = Modifier.padding(vertical = 8.dp))
-                ClickRow(stringResource(R.string.settings_about_author)) {
+                ClickRow(stringResource(R.string.settings_about_author), "kontakt@redzikowski.com") {
                     state.newTab("https://redzikowski.com")
                     onBack()
                 }
