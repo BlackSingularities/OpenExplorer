@@ -323,7 +323,6 @@ fun UpdateBanner(
             is UpdateState.Failed -> stringResource(R.string.update_banner_failed) to stringResource(R.string.update_banner_retry)
             else -> "" to null
         }
-        val notes = (u as? UpdateState.Available)?.info?.notes
         Column(
             Modifier.padding(horizontal = 10.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest).padding(14.dp),
@@ -361,10 +360,6 @@ fun UpdateBanner(
             }
             if (u is UpdateState.Downloading) {
                 LinearProgressIndicator(progress = { u.progress }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp))
-            }
-            if (!notes.isNullOrBlank()) {
-                Text(notes, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 4,
-                    overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
             }
         }
     }

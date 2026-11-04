@@ -1,5 +1,9 @@
 # Zmiany
 
+## 1.7.1
+
+- Komunikat o nowej wersji bez listy zmian, linków i informacji, skąd pobierana jest aktualizacja.
+
 ## 1.7.0
 
 - Nowe menu: zakładki Strona / Narzędzia / Biblioteka, grupy z kolorowymi ikonami i karta bieżącej strony.

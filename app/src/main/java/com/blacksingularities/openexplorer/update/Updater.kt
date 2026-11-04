@@ -138,10 +138,10 @@ class Updater(context: Context) {
             if (url.isEmpty()) error(context.getString(R.string.update_no_apk))
             return ReleaseInfo(
                 version = o.optString("tag_name").removePrefix("v"),
-                notes = o.optString("body").substringBefore("\n---").trim(),
+                notes = "",
                 apkUrl = url,
                 size = size,
-                page = o.optString("html_url"),
+                page = "",
                 sha256 = sha256,
             )
         } finally {
