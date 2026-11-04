@@ -1092,7 +1092,6 @@ class BrowserState(
             // {lang} – język telefonu (Wikipedia i tłumacz w tym języku).
             "w" to "https://{lang}.wikipedia.org/w/index.php?search=%s",
             "en" to "https://en.wikipedia.org/w/index.php?search=%s",
-            "gh" to "https://github.com/search?q=%s",
             "m" to "https://www.google.com/maps/search/%s",
             "i" to "https://www.google.com/search?tbm=isch&q=%s",
             "a" to "https://allegro.pl/listing?string=%s",

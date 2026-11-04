@@ -96,7 +96,6 @@ fun defaultTiles(lang: String): List<Tile> {
         else Tile(title = "Amazon", url = "https://www.amazon.com", color = 0xFFFF9900),
         if (pl) Tile(title = "Onet", url = "https://www.onet.pl", color = 0xFFE4002B)
         else Tile(title = "X", url = "https://x.com", color = 0xFF0F1419),
-        Tile(title = "GitHub", url = "https://github.com", color = 0xFF24292F),
         Tile(title = "Reddit", url = "https://www.reddit.com", color = 0xFFFF4500),
         Tile(title = "Gmail", url = "https://mail.google.com", color = 0xFFEA4335),
     )

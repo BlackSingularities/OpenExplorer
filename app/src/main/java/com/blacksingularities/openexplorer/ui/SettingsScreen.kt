@@ -440,7 +440,7 @@ fun SettingsScreen(
                             scope.launch {
                                 runCatching { state.adBlocker.update() }
                                     .onSuccess { s.filtersUpdated = System.currentTimeMillis(); state.snack(ctx.resources.getQuantityString(R.plurals.settings_filters_updated, it, it)) }
-                                    .onFailure { state.toast(ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
+                                    .onFailure { state.toast(if (it is java.io.IOException) ctx.getString(R.string.settings_filters_offline) else ctx.getString(R.string.settings_filters_error, it.message.orEmpty())) }
                                 filtersBusy = false
                             }
                         }

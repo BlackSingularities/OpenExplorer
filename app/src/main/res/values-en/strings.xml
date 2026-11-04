@@ -306,6 +306,7 @@
     <string name="settings_homepage_ask">Page address (empty = tiles)</string>
     <string name="settings_custom_search_ask" formatted="false">Search address with %s in place of the query</string>
     <string name="settings_filters_error">Couldn\'t download: %s</string>
+    <string name="settings_filters_offline">Couldn\'t download the filter lists – the server can\'t be reached</string>
     <string name="settings_user_agent_ask">Custom User-Agent (empty = default)</string>
     <string name="settings_update_allow_install">Allow installation and come back to the app</string>
     <string name="settings_reset_done">Settings restored</string>

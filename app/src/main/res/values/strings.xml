@@ -328,6 +328,7 @@
     <string name="settings_homepage_ask">Adres strony (puste = kafelki)</string>
     <string name="settings_custom_search_ask" formatted="false">Adres wyszukiwania z %s w miejscu zapytania</string>
     <string name="settings_filters_error">Nie udało się pobrać: %s</string>
+    <string name="settings_filters_offline">Nie udało się pobrać list filtrów – brak połączenia z serwerem</string>
     <string name="settings_user_agent_ask">Własny User-Agent (puste = domyślny)</string>
     <string name="settings_update_allow_install">Zezwól na instalację i wróć do aplikacji</string>
     <string name="settings_reset_done">Przywrócono ustawienia</string>
