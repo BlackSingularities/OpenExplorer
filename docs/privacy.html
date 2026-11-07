@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polityka prywatności · OpenExplorer</title>
+<meta name="description" content="Jakie dane przetwarza przeglądarka OpenExplorer, gdzie są przechowywane i z jakimi serwerami się łączy.">
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    --bg: #f6f6f4; --surface: #ffffff; --text: #141414; --muted: #5c5c58;
+    --line: #e2e1dc; --accent: #141414; --on-accent: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --surface: #111111; --text: #f2f2f0; --muted: #a2a29c;
+      --line: #262626; --accent: #f2f2f0; --on-accent: #000000;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 48px 0 24px; }
+  .back { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; margin-bottom: 28px; }
+  .back img { width: 32px; height: 32px; border-radius: 8px; }
+  h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.1; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .meta { color: var(--muted); font-size: 14px; margin: 0; }
+  .lang { display: flex; gap: 8px; margin-top: 20px; }
+  .lang a { font-size: 14px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line);
+            background: var(--surface); text-decoration: none; }
+  .summary { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 20px 24px; margin: 8px 0 8px; }
+  .summary ul { margin: 0; padding-left: 20px; }
+  .summary li + li { margin-top: 6px; }
+  section { padding: 24px 0 8px; }
+  h2 { font-size: 22px; margin: 28px 0 10px; letter-spacing: -0.01em; }
+  h3 { font-size: 17px; margin: 22px 0 6px; }
+  p, li { color: var(--text); }
+  .muted { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 8px 0; }
+  .table { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
+  code { font-size: 14px; word-break: break-all; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0 0; }
+  footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <a class="back" href="./"><img src="icon.png" alt="">OpenExplorer</a>
+  <h1>Polityka prywatności</h1>
+  <p class="meta">Obowiązuje od 7 listopada 2026 r.</p>
+  <nav class="lang" aria-label="Język"><a href="#pl" lang="pl">Polski</a><a href="#en" lang="en">English</a></nav>
+</header>
+
+<main class="wrap">
+
+<article id="pl" lang="pl">
+  <div class="summary">
+    <ul>
+      <li>OpenExplorer nie ma kont użytkowników, reklam ani analityki. Nie dostajemy żadnych danych o Tobie ani o tym, co przeglądasz.</li>
+      <li>Historia, zakładki, hasła i ustawienia zostają na Twoim telefonie.</li>
+      <li>Aplikacja łączy się z serwerami innych firm tylko w opisanych niżej przypadkach. Większość z nich możesz wyłączyć w ustawieniach.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>Kto odpowiada za aplikację</h2>
+    <p>OpenExplorer tworzy Adam Rędzikowski (<a href="https://redzikowski.com">redzikowski.com</a>). Pytania o prywatność: <a href="mailto:kontakt@redzikowski.com">kontakt@redzikowski.com</a>.</p>
+
+    <h2>Dane przechowywane na telefonie</h2>
+    <p>Te dane są zapisywane wyłącznie w prywatnej pamięci aplikacji. Nie trafiają na nasze serwery:</p>
+    <ul>
+      <li><strong>Historia przeglądania</strong> (najwyżej 5000 ostatnich wpisów), <strong>zakładki</strong>, kafelki strony startowej i otwarte karty.</li>
+      <li><strong>Hasła</strong> zapisane we wbudowanym menedżerze haseł. Są szyfrowane algorytmem AES-256 kluczem z Android Keystore, który nie opuszcza telefonu. Do ich odczytu potrzebna jest blokada ekranu (odcisk palca, twarz albo PIN).</li>
+      <li><strong>Ustawienia</strong>, wyjątki dla stron (np. własny CSS lub skrypt), lista pobranych plików i strony zapisane do czytania offline.</li>
+      <li><strong>Ciasteczka i dane stron</strong> przechowywane przez systemowy WebView, osobno dla zwykłych kart, każdego kontenera i trybu incognito.</li>
+    </ul>
+    <p>Karty incognito nie zapisują historii, a ich ciasteczka i dane stron są usuwane po zamknięciu kart. Wszystkie dane możesz usunąć w <em>Ustawienia → Prywatność</em> albo odinstalowując aplikację.</p>
+
+    <h3>Kopie zapasowe</h3>
+    <p>Jeśli masz włączoną kopię zapasową Androida, system może przenieść ustawienia, zakładki i historię do Twojego konta Google albo na nowy telefon. Pliku z hasłami nigdy nie ma w takiej kopii. Kopia ręczna (<em>Ustawienia → Kopia zapasowa</em>) to plik JSON, który zapisujesz tam, gdzie chcesz.</p>
+
+    <h3>Pobrane pliki</h3>
+    <p>Pobrane pliki trafiają do folderu „Pobrane” na telefonie. Aplikacja pobiera je bezpośrednio ze strony, z której pochodzą, razem z ciasteczkami tej strony, żeby działało pobieranie wymagające zalogowania.</p>
+  </section>
+
+  <section>
+    <h2>Połączenia z innymi serwerami</h2>
+    <p>Poza stronami, które sam otwierasz, aplikacja łączy się z poniższymi usługami. Każda z nich otrzymuje Twój adres IP i dane opisane w tabeli. Obowiązują je polityki prywatności tych firm.</p>
+    <div class="table">
+      <table>
+        <thead><tr><th>Kiedy</th><th>Dokąd</th><th>Co jest wysyłane</th></tr></thead>
+        <tbody>
+          <tr><td>Wyszukiwanie</td><td>Wybrana wyszukiwarka (np. Google, DuckDuckGo, Bing, Brave, Startpage, Qwant, Ecosia albo własna)</td><td>Wpisane zapytanie</td></tr>
+          <tr><td>Podpowiedzi podczas pisania (można wyłączyć)</td><td><code>suggestqueries.google.com</code> albo <code>duckduckgo.com</code></td><td>Tekst wpisywany w pasku adresu</td></tr>
+          <tr><td>Logo kafelków na stronie startowej</td><td>Sama strona, <code>www.google.com/s2/favicons</code>, <code>icons.duckduckgo.com</code></td><td>Nazwa domeny kafelka</td></tr>
+          <tr><td>Bezpieczne przeglądanie (można wyłączyć)</td><td>Google Safe Browsing w systemowym WebView</td><td>Skróty adresów sprawdzanych stron</td></tr>
+          <tr><td>Aktualizacja list blokowania reklam</td><td><code>raw.githubusercontent.com</code> (StevenBlack), <code>easylist.to</code></td><td>Tylko zapytanie o plik listy</td></tr>
+          <tr><td>Sprawdzanie aktualizacji (tylko wersja spoza sklepu; można wyłączyć)</td><td><code>redzikowski.com</code></td><td>Zapytanie o najnowszą wersję. Bez identyfikatorów urządzenia.</td></tr>
+          <tr><td>Tłumaczenie strony, gdy go użyjesz</td><td><code>translate.google.com</code></td><td>Adres tłumaczonej strony</td></tr>
+          <tr><td>Wersja archiwalna, gdy jej użyjesz</td><td><code>web.archive.org</code></td><td>Adres strony</td></tr>
+          <tr><td>Wyszukiwanie głosowe z widżetu</td><td>Usługa rozpoznawania mowy w Twoim telefonie</td><td>Nagranie wypowiedzi (przetwarza je dostawca tej usługi)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">Statystyki użycia systemowego WebView są wyłączone. Aplikacja domyślnie wysyła stronom nagłówki „Do Not Track” i „Global Privacy Control” (można to wyłączyć).</p>
+  </section>
+
+  <section>
+    <h2>Uprawnienia</h2>
+    <ul>
+      <li><strong>Kamera, mikrofon, lokalizacja</strong>: tylko gdy strona o nie poprosi i się zgodzisz. Dane trafiają do tej strony, a aplikacja ich nie zapisuje.</li>
+      <li><strong>Powiadomienia</strong>: postęp pobierania, pobrane pliki i dostępne aktualizacje.</li>
+      <li><strong>Usługa na pierwszym planie</strong>: żeby pobieranie trwało, gdy aplikacja jest w tle.</li>
+      <li><strong>Biometria</strong>: do odblokowania haseł. Weryfikację wykonuje system, a aplikacja nie ma dostępu do odcisku palca ani zdjęcia twarzy.</li>
+      <li><strong>Instalowanie aplikacji</strong>: tylko w wersji spoza sklepu, do instalowania aktualizacji OpenExplorer.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Dzieci</h2>
+    <p>Aplikacja nie jest kierowana do dzieci poniżej 13 lat i nie zbiera świadomie danych o dzieciach.</p>
+
+    <h2>Twoje prawa</h2>
+    <p>Wszystkie dane są na Twoim telefonie i masz nad nimi pełną kontrolę: możesz je przejrzeć, wyeksportować i usunąć w aplikacji. Nie przechowujemy Twoich danych, więc nie mamy czego udostępnić ani usunąć na Twoją prośbę. Chętnie jednak odpowiemy na pytania.</p>
+
+    <h2>Zmiany</h2>
+    <p>Jeśli zmieni się sposób przetwarzania danych, zaktualizujemy tę stronę i datę na górze.</p>
+  </section>
+</article>
+
+<hr>
+
+<article id="en" lang="en">
+  <h1 style="margin-top:40px">Privacy policy</h1>
+  <p class="meta">Effective 7 November 2026.</p>
+  <div class="summary" style="margin-top:20px">
+    <ul>
+      <li>OpenExplorer has no user accounts, ads or analytics. We receive no data about you or what you browse.</li>
+      <li>History, bookmarks, passwords and settings stay on your phone.</li>
+      <li>The app contacts third-party servers only in the cases listed below. You can turn most of them off in settings.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>Who is responsible</h2>
+    <p>OpenExplorer is made by Adam Rędzikowski (<a href="https://redzikowski.com">redzikowski.com</a>). Privacy questions: <a href="mailto:kontakt@redzikowski.com">kontakt@redzikowski.com</a>.</p>
+
+    <h2>Data stored on your phone</h2>
+    <p>This data is stored only in the app's private storage and is never sent to our servers:</p>
+    <ul>
+      <li><strong>Browsing history</strong> (up to the latest 5,000 entries), <strong>bookmarks</strong>, start page tiles and open tabs.</li>
+      <li><strong>Passwords</strong> saved in the built-in password manager. They are encrypted with AES-256 using a key from the Android Keystore that never leaves the phone. Reading them requires your screen lock (fingerprint, face or PIN).</li>
+      <li><strong>Settings</strong>, per-site exceptions (such as custom CSS or scripts), the downloads list and pages saved for offline reading.</li>
+      <li><strong>Cookies and site data</strong> kept by the system WebView, separately for regular tabs, each container and incognito.</li>
+    </ul>
+    <p>Incognito tabs keep no history, and their cookies and site data are removed when the tabs are closed. You can delete all data in <em>Settings → Privacy</em> or by uninstalling the app.</p>
+
+    <h3>Backups</h3>
+    <p>If Android backup is on, the system may copy settings, bookmarks and history to your Google account or a new phone. The password file is never included. A manual backup (<em>Settings → Backup</em>) is a JSON file you save wherever you choose.</p>
+
+    <h3>Downloaded files</h3>
+    <p>Downloaded files are saved to the phone's Downloads folder. They are fetched directly from the site they come from, together with that site's cookies, so downloads that require signing in work.</p>
+  </section>
+
+  <section>
+    <h2>Connections to other servers</h2>
+    <p>Besides the sites you open yourself, the app connects to the services below. Each receives your IP address and the data listed. Their own privacy policies apply.</p>
+    <div class="table">
+      <table>
+        <thead><tr><th>When</th><th>Where</th><th>What is sent</th></tr></thead>
+        <tbody>
+          <tr><td>Searching</td><td>Your chosen search engine (e.g. Google, DuckDuckGo, Bing, Brave, Startpage, Qwant, Ecosia or a custom one)</td><td>Your query</td></tr>
+          <tr><td>Suggestions while typing (can be turned off)</td><td><code>suggestqueries.google.com</code> or <code>duckduckgo.com</code></td><td>Text typed in the address bar</td></tr>
+          <tr><td>Start page tile logos</td><td>The site itself, <code>www.google.com/s2/favicons</code>, <code>icons.duckduckgo.com</code></td><td>The tile's domain name</td></tr>
+          <tr><td>Safe Browsing (can be turned off)</td><td>Google Safe Browsing in the system WebView</td><td>Hashes of checked addresses</td></tr>
+          <tr><td>Ad-block list updates</td><td><code>raw.githubusercontent.com</code> (StevenBlack), <code>easylist.to</code></td><td>Only the request for the list file</td></tr>
+          <tr><td>Update checks (only the version outside app stores; can be turned off)</td><td><code>redzikowski.com</code></td><td>A request for the latest version. No device identifiers.</td></tr>
+          <tr><td>Page translation, when you use it</td><td><code>translate.google.com</code></td><td>The address of the translated page</td></tr>
+          <tr><td>Archived version, when you use it</td><td><code>web.archive.org</code></td><td>The page address</td></tr>
+          <tr><td>Voice search from the widget</td><td>Your phone's speech recognition service</td><td>A recording of what you say (processed by that service's provider)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">System WebView usage metrics are turned off. By default the app sends sites “Do Not Track” and “Global Privacy Control” headers (this can be turned off).</p>
+  </section>
+
+  <section>
+    <h2>Permissions</h2>
+    <ul>
+      <li><strong>Camera, microphone, location</strong>: only when a site asks and you agree. The data goes to that site, and the app does not store it.</li>
+      <li><strong>Notifications</strong>: download progress, finished downloads and available updates.</li>
+      <li><strong>Foreground service</strong>: so downloads continue while the app is in the background.</li>
+      <li><strong>Biometrics</strong>: to unlock passwords. The system performs the check, and the app has no access to your fingerprint or face data.</li>
+      <li><strong>Install apps</strong>: only in the version outside app stores, to install OpenExplorer updates.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Children</h2>
+    <p>The app is not directed at children under 13 and does not knowingly collect data about children.</p>
+
+    <h2>Your rights</h2>
+    <p>All data is on your phone and under your control: you can view, export and delete it in the app. We do not store your data, so there is nothing for us to hand over or delete on request. We are happy to answer questions, though.</p>
+
+    <h2>Changes</h2>
+    <p>If the way data is handled changes, we will update this page and the date at the top.</p>
+  </section>
+</article>
+
+</main>
+
+<footer class="wrap">
+  Adam Rędzikowski · <a href="https://redzikowski.com">redzikowski.com</a> · <a href="mailto:kontakt@redzikowski.com">kontakt@redzikowski.com</a>
+</footer>
+</body>
+</html>

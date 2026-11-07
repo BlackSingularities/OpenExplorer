@@ -33,6 +33,13 @@ class OpenExplorerApp : Application(), ImageLoaderFactory {
         adBlocker = AdBlocker(this)
         com.blacksingularities.openexplorer.update.UpdateWorker.schedule(this)
         com.blacksingularities.openexplorer.browser.FiltersWorker.schedule(this)
+        AppShortcuts.publish(this)
+        downloadEngine.restore()
+    }
+
+    /** Własne pobieranie plików (postęp, pauza, wznawianie) – działa też bez otwartego okna. */
+    val downloadEngine: com.blacksingularities.openexplorer.browser.DownloadEngine by lazy {
+        com.blacksingularities.openexplorer.browser.DownloadEngine(this)
     }
 
     /** Logo kafelków trzymane w pamięci podręcznej na dysku – strona startowa działa bez sieci. */

@@ -10,6 +10,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -278,7 +279,7 @@ fun SnackHost(state: BrowserState, modifier: Modifier = Modifier) {
     AnimatedVisibility(snack != null, modifier, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
         val s = snack ?: return@AnimatedVisibility
         Row(
-            Modifier.padding(12.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp))
+            Modifier.padding(12.dp).widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.inverseSurface).padding(start = 16.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

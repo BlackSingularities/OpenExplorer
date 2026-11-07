@@ -30,7 +30,13 @@ Szybka, minimalistyczna i rozbudowana przeglądarka internetowa na Androida (8.0
 
 **Narzędzia**: panel strony z wyjątkami dla domeny i własnym CSS / JavaScriptem, czytanie na głos, strony offline, zrzuty ekranu, kody QR, rozmiar tekstu dla strony, skróty wyszukiwania (!yt, !w, !gh…), ukrywanie banerów cookies, przywracanie zamkniętych kart.
 
-**Inne**: zakładki, historia z wyszukiwaniem, lista pobranych, kopia zapasowa (JSON), domyślna przeglądarka, automatyczne aktualizacje.
+**Pobieranie**: postęp, prędkość i pozostały czas, pauza i wznawianie od miejsca przerwania, ponawianie po zerwaniu sieci, praca w tle z powiadomieniem, „Otwórz” po zakończeniu (Android 10+).
+
+**Ekran główny**: skróty po przytrzymaniu ikony (Szukaj, Nowa karta, Karta incognito) i widżet wyszukiwania z wyszukiwaniem głosowym.
+
+**Tablety**: na szerokich ekranach przyciski nawigacji w górnym pasku, listy w czytelnej kolumnie.
+
+**Inne**: zakładki, historia z wyszukiwaniem, kopia zapasowa (JSON), domyślna przeglądarka, automatyczne aktualizacje.
 
 ## Wydania i aktualizacje
 
@@ -51,6 +57,10 @@ Warianty dystrybucji:
 - `fdroid` – bez samoaktualizacji i bez uprawnień do instalowania pakietów (`gradle :app:assembleFdroidRelease`).
 
 Build nie wymaga sekretów: bez klucza wydania wariant `github` podpisuje się kluczem debug, a `fdroid` powstaje niepodpisany. Bez parametrów `-PversionCode`/`-PversionName` wersja pochodzi z pliku `VERSION` (1.4.0 → kod 10400). Opisy do sklepów są w `fastlane/metadata/android` (pl-PL, en-US).
+
+## Prywatność
+
+Polityka prywatności: [`docs/privacy.html`](docs/privacy.html) (strona projektu). Aplikacja nie ma kont, reklam ani analityki.
 
 ## Licencja
 

@@ -1,10 +1,14 @@
 package com.blacksingularities.openexplorer
 
+import com.blacksingularities.openexplorer.feedback.Feedback
+import com.blacksingularities.openexplorer.feedback.CrashReportPrompt
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.speech.RecognizerIntent
+import com.blacksingularities.openexplorer.browser.DownloadEngine
 import android.view.ViewGroup
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -131,6 +135,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
             navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        Feedback.install(this, "openexplorer")
         val app = application as OpenExplorerApp
         state = BrowserState(this, app.settings, app.store, app.adBlocker, app.passwords)
         updater = app.updater
@@ -149,6 +154,7 @@ class MainActivity : ComponentActivity(), BrowserHost {
             val tab = state.current
             darkTheme = isDark(s)
             OpenExplorerTheme(s, incognito = tab?.incognito == true && screen == "browser") {
+                CrashReportPrompt()
                 val dark = isDark(s) || (tab?.incognito == true && screen == "browser")
                 LaunchedEffect(dark) {
                     val c = WindowCompat.getInsetsController(window, window.decorView)
@@ -321,6 +327,28 @@ class MainActivity : ComponentActivity(), BrowserHost {
             }
             return
         }
+        // Skróty z ikony aplikacji i przyciski widżetu.
+        when (intent.action) {
+            AppShortcuts.ACTION_NEW_TAB, AppShortcuts.ACTION_INCOGNITO, AppShortcuts.ACTION_SEARCH, AppShortcuts.ACTION_VOICE -> {
+                screen = "browser"
+                menuOpen = false
+                val incognito = intent.action == AppShortcuts.ACTION_INCOGNITO
+                val cur = state.current
+                // Pusta karta startowa (np. tuż po uruchomieniu) zostaje wykorzystana zamiast otwierania kolejnej.
+                if (!(cur != null && cur.showHome && cur.url.isEmpty() && cur.incognito == incognito)) state.newTab(incognito = incognito)
+                when (intent.action) {
+                    AppShortcuts.ACTION_VOICE -> startVoiceSearch()
+                    AppShortcuts.ACTION_SEARCH -> state.requestSearch = true
+                }
+                // Ponowne odtworzenie aktywności (obrót ekranu) nie powtarza akcji.
+                intent.action = Intent.ACTION_MAIN
+                return
+            }
+            Intent.ACTION_VIEW -> if (intent.getStringExtra(DownloadEngine.EXTRA_OPEN_DOWNLOADS) != null) {
+                screen = "downloads"
+                return
+            }
+        }
         val text: String? = when (intent.action) {
             Intent.ACTION_VIEW -> intent.dataString
             Intent.ACTION_WEB_SEARCH -> intent.getStringExtra("query")
@@ -335,6 +363,25 @@ class MainActivity : ComponentActivity(), BrowserHost {
         val cur = state.current
         if (cur != null && cur.showHome && cur.url.isEmpty() && !cur.incognito) state.navigate(url, cur)
         else state.newTab(state.resolveInput(url))
+    }
+
+    private val voiceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val text = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+        val tab = state.current
+        if (result.resultCode == Activity.RESULT_OK && !text.isNullOrBlank() && tab != null) state.navigate(text, tab)
+        else state.requestSearch = true
+    }
+
+    /** Wyszukiwanie głosowe systemowym rozpoznawaniem mowy; bez niego – zwykłe pole wyszukiwania. */
+    private fun startVoiceSearch() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH)
+        try {
+            voiceLauncher.launch(intent)
+        } catch (_: Exception) {
+            toast(getString(R.string.widget_no_voice))
+            state.requestSearch = true
+        }
     }
 
     // ---- BrowserHost ----
@@ -365,6 +412,11 @@ class MainActivity : ComponentActivity(), BrowserHost {
     }
 
     override fun isDarkTheme(): Boolean = darkTheme
+
+    override fun showScreen(name: String) {
+        menuOpen = false
+        screen = name
+    }
 
     /**
      * Potwierdzenie tożsamości systemowym oknem: odcisk palca / twarz albo PIN, wzór lub hasło

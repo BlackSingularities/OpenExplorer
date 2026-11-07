@@ -1,0 +1,5 @@
+• Nowe pobieranie: postęp, prędkość, pauza, wznawianie od miejsca przerwania i „Otwórz” po zakończeniu.
+• Skróty pod ikoną aplikacji: Szukaj, Nowa karta, Karta incognito.
+• Widżet wyszukiwania z wyszukiwaniem głosowym.
+• Menu z kartami przewijanymi w bok i szybkimi przełącznikami jako ikony.
+• Lepszy układ na tabletach i w poziomie.

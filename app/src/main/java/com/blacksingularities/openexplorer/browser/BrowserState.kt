@@ -62,6 +62,8 @@ interface BrowserHost {
     fun isDarkTheme(): Boolean
     /** Potwierdzenie tożsamości (odcisk palca, twarz, PIN lub wzór blokady ekranu). */
     fun authenticate(title: String, onResult: (Boolean) -> Unit)
+    /** Przejście do ekranu aplikacji (np. „downloads”). */
+    fun showScreen(name: String)
 }
 
 /** Propozycja zalogowania zapisanym kontem na stronie z formularzem logowania. */
@@ -90,6 +92,8 @@ sealed interface BrowserDialog {
         val incognito: Boolean,
         /** Profil WebView karty (ciasteczka do pobrania); null = domyślny. */
         val profile: String? = null,
+        /** Strona, z której pobierano (niektóre serwery bez niej odmawiają). */
+        val referer: String? = null,
     ) : BrowserDialog
     /** [container] – kontener karty, z której otwarto menu (nowe karty z linku trafiają do niego). */
     data class LinkMenu(val link: String?, val image: String?, val incognito: Boolean, val container: String = "") : BrowserDialog
@@ -174,6 +178,9 @@ class BrowserState(
     fun toast(message: String) = host.toast(message)
 
     var snack by mutableStateOf<Snack?>(null)
+
+    /** Ustawiany, gdy z zewnątrz (skrót, widżet) trzeba otworzyć pasek adresu z klawiaturą; zerowany po obsłużeniu. */
+    var requestSearch by mutableStateOf(false)
 
     fun snack(message: String, action: String? = null, onAction: (() -> Unit)? = null) {
         snack = Snack(message, action, onAction)

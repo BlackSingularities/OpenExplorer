@@ -716,6 +716,8 @@
     <string name="menu_tab_tools">Narzędzia</string>
     <string name="menu_tab_library">Biblioteka</string>
     <string name="menu_quick">Szybkie przełączniki</string>
+    <string name="menu_quick_on">%1$s: wł.</string>
+    <string name="menu_quick_off">%1$s: wył.</string>
     <string name="menu_group_view">Widok</string>
     <string name="menu_group_save">Zapisz i udostępnij</string>
     <string name="menu_group_tabs">Karty</string>
@@ -732,4 +734,39 @@
     <string name="menu_images">Obrazy</string>
     <string name="menu_home_page">Strona startowa</string>
     <string name="menu_empty_home">Otwórz stronę, aby zobaczyć jej narzędzia</string>
+    <!-- Skróty aplikacji i widżet -->
+    <string name="shortcut_new_tab">Nowa karta</string>
+    <string name="shortcut_incognito">Karta incognito</string>
+    <string name="shortcut_search">Szukaj</string>
+    <string name="widget_description">Pole wyszukiwania z wyszukiwaniem głosowym i kartą incognito</string>
+    <string name="widget_voice">Wyszukiwanie głosowe</string>
+    <string name="widget_no_voice">Brak rozpoznawania mowy na tym telefonie</string>
+
+    <!-- Pobieranie -->
+    <string name="download_show">Pokaż</string>
+    <string name="download_open">Otwórz</string>
+    <string name="download_finished">Pobrano: %s</string>
+    <string name="download_missing">Plik został usunięty lub przeniesiony</string>
+    <string name="download_pause">Wstrzymaj</string>
+    <string name="download_resume">Wznów</string>
+    <string name="download_retry">Spróbuj ponownie</string>
+    <string name="download_again">Pobierz ponownie</string>
+    <string name="download_cancel">Anuluj pobieranie</string>
+    <string name="download_delete_file">Usuń plik</string>
+    <string name="download_more">Więcej opcji</string>
+    <string name="download_clear_finished">Usuń zakończone z listy</string>
+    <string name="download_pause_all">Wstrzymaj wszystko</string>
+    <string name="download_show_all">Pobrane</string>
+    <string name="download_channel_progress">Pobieranie w toku</string>
+    <string name="download_channel_done">Pobrane pliki</string>
+    <string name="download_notification_idle">Pobieranie</string>
+    <string name="download_done_text">Pobrano · %s · dotknij, aby otworzyć</string>
+    <string name="download_failed_text">Nie udało się pobrać · %s</string>
+    <string name="download_error_http">Serwer odmówił (%d)</string>
+    <plurals name="download_notification_many">
+        <item quantity="one">Pobieranie %d pliku</item>
+        <item quantity="few">Pobieranie %d plików</item>
+        <item quantity="many">Pobieranie %d plików</item>
+        <item quantity="other">Pobieranie %d pliku</item>
+    </plurals>
 </resources>

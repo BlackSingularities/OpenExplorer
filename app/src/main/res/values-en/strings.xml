@@ -686,6 +686,8 @@
     <string name="menu_tab_tools">Tools</string>
     <string name="menu_tab_library">Library</string>
     <string name="menu_quick">Quick toggles</string>
+    <string name="menu_quick_on">%1$s: on</string>
+    <string name="menu_quick_off">%1$s: off</string>
     <string name="menu_group_view">View</string>
     <string name="menu_group_save">Save and share</string>
     <string name="menu_group_tabs">Tabs</string>
@@ -702,4 +704,37 @@
     <string name="menu_images">Images</string>
     <string name="menu_home_page">Home page</string>
     <string name="menu_empty_home">Open a page to see its tools</string>
+    <!-- App shortcuts and widget -->
+    <string name="shortcut_new_tab">New tab</string>
+    <string name="shortcut_incognito">Incognito tab</string>
+    <string name="shortcut_search">Search</string>
+    <string name="widget_description">Search box with voice search and an incognito tab</string>
+    <string name="widget_voice">Voice search</string>
+    <string name="widget_no_voice">Speech recognition is not available on this phone</string>
+
+    <!-- Downloads -->
+    <string name="download_show">Show</string>
+    <string name="download_open">Open</string>
+    <string name="download_finished">Downloaded: %s</string>
+    <string name="download_missing">The file was deleted or moved</string>
+    <string name="download_pause">Pause</string>
+    <string name="download_resume">Resume</string>
+    <string name="download_retry">Try again</string>
+    <string name="download_again">Download again</string>
+    <string name="download_cancel">Cancel download</string>
+    <string name="download_delete_file">Delete file</string>
+    <string name="download_more">More options</string>
+    <string name="download_clear_finished">Clear finished from the list</string>
+    <string name="download_pause_all">Pause all</string>
+    <string name="download_show_all">Downloads</string>
+    <string name="download_channel_progress">Downloads in progress</string>
+    <string name="download_channel_done">Downloaded files</string>
+    <string name="download_notification_idle">Downloading</string>
+    <string name="download_done_text">Downloaded · %s · tap to open</string>
+    <string name="download_failed_text">Download failed · %s</string>
+    <string name="download_error_http">The server refused (%d)</string>
+    <plurals name="download_notification_many">
+        <item quantity="one">Downloading %d file</item>
+        <item quantity="other">Downloading %d files</item>
+    </plurals>
 </resources>

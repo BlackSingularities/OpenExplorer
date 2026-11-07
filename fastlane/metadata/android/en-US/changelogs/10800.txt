@@ -1,0 +1,5 @@
+• New downloads: progress, speed, pause, resume where it stopped, and “Open” when finished.
+• App icon shortcuts: Search, New tab, Incognito tab.
+• Search widget with voice search.
+• Menu with swipeable sections and icon-only quick toggles.
+• Better layout on tablets and in landscape.

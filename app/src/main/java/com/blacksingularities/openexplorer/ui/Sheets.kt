@@ -7,8 +7,29 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.print.PrintAttributes
 import android.print.PrintManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -157,7 +178,8 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
     val bookmarked = page && state.store.bookmarks.any { it.url == tab.url }
     fun run(block: () -> Unit): () -> Unit = { onDismiss(); block() }
     // 0 strona, 1 narzędzia, 2 biblioteka; na stronie startowej zaczynamy od biblioteki.
-    var section by remember { mutableStateOf(if (page) 0 else 2) }
+    val pager = rememberPagerState(initialPage = if (page) 0 else 2) { 3 }
+    val scope = rememberCoroutineScope()
     val colors = MaterialTheme.colorScheme
 
     ModalBottomSheet(
@@ -166,158 +188,210 @@ fun MenuSheet(state: BrowserState, onDismiss: () -> Unit, onNavigate: (String) -
         containerColor = colors.surfaceContainerLow,
         dragHandle = { Box(Modifier.padding(top = 8.dp, bottom = 4.dp).size(36.dp, 4.dp).clip(RoundedCornerShape(50)).background(colors.outline)) },
     ) {
-        Column(Modifier.padding(horizontal = 12.dp).navigationBarsPadding()) {
-            // Szybkie akcje strony w jednym rzędzie.
-            Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back), enabled = page && tab.canGoBack, onClick = run { state.back() })
-                RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, stringResource(R.string.menu_forward), enabled = page && tab.canGoForward, onClick = run { state.forward() })
-                RoundIcon(Icons.Rounded.Refresh, stringResource(R.string.menu_reload), enabled = page, onClick = run { state.reload() })
-                RoundIcon(if (bookmarked) Icons.Rounded.Star else Icons.Rounded.StarBorder, stringResource(R.string.menu_bookmark), active = bookmarked, enabled = page) {
-                    val added = state.store.toggleBookmark(tab.url, tab.title)
-                    state.snack(ctx.getString(if (added) R.string.menu_bookmark_added else R.string.menu_bookmark_removed))
-                }
-                RoundIcon(Icons.Rounded.Share, stringResource(R.string.common_share), enabled = page, onClick = run { share(ctx, tab.url, tab.title) })
-            }
-            // Karta bieżącej strony – dotknięcie otwiera informacje o stronie.
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(colors.surfaceContainerHigh)
-                    .clickable(enabled = page, onClick = run { state.dialog = BrowserDialog.SiteInfo(tab) })
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(colors.surfaceContainerHighest), contentAlignment = Alignment.Center) {
-                    if (page) Favicon(tab, 20) else Icon(Icons.Rounded.Home, null, Modifier.size(20.dp))
-                }
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text(if (page) tab.displayTitle else stringResource(R.string.menu_home_page), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.titleMedium)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (page) Icon(if (tab.secure) Icons.Rounded.Lock else Icons.Rounded.LockOpen, null, Modifier.size(12.dp),
-                            tint = if (tab.secure) colors.onSurfaceVariant else colors.error)
-                        Text(if (page) tab.host else stringResource(R.string.menu_empty_home), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp))
+        Column(Modifier.navigationBarsPadding()) {
+            Column(Modifier.padding(horizontal = 12.dp)) {
+                // Szybkie akcje strony w jednym rzędzie.
+                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back), enabled = page && tab.canGoBack, onClick = run { state.back() })
+                    RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, stringResource(R.string.menu_forward), enabled = page && tab.canGoForward, onClick = run { state.forward() })
+                    RoundIcon(Icons.Rounded.Refresh, stringResource(R.string.menu_reload), enabled = page, onClick = run { state.reload() })
+                    RoundIcon(if (bookmarked) Icons.Rounded.Star else Icons.Rounded.StarBorder, stringResource(R.string.menu_bookmark), active = bookmarked, enabled = page) {
+                        val added = state.store.toggleBookmark(tab.url, tab.title)
+                        state.snack(ctx.getString(if (added) R.string.menu_bookmark_added else R.string.menu_bookmark_removed))
                     }
+                    RoundIcon(Icons.Rounded.Share, stringResource(R.string.common_share), enabled = page, onClick = run { share(ctx, tab.url, tab.title) })
                 }
-                if (page) Icon(Icons.Rounded.Info, stringResource(R.string.menu_site_info), Modifier.size(20.dp), tint = colors.onSurfaceVariant)
-            }
-            // Przełącznik sekcji zamiast jednej długiej siatki kilkudziesięciu ikon.
-            Row(
-                Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(50)).background(colors.surfaceContainerHigh).padding(3.dp),
-            ) {
-                listOf(R.string.menu_tab_page, R.string.menu_tab_tools, R.string.menu_tab_library).forEachIndexed { i, label ->
-                    val on = i == section
-                    Text(
-                        stringResource(label), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
-                        color = if (on) colors.onPrimary else colors.onSurface,
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(50))
-                            .background(if (on) colors.primary else Color.Transparent)
-                            .clickable { section = i }.padding(vertical = 9.dp),
-                    )
+                // Karta bieżącej strony – dotknięcie otwiera informacje o stronie.
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(colors.surfaceContainerHigh)
+                        .clickable(enabled = page, onClick = run { state.dialog = BrowserDialog.SiteInfo(tab) })
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(colors.surfaceContainerHighest), contentAlignment = Alignment.Center) {
+                        if (page) Favicon(tab, 20) else Icon(Icons.Rounded.Home, null, Modifier.size(20.dp))
+                    }
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(if (page) tab.displayTitle else stringResource(R.string.menu_home_page), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.titleMedium)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (page) Icon(if (tab.secure) Icons.Rounded.Lock else Icons.Rounded.LockOpen, null, Modifier.size(12.dp),
+                                tint = if (tab.secure) colors.onSurfaceVariant else colors.error)
+                            Text(if (page) tab.host else stringResource(R.string.menu_empty_home), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp))
+                        }
+                    }
+                    if (page) Icon(Icons.Rounded.Info, stringResource(R.string.menu_site_info), Modifier.size(20.dp), tint = colors.onSurfaceVariant)
                 }
+                // Przełącznik sekcji zsynchronizowany z przewijaniem kart w bok.
+                SectionSwitcher(
+                    labels = listOf(stringResource(R.string.menu_tab_page), stringResource(R.string.menu_tab_tools), stringResource(R.string.menu_tab_library)),
+                    position = { pager.currentPage + pager.currentPageOffsetFraction },
+                    selected = pager.targetPage,
+                    onSelect = { i -> scope.launch { pager.animateScrollToPage(i) } },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
             }
             val ruleHost = tab.pageHost?.removePrefix("www.") ?: tab.host
             val rule = if (page) state.store.rule(ruleHost) ?: SiteRule(ruleHost) else null
-            val groups: List<MenuGroup> = when (section) {
-                0 -> if (!page) emptyList() else listOf(
-                    MenuGroup(stringResource(R.string.menu_group_view), GROUP_TINTS[0], listOf(
-                        MenuAction(Icons.Rounded.FindInPage, stringResource(R.string.menu_find), onClick = run { state.findMode = true }),
-                        MenuAction(Icons.AutoMirrored.Rounded.MenuBook, stringResource(R.string.menu_reader), tab.readerMode, onClick = run { state.readerMode() }),
-                        MenuAction(Icons.Rounded.DesktopWindows, stringResource(R.string.menu_desktop), tab.desktop, onClick = run { state.toggleDesktop() }),
-                        MenuAction(Icons.Rounded.FormatSize, stringResource(R.string.menu_text_size), onClick = run { state.dialog = BrowserDialog.PageZoom(tab) }),
-                        MenuAction(Icons.Rounded.Translate, stringResource(R.string.menu_translate), onClick = run {
-                            val lang = Locale.getDefault().language
-                            state.load(tab, "https://translate.google.com/translate?sl=auto&tl=$lang&u=" + java.net.URLEncoder.encode(tab.url, "UTF-8"))
+            // Karty sekcji na całą szerokość arkusza – przewijane gestem w bok.
+            HorizontalPager(
+                state = pager,
+                modifier = Modifier.fillMaxWidth().animateContentSize(spring(stiffness = Spring.StiffnessMediumLow)),
+                verticalAlignment = Alignment.Top,
+                beyondViewportPageCount = 1,
+            ) { section ->
+                val groups: List<MenuGroup> = when (section) {
+                    0 -> if (!page) emptyList() else listOf(
+                        MenuGroup(stringResource(R.string.menu_group_view), GROUP_TINTS[0], listOf(
+                            MenuAction(Icons.Rounded.FindInPage, stringResource(R.string.menu_find), onClick = run { state.findMode = true }),
+                            MenuAction(Icons.AutoMirrored.Rounded.MenuBook, stringResource(R.string.menu_reader), tab.readerMode, onClick = run { state.readerMode() }),
+                            MenuAction(Icons.Rounded.DesktopWindows, stringResource(R.string.menu_desktop), tab.desktop, onClick = run { state.toggleDesktop() }),
+                            MenuAction(Icons.Rounded.FormatSize, stringResource(R.string.menu_text_size), onClick = run { state.dialog = BrowserDialog.PageZoom(tab) }),
+                            MenuAction(Icons.Rounded.Translate, stringResource(R.string.menu_translate), onClick = run {
+                                val lang = Locale.getDefault().language
+                                state.load(tab, "https://translate.google.com/translate?sl=auto&tl=$lang&u=" + java.net.URLEncoder.encode(tab.url, "UTF-8"))
+                            }),
+                            MenuAction(if (state.tools.speaking) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp,
+                                stringResource(if (state.tools.speaking) R.string.menu_stop_reading else R.string.menu_read_aloud),
+                                state.tools.speaking, onClick = run { state.tools.readAloud() }),
+                        )),
+                        MenuGroup(stringResource(R.string.menu_group_save), GROUP_TINTS[1], listOf(
+                            MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_save_offline), onClick = run { state.tools.saveOffline() }),
+                            MenuAction(Icons.Rounded.Print, stringResource(R.string.menu_print), onClick = run { print(ctx, tab) }),
+                            MenuAction(Icons.Rounded.Screenshot, stringResource(R.string.menu_screenshot), onClick = run { state.tools.screenshot() }),
+                            MenuAction(Icons.Rounded.QrCode2, stringResource(R.string.menu_qr), onClick = run { state.dialog = BrowserDialog.Qr(tab.url, tab.title) }),
+                            MenuAction(Icons.Rounded.ContentCopy, stringResource(R.string.common_copy_address), onClick = run { copy(ctx, tab.url); state.snack(ctx.getString(R.string.common_address_copied)) }),
+                            MenuAction(Icons.Rounded.Link, stringResource(R.string.menu_copy_markdown), onClick = run {
+                                copy(ctx, "[" + tab.displayTitle.replace("]", "\\]") + "](" + tab.url + ")")
+                                state.snack(ctx.getString(R.string.common_copied))
+                            }),
+                            MenuAction(Icons.Rounded.DashboardCustomize, stringResource(R.string.menu_add_tile), onClick = run {
+                                state.store.saveTile(Tile(title = tab.title.take(24).ifBlank { tab.host }, url = tab.url))
+                                state.snack(ctx.getString(R.string.menu_tile_added))
+                            }),
+                            MenuAction(Icons.Rounded.AddToHomeScreen, stringResource(R.string.menu_shortcut), onClick = run { addShortcut(ctx, tab) }),
+                        )),
+                    )
+                    1 -> listOfNotNull(
+                        if (page) MenuGroup(stringResource(R.string.menu_tab_page), GROUP_TINTS[2], listOf(
+                            MenuAction(Icons.Rounded.Info, stringResource(R.string.menu_site_info), onClick = run { state.dialog = BrowserDialog.SiteInfo(tab) }),
+                            MenuAction(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.menu_open_in_app), onClick = run { openInApp(ctx, tab.url) }),
+                            MenuAction(Icons.Rounded.History, stringResource(R.string.menu_archive), onClick = run { state.load(tab, "https://web.archive.org/web/2/" + tab.url) }),
+                            MenuAction(Icons.Rounded.Code, stringResource(R.string.source_title_default), onClick = run { state.source.viewPage() }),
+                            MenuAction(Icons.Rounded.Title, stringResource(R.string.menu_copy_title), onClick = run { copy(ctx, tab.displayTitle); state.snack(ctx.getString(R.string.common_copied)) }),
+                        )) else null,
+                        MenuGroup(stringResource(R.string.menu_group_tabs), GROUP_TINTS[3], buildList {
+                            add(MenuAction(Icons.Rounded.Add, stringResource(R.string.menu_new_tab), onClick = run { state.newTab() }))
+                            add(MenuAction(Icons.Rounded.VisibilityOff, stringResource(R.string.menu_incognito), onClick = run { state.newTab(incognito = true) }))
+                            if (page) add(MenuAction(Icons.Rounded.Layers, stringResource(R.string.menu_duplicate_tab), onClick = run {
+                                state.newTab(tab.url, tab.incognito, parent = tab.id, container = tab.containerId)
+                            }))
+                            if (state.closed.isNotEmpty()) add(MenuAction(Icons.Rounded.RestorePage, stringResource(R.string.menu_restore_tab), onClick = run { state.reopenClosed() }))
+                            add(MenuAction(Icons.Rounded.Close, stringResource(R.string.menu_close_tab), onClick = run { state.close(tab.id) }))
                         }),
-                        MenuAction(if (state.tools.speaking) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp,
-                            stringResource(if (state.tools.speaking) R.string.menu_stop_reading else R.string.menu_read_aloud),
-                            state.tools.speaking, onClick = run { state.tools.readAloud() }),
-                    )),
-                    MenuGroup(stringResource(R.string.menu_group_save), GROUP_TINTS[1], listOf(
-                        MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_save_offline), onClick = run { state.tools.saveOffline() }),
-                        MenuAction(Icons.Rounded.Print, stringResource(R.string.menu_print), onClick = run { print(ctx, tab) }),
-                        MenuAction(Icons.Rounded.Screenshot, stringResource(R.string.menu_screenshot), onClick = run { state.tools.screenshot() }),
-                        MenuAction(Icons.Rounded.QrCode2, stringResource(R.string.menu_qr), onClick = run { state.dialog = BrowserDialog.Qr(tab.url, tab.title) }),
-                        MenuAction(Icons.Rounded.ContentCopy, stringResource(R.string.common_copy_address), onClick = run { copy(ctx, tab.url); state.snack(ctx.getString(R.string.common_address_copied)) }),
-                        MenuAction(Icons.Rounded.Link, stringResource(R.string.menu_copy_markdown), onClick = run {
-                            copy(ctx, "[" + tab.displayTitle.replace("]", "\\]") + "](" + tab.url + ")")
-                            state.snack(ctx.getString(R.string.common_copied))
+                    )
+                    else -> listOf(
+                        MenuGroup(stringResource(R.string.menu_group_data), GROUP_TINTS[4], listOf(
+                            MenuAction(Icons.Rounded.Bookmarks, stringResource(R.string.library_bookmarks), onClick = run { onNavigate("bookmarks") }),
+                            MenuAction(Icons.Rounded.History, stringResource(R.string.library_history), onClick = run { onNavigate("history") }),
+                            MenuAction(Icons.Rounded.Download, stringResource(R.string.menu_downloads), onClick = run { onNavigate("downloads") }),
+                            MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_offline), onClick = run { onNavigate("offline") }),
+                            MenuAction(Icons.Rounded.Key, stringResource(R.string.passwords_title), onClick = run { onNavigate("passwords") }),
+                        )),
+                        MenuGroup(stringResource(R.string.menu_group_app), GROUP_TINTS[5], buildList {
+                            if (!page) add(MenuAction(Icons.Rounded.Wallpaper, stringResource(R.string.menu_edit_tiles), onClick = run { onEditTiles() }))
+                            add(MenuAction(Icons.Rounded.Settings, stringResource(R.string.menu_settings), onClick = run { onNavigate("settings") }))
+                            add(MenuAction(Icons.AutoMirrored.Rounded.ExitToApp, stringResource(R.string.menu_exit), onClick = run { onNavigate("exit") }))
                         }),
-                        MenuAction(Icons.Rounded.DashboardCustomize, stringResource(R.string.menu_add_tile), onClick = run {
-                            state.store.saveTile(Tile(title = tab.title.take(24).ifBlank { tab.host }, url = tab.url))
-                            state.snack(ctx.getString(R.string.menu_tile_added))
-                        }),
-                        MenuAction(Icons.Rounded.AddToHomeScreen, stringResource(R.string.menu_shortcut), onClick = run { addShortcut(ctx, tab) }),
-                    )),
-                )
-                1 -> listOfNotNull(
-                    if (page) MenuGroup(stringResource(R.string.menu_tab_page), GROUP_TINTS[2], listOf(
-                        MenuAction(Icons.Rounded.Info, stringResource(R.string.menu_site_info), onClick = run { state.dialog = BrowserDialog.SiteInfo(tab) }),
-                        MenuAction(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.menu_open_in_app), onClick = run { openInApp(ctx, tab.url) }),
-                        MenuAction(Icons.Rounded.History, stringResource(R.string.menu_archive), onClick = run { state.load(tab, "https://web.archive.org/web/2/" + tab.url) }),
-                        MenuAction(Icons.Rounded.Code, stringResource(R.string.source_title_default), onClick = run { state.source.viewPage() }),
-                        MenuAction(Icons.Rounded.Title, stringResource(R.string.menu_copy_title), onClick = run { copy(ctx, tab.displayTitle); state.snack(ctx.getString(R.string.common_copied)) }),
-                    )) else null,
-                    MenuGroup(stringResource(R.string.menu_group_tabs), GROUP_TINTS[3], buildList {
-                        add(MenuAction(Icons.Rounded.Add, stringResource(R.string.menu_new_tab), onClick = run { state.newTab() }))
-                        add(MenuAction(Icons.Rounded.VisibilityOff, stringResource(R.string.menu_incognito), onClick = run { state.newTab(incognito = true) }))
-                        if (page) add(MenuAction(Icons.Rounded.Layers, stringResource(R.string.menu_duplicate_tab), onClick = run {
-                            state.newTab(tab.url, tab.incognito, parent = tab.id, container = tab.containerId)
-                        }))
-                        if (state.closed.isNotEmpty()) add(MenuAction(Icons.Rounded.RestorePage, stringResource(R.string.menu_restore_tab), onClick = run { state.reopenClosed() }))
-                        add(MenuAction(Icons.Rounded.Close, stringResource(R.string.menu_close_tab), onClick = run { state.close(tab.id) }))
-                    }),
-                )
-                else -> listOf(
-                    MenuGroup(stringResource(R.string.menu_group_data), GROUP_TINTS[4], listOf(
-                        MenuAction(Icons.Rounded.Bookmarks, stringResource(R.string.library_bookmarks), onClick = run { onNavigate("bookmarks") }),
-                        MenuAction(Icons.Rounded.History, stringResource(R.string.library_history), onClick = run { onNavigate("history") }),
-                        MenuAction(Icons.Rounded.Download, stringResource(R.string.menu_downloads), onClick = run { onNavigate("downloads") }),
-                        MenuAction(Icons.Rounded.DownloadForOffline, stringResource(R.string.menu_offline), onClick = run { onNavigate("offline") }),
-                        MenuAction(Icons.Rounded.Key, stringResource(R.string.passwords_title), onClick = run { onNavigate("passwords") }),
-                    )),
-                    MenuGroup(stringResource(R.string.menu_group_app), GROUP_TINTS[5], buildList {
-                        if (!page) add(MenuAction(Icons.Rounded.Wallpaper, stringResource(R.string.menu_edit_tiles), onClick = run { onEditTiles() }))
-                        add(MenuAction(Icons.Rounded.Settings, stringResource(R.string.menu_settings), onClick = run { onNavigate("settings") }))
-                        add(MenuAction(Icons.AutoMirrored.Rounded.ExitToApp, stringResource(R.string.menu_exit), onClick = run { onNavigate("exit") }))
-                    }),
-                )
+                    )
+                }
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState())
+                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                ) {
+                    if (section == 0 && !page) {
+                        Text(stringResource(R.string.menu_empty_home), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant,
+                            textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp))
+                    }
+                    // Szybkie przełączniki dla bieżącej strony – same ikony, etykieta wysuwa się po dotknięciu.
+                    if (section == 0 && rule != null) {
+                        MenuHeader(stringResource(R.string.menu_quick))
+                        // Który przełącznik pokazuje etykietę; pulse restartuje odliczanie przy kolejnym dotknięciu.
+                        var shown by remember { mutableIntStateOf(-1) }
+                        var pulse by remember { mutableIntStateOf(0) }
+                        LaunchedEffect(shown, pulse) {
+                            if (shown >= 0) { delay(2400); shown = -1 }
+                        }
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            QuickToggle(Icons.Rounded.Shield, stringResource(R.string.site_ad_block), state.settings.adBlock && rule.adBlock, shown == 0) {
+                                shown = 0; pulse++
+                                state.updateRule(tab) { it.copy(adBlock = !rule.adBlock) }
+                                tab.webView?.reload()
+                            }
+                            QuickToggle(Icons.Rounded.Javascript, stringResource(R.string.site_javascript), state.settings.javascript && rule.javascript, shown == 1) {
+                                shown = 1; pulse++
+                                state.updateRule(tab) { it.copy(javascript = !rule.javascript) }
+                                tab.webView?.reload()
+                            }
+                            QuickToggle(Icons.Rounded.DarkMode, stringResource(R.string.site_dark), rule.darkMode, shown == 2) {
+                                shown = 2; pulse++
+                                state.updateRule(tab) { it.copy(darkMode = !rule.darkMode) }
+                            }
+                            QuickToggle(Icons.Rounded.Image, stringResource(R.string.menu_images), state.settings.loadImages, shown == 3) {
+                                shown = 3; pulse++
+                                state.settings.loadImages = !state.settings.loadImages
+                                state.applySettingsToAll()
+                                tab.webView?.reload()
+                            }
+                        }
+                    }
+                    groups.forEach { g ->
+                        MenuHeader(g.title)
+                        g.actions.chunked(4).forEach { row ->
+                            Row(Modifier.fillMaxWidth()) {
+                                row.forEach { a -> MenuTile(a, g.tint, Modifier.weight(1f)) }
+                                repeat(4 - row.size) { Box(Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                }
             }
-            Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
-                if (section == 0 && !page) {
-                    Text(stringResource(R.string.menu_empty_home), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant,
-                        textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp))
-                }
-                // Szybkie przełączniki dla bieżącej strony.
-                if (section == 0 && rule != null) {
-                    MenuHeader(stringResource(R.string.menu_quick))
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        QuickToggle(Icons.Rounded.Shield, stringResource(R.string.site_ad_block), state.settings.adBlock && rule.adBlock) {
-                            state.updateRule(tab) { it.copy(adBlock = !rule.adBlock) }
-                            tab.webView?.reload()
-                        }
-                        QuickToggle(Icons.Rounded.Javascript, stringResource(R.string.site_javascript), state.settings.javascript && rule.javascript) {
-                            state.updateRule(tab) { it.copy(javascript = !rule.javascript) }
-                            tab.webView?.reload()
-                        }
-                        QuickToggle(Icons.Rounded.DarkMode, stringResource(R.string.site_dark), rule.darkMode) {
-                            state.updateRule(tab) { it.copy(darkMode = !rule.darkMode) }
-                        }
-                        QuickToggle(Icons.Rounded.Image, stringResource(R.string.menu_images), state.settings.loadImages) {
-                            state.settings.loadImages = !state.settings.loadImages
-                            state.applySettingsToAll()
-                            tab.webView?.reload()
-                        }
-                    }
-                }
-                groups.forEach { g ->
-                    MenuHeader(g.title)
-                    g.actions.chunked(4).forEach { row ->
-                        Row(Modifier.fillMaxWidth()) {
-                            row.forEach { a -> MenuTile(a, g.tint, Modifier.weight(1f)) }
-                            repeat(4 - row.size) { Box(Modifier.weight(1f)) }
-                        }
-                    }
+        }
+    }
+}
+
+/** Segmentowy przełącznik sekcji; podświetlenie płynnie podąża za przesuwaniem kart. */
+@Composable
+private fun SectionSwitcher(labels: List<String>, position: () -> Float, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    BoxWithConstraints(
+        modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(colors.surfaceContainerHigh).padding(3.dp),
+    ) {
+        val segment = maxWidth / labels.size
+        val pos = position().coerceIn(0f, (labels.size - 1).toFloat())
+        Box(
+            Modifier.offset(x = segment * pos)
+                .size(segment, 38.dp).clip(RoundedCornerShape(50)).background(colors.primary),
+        )
+        Row(Modifier.fillMaxWidth()) {
+            labels.forEachIndexed { i, label ->
+                // Kolor tekstu przechodzi płynnie w miarę, jak wskaźnik najeżdża na segment.
+                val cover = (1f - abs(pos - i)).coerceIn(0f, 1f)
+                Box(
+                    Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(50))
+                        .selectable(selected = i == selected, role = Role.Tab, onClick = { onSelect(i) }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        label, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        fontWeight = if (i == selected) FontWeight.Bold else FontWeight.Medium,
+                        color = lerp(colors.onSurface, colors.onPrimary, cover),
+                    )
                 }
             }
         }
@@ -350,20 +424,35 @@ private fun MenuTile(a: MenuAction, tint: Color, modifier: Modifier) {
     }
 }
 
-/** Pigułka włącz/wyłącz z ikoną – wyraźnie inny stan włączony i wyłączony. */
+/**
+ * Okrągły przełącznik z samą ikoną. Po dotknięciu zmienia stan i rozwija się w pigułkę
+ * z etykietą („Blokada reklam: wł.”), która po chwili sama się zwija.
+ */
 @Composable
-private fun QuickToggle(icon: ImageVector, label: String, on: Boolean, onClick: () -> Unit) {
+private fun QuickToggle(icon: ImageVector, label: String, on: Boolean, expanded: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
+    val bg by animateColorAsState(if (on) colors.primary else colors.surfaceContainerHigh, label = "toggleBg")
+    val fg by animateColorAsState(if (on) colors.onPrimary else colors.onSurfaceVariant, label = "toggleFg")
+    val edge by animateColorAsState(if (on) colors.primary else colors.outlineVariant, label = "toggleEdge")
+    val status = stringResource(if (on) R.string.menu_quick_on else R.string.menu_quick_off, label)
     Row(
-        Modifier.clip(RoundedCornerShape(50))
-            .background(if (on) colors.primary else colors.surfaceContainerHigh)
-            .border(1.dp, if (on) colors.primary else colors.outline, RoundedCornerShape(50))
-            .clickable(onClick = onClick).padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+        Modifier.height(44.dp).widthIn(min = 44.dp)
+            .clip(RoundedCornerShape(50)).background(bg).border(1.dp, edge, RoundedCornerShape(50))
+            .toggleable(value = on, role = Role.Switch, onValueChange = { onClick() })
+            .semantics { contentDescription = label }
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, Modifier.size(16.dp), tint = if (on) colors.onPrimary else colors.onSurfaceVariant)
-        Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1, color = if (on) colors.onPrimary else colors.onSurface,
-            modifier = Modifier.padding(start = 6.dp))
+        Icon(icon, null, Modifier.size(20.dp), tint = fg)
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
+            exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start),
+        ) {
+            Text(status, style = MaterialTheme.typography.labelLarge, maxLines = 1, color = fg,
+                modifier = Modifier.padding(start = 8.dp, end = 2.dp))
+        }
     }
 }
 

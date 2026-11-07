@@ -97,6 +97,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
@@ -144,7 +145,9 @@ fun BrowserScreen(
     var editing by remember { mutableStateOf(false) }
     val bottom = settings.addressBarBottom
     val dims = if (settings.density == "compact") CompactDims else NormalDims
-    val showNav = settings.navBar && !editing
+    // Tablet albo telefon w poziomie: przyciski nawigacji w górnym pasku zamiast osobnego dolnego paska.
+    val wide = LocalConfiguration.current.screenWidthDp >= WIDE_SCREEN_DP
+    val showNav = settings.navBar && !editing && !wide
     val imeVisible = WindowInsets.isImeVisible
     // Tryb nakładki: paski przesuwają się nad stroną zamiast zmieniać jej rozmiar (płynne przewijanie).
     // Przy klawiaturze otwartej na stronie zwykły układ – pole formularza nie schowa się pod paskiem.
@@ -154,6 +157,8 @@ fun BrowserScreen(
     SideEffect { state.barMax = if (canHide) barPx else 0f }
     LaunchedEffect(canHide) { if (!canHide) state.showBars() }
 
+    // Skrót „Szukaj” lub widżet: od razu pasek adresu z klawiaturą.
+    LaunchedEffect(state.requestSearch) { if (state.requestSearch) { editing = true; state.requestSearch = false } }
     // „Wstecz” przy otwartym pasku adresu zamyka pasek i wraca do strony.
     BackHandler(enabled = editing) { editing = false }
     // Schowanie klawiatury przyciskiem „Wstecz” też zamyka pasek (jak w Chrome) – strona nie zostaje zasłonięta.
@@ -251,7 +256,7 @@ fun BrowserScreen(
                 // Paski – przesuwane w warstwie graficznej, bez przeliczania układu przy każdej klatce.
                 if (!bottom) {
                     Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().graphicsLayer { translationY = -state.barShift }) {
-                        Toolbar(state, tab, editing, { editing = it }, onOpenTabs, onOpenMenu)
+                        Toolbar(state, tab, editing, { editing = it }, onOpenTabs, onOpenMenu, wide)
                         ProgressLine(state, tab, Modifier.align(Alignment.BottomCenter))
                     }
                 }
@@ -263,7 +268,7 @@ fun BrowserScreen(
                     ) {
                         if (bottom) {
                             Box {
-                                Toolbar(state, tab, editing, { editing = it }, onOpenTabs, onOpenMenu)
+                                Toolbar(state, tab, editing, { editing = it }, onOpenTabs, onOpenMenu, wide)
                                 ProgressLine(state, tab, Modifier.align(Alignment.TopCenter))
                             }
                         }
@@ -297,6 +302,7 @@ private fun Toolbar(
     setEditing: (Boolean) -> Unit,
     onOpenTabs: () -> Unit,
     onOpenMenu: () -> Unit,
+    wide: Boolean = false,
 ) {
     val s = state.settings
     val dims = LocalDims.current
@@ -304,9 +310,15 @@ private fun Toolbar(
         Modifier.fillMaxWidth().height(dims.bar).background(MaterialTheme.colorScheme.background).padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (!editing && s.showHomeButton && !s.navBar) RoundIcon(Icons.Rounded.Home, stringResource(R.string.browser_home)) { state.goHome(tab) }
+        if (!editing && wide) {
+            // Szeroki ekran: wstecz, dalej, odśwież i strona startowa obok adresu (jak w przeglądarkach na tablety).
+            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back), enabled = !tab.showHome || tab.parentId != null) { state.back() }
+            RoundIcon(Icons.AutoMirrored.Rounded.ArrowForward, stringResource(R.string.menu_forward), enabled = tab.canGoForward && !tab.showHome) { state.forward() }
+            RoundIcon(if (tab.loading) Icons.Rounded.Close else Icons.Rounded.Refresh, stringResource(R.string.menu_reload), enabled = !tab.showHome) { state.reload() }
+            RoundIcon(Icons.Rounded.Home, stringResource(R.string.browser_home)) { state.goHome(tab) }
+        } else if (!editing && s.showHomeButton && !s.navBar) RoundIcon(Icons.Rounded.Home, stringResource(R.string.browser_home)) { state.goHome(tab) }
         AddressField(state, tab, editing, setEditing, Modifier.weight(1f).padding(horizontal = 4.dp))
-        if (!editing && !s.navBar) {
+        if (!editing && (!s.navBar || wide)) {
             if (s.showTabCounter) {
                 Box(
                     Modifier.size(dims.button).clip(CircleShape).clickable(onClick = onOpenTabs),
@@ -317,6 +329,9 @@ private fun Toolbar(
         }
     }
 }
+
+/** Od tej szerokości (dp) pasek nawigacji jest wbudowany w górny pasek. */
+private const val WIDE_SCREEN_DP = 600
 
 @Composable
 private fun NavBar(state: BrowserState, tab: Tab, onOpenTabs: () -> Unit, onOpenMenu: () -> Unit) {

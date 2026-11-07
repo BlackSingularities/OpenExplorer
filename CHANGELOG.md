@@ -1,5 +1,14 @@
 # Zmiany
 
+## 1.8.0
+
+- Menu: karty Strona / Narzędzia / Biblioteka na całą szerokość, przewijane gestem w bok; szybkie przełączniki jako ikony z etykietą wysuwaną po dotknięciu.
+- Nowe pobieranie (Android 10+): postęp, prędkość i pozostały czas, pauza, wznawianie od miejsca przerwania, samoczynne ponawianie po zerwaniu sieci, praca w tle z powiadomieniem. Po pobraniu komunikat i powiadomienie z opcją „Otwórz”; w liście pobranych udostępnianie, ponowne pobranie i usuwanie pliku.
+- Skróty po przytrzymaniu ikony aplikacji: Szukaj, Nowa karta, Karta incognito.
+- Widżet wyszukiwania na ekran główny z wyszukiwaniem głosowym i kartą incognito.
+- Tablety i poziomy ekran: przyciski nawigacji w górnym pasku zamiast dolnego, biblioteka i hasła w czytelnej kolumnie pośrodku.
+- Polityka prywatności na stronie projektu (`docs/privacy.html`).
+
 ## 1.7.2
 
 - Bez żadnych wzmianek o GitHubie w aplikacji: nowy adres serwera aktualizacji, komunikaty błędów bez nazw zewnętrznych serwerów.

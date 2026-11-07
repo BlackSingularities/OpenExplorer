@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widżet wyszukiwania: pole otwiera przeglądarkę z klawiaturą, obok mikrofon i karta incognito. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp">
+
+    <ImageView
+        android:id="@+id/widget_logo"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:padding="4dp"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/brand_mark" />
+
+    <LinearLayout
+        android:id="@+id/widget_search"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@drawable/widget_ripple"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/home_search_hint"
+            android:textColor="@color/widget_hint"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/widget_voice"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/widget_ripple"
+        android:contentDescription="@string/widget_voice"
+        android:padding="9dp"
+        android:src="@drawable/ic_widget_mic"
+        android:tint="@color/widget_icon" />
+
+    <ImageView
+        android:id="@+id/widget_incognito"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/widget_ripple"
+        android:contentDescription="@string/shortcut_incognito"
+        android:padding="9dp"
+        android:src="@drawable/ic_widget_incognito"
+        android:tint="@color/widget_icon" />
+</LinearLayout>
