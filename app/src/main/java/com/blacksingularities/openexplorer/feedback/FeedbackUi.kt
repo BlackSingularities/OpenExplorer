@@ -35,12 +35,27 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.content.Context
 import java.util.Locale
 
+/** Wysyłka w tle (korutyny) – nakładki na blokujące funkcje z [Feedback]. */
+suspend fun Feedback.send(context: Context, kind: Feedback.Kind, message: String, email: String, includeDiagnostics: Boolean): Result<Unit> =
+    withContext(Dispatchers.IO) { sendBlocking(context, kind, message, email, includeDiagnostics) }
+
+suspend fun Feedback.sendCrash(context: Context, crash: Feedback.PendingCrash, comment: String, email: String): Result<Unit> =
+    withContext(Dispatchers.IO) { sendCrashBlocking(context, crash, comment, email) }
+
+suspend fun Feedback.sendCrashText(context: Context, stack: String, comment: String, email: String): Result<Unit> =
+    withContext(Dispatchers.IO) { sendCrashTextBlocking(context, stack, comment, email) }
+
 /** Teksty modułu – polski albo angielski, zależnie od języka telefonu. */
-internal object FeedbackText {
+object FeedbackText {
     private val pl get() = Locale.getDefault().language == "pl"
+    val entryTitle get() = if (pl) "Zgłoś błąd lub sugestię" else "Report a bug or suggestion"
+    val entrySubtitle get() = if (pl) "Wiadomość trafia prosto do autora" else "Goes straight to the developer"
     val reportTitle get() = if (pl) "Zgłoś błąd lub sugestię" else "Report a bug or suggest a feature"
     val bug get() = if (pl) "Błąd" else "Bug"
     val feature get() = if (pl) "Sugestia" else "Suggestion"
@@ -63,6 +78,17 @@ internal object FeedbackText {
     val sendReport get() = if (pl) "Wyślij raport" else "Send report"
     val dontSend get() = if (pl) "Nie wysyłaj" else "Don't send"
     val copy get() = if (pl) "Kopiuj" else "Copy"
+}
+
+/**
+ * Wpis w ustawieniach otwierający [FeedbackDialog]. [entry] rysuje wiersz w stylu aplikacji
+ * i woła `open()` po dotknięciu; podpis i opis są w [FeedbackText.entryTitle] / [FeedbackText.entrySubtitle].
+ */
+@Composable
+fun FeedbackEntry(entry: @Composable (open: () -> Unit) -> Unit) {
+    var show by rememberSaveable { mutableStateOf(false) }
+    entry { show = true }
+    if (show) FeedbackDialog(onDismiss = { show = false })
 }
 
 /**

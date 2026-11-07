@@ -4,8 +4,6 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import android.os.Process
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.io.PrintWriter
@@ -90,7 +88,8 @@ object Feedback {
         runCatching { crashFile(context).delete() }
     }
 
-    suspend fun sendCrash(context: Context, crash: PendingCrash, comment: String, email: String): Result<Unit> {
+    /** Wysyłka blokująca – wołaj poza wątkiem głównym (wersje `suspend` są w FeedbackUi.kt). */
+    fun sendCrashBlocking(context: Context, crash: PendingCrash, comment: String, email: String): Result<Unit> {
         val body = baseJson(context)
             .put("kind", "crash")
             .put("appVersion", crash.appVersion.ifBlank { appVersion(context) })
@@ -102,10 +101,10 @@ object Feedback {
     }
 
     /** Raport z gotowego tekstu awarii (np. z własnego dziennika aplikacji). */
-    suspend fun sendCrashText(context: Context, stack: String, comment: String, email: String): Result<Unit> =
-        sendCrash(context, PendingCrash(stack, System.currentTimeMillis(), "", appVersion(context)), comment, email)
+    fun sendCrashTextBlocking(context: Context, stack: String, comment: String, email: String): Result<Unit> =
+        sendCrashBlocking(context, PendingCrash(stack, System.currentTimeMillis(), "", appVersion(context)), comment, email)
 
-    suspend fun send(context: Context, kind: Kind, message: String, email: String, includeDiagnostics: Boolean): Result<Unit> {
+    fun sendBlocking(context: Context, kind: Kind, message: String, email: String, includeDiagnostics: Boolean): Result<Unit> {
         val body = baseJson(context, includeDevice = includeDiagnostics)
             .put("kind", kind.wire)
             .put("message", message.trim())
@@ -154,7 +153,7 @@ object Feedback {
         context.applicationInfo.loadLabel(context.packageManager).toString()
     }.getOrDefault("")
 
-    private suspend fun post(json: JSONObject): Result<Unit> = withContext(Dispatchers.IO) {
+    private fun post(json: JSONObject): Result<Unit> =
         runCatching {
             val conn = (URL(ENDPOINT).openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
@@ -172,5 +171,4 @@ object Feedback {
                 conn.disconnect()
             }
         }
-    }
 }

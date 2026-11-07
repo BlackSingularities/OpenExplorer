@@ -1,5 +1,10 @@
 # Zmiany
 
+## 1.9.0
+
+- Zgłaszanie błędów i sugestii: nowa pozycja „Zgłoś błąd lub sugestię” – opis trafia prosto do autora przez redzikowski.com, e-mail jest opcjonalny.
+- Po nieoczekiwanym zamknięciu aplikacja przy następnym uruchomieniu proponuje wysłanie raportu o błędzie – tylko za zgodą użytkownika.
+
 ## 1.8.0
 
 - Menu: karty Strona / Narzędzia / Biblioteka na całą szerokość, przewijane gestem w bok; szybkie przełączniki jako ikony z etykietą wysuwaną po dotknięciu.

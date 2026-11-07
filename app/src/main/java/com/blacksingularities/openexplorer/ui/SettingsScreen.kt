@@ -614,6 +614,9 @@ fun SettingsScreen(
                     state.newTab("https://redzikowski.com")
                     onBack()
                 }
+                com.blacksingularities.openexplorer.feedback.FeedbackEntry { open ->
+                    ClickRow(com.blacksingularities.openexplorer.feedback.FeedbackText.entryTitle, com.blacksingularities.openexplorer.feedback.FeedbackText.entrySubtitle) { open() }
+                }
                 ClickRow(stringResource(R.string.settings_about_coffee), stringResource(R.string.settings_about_coffee_hint)) {
                     state.newTab("https://buycoffee.to/adamredzikowski")
                     onBack()
