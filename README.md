@@ -1,5 +1,13 @@
 # OpenExplorer
 
+<!-- posters:start -->
+<p align="center">
+  <img src="docs/posters/android.png" alt="OpenExplorer – Android" width="460">
+</p>
+
+<p align="center"><a href="https://redzikowski.com/portfolio/openexplorer">redzikowski.com/portfolio/openexplorer</a></p>
+<!-- posters:end -->
+
 Szybka, minimalistyczna i rozbudowana przeglądarka internetowa na Androida (8.0+), napisana w Kotlinie i Jetpack Compose na silniku systemowego WebView (Chromium).
 
 ## Funkcje

@@ -1,0 +1,23 @@
+{
+  "slug": "openexplorer",
+  "name": "OpenExplorer",
+  "label": "przeglądarka internetowa",
+  "icon": "icon.png",
+  "url": "https://redzikowski.com/portfolio/openexplorer",
+  "posters": [
+    {
+      "platform": "android",
+      "file": "android.png",
+      "title": "Internet *bez reklam i śledzenia*",
+      "lead": "Szybka przeglądarka z blokowaniem reklam, kontenerami kart, własnym menedżerem haseł i stroną startową, którą układasz po swojemu.",
+      "shots": [
+        { "src": "../screenshots/android/01-strona.png", "caption": "Przeglądanie" },
+        { "src": "../screenshots/android/02-karty.png", "caption": "Karty" },
+        { "src": "../screenshots/android/03-menu.png", "caption": "Szybkie menu" },
+        { "src": "../screenshots/android/04-prywatnosc.png", "caption": "Prywatność" }
+      ],
+      "features": ["blokowanie reklam", "kontenery kart", "hasła z odciskiem palca", "znikające banery cookies", "tryb czytania", "czytanie na głos"],
+      "meta": "Android 8 lub nowszy"
+    }
+  ]
+}
